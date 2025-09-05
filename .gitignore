@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.vite/
+
+# system files
+.DS_Store
+Thumbs.db
+
+# lock file (tránh conflict)
+package-lock.json
