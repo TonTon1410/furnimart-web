@@ -1,69 +1,58 @@
-# React + TypeScript + Vite
+# 🛋️ FurniMart FE
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**FurniMart** là hệ thống thương mại điện tử nội thất đa chi nhánh với trải nghiệm 3D trực quan.  
+Đây là phần **Frontend** được xây dựng bằng **React + Vite + TypeScript + TailwindCSS**.  
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Công nghệ sử dụng
+- ⚛️ [React 19](https://react.dev/) + [Vite 7](https://vitejs.dev/)
+- 🟦 [TypeScript](https://www.typescriptlang.org/)
+- 🎨 [TailwindCSS](https://tailwindcss.com/)
+- 🔄 [Redux Toolkit](https://redux-toolkit.js.org/) & [React Redux](https://react-redux.js.org/)
+- 🌐 [React Router DOM](https://reactrouter.com/)
+- ⚡ [Axios](https://axios-http.com/) cho HTTP client
+- 🔔 [Lucide React](https://lucide.dev/) cho icon
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📂 Cấu trúc thư mục
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+furnimart-fe/
+├── public/ # file tĩnh
+├── src/
+│ ├── assets/ # hình ảnh, icon
+│ ├── components/ # component tái sử dụng
+│ ├── pages/ # các trang chính (Home, Login, ...)
+│ ├── router/ # cấu hình route
+│ ├── store/ # redux store & slices
+│ ├── utils/ # hàm tiện ích
+│ ├── App.tsx # app chính
+│ └── main.tsx # entry point
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## ⚙️ Cài đặt & Chạy
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 1. Clone repo
+```bash
+git clone https://github.com/TonTon1410/furnimart-web.git
+cd furnimart-fe
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+2. Cài dependency
+npm install
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3. Chạy môi trường dev
+npm run dev
+
+
+Truy cập: http://localhost:5173
+
+4. Build production
+npm run build
+
+5. Preview production build
+npm run preview
