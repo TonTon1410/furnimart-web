@@ -42,17 +42,10 @@ furnimart-fe/
 git clone https://github.com/TonTon1410/furnimart-web.git
 cd furnimart-fe
 
-### 2. Cài dependency
+2. Cài dependency
 npm install
 
-### 3. Chạy môi trường dev
+3. Chạy môi trường dev
 npm run dev
 
 
-Truy cập: http://localhost:5173
-
-4. Build production
-npm run build
-
-5. Preview production build
-npm run preview
