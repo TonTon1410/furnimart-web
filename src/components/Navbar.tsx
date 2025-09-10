@@ -38,7 +38,7 @@ export default function Navbar() {
   const headerClass =
     "fixed top-0 z-40 w-full transition-colors duration-300";
   const bgClass =
-    isHome && !scrolled ? "bg-transparent" : "bg-[#2f4f4f] shadow-md";
+    isHome && !scrolled ? "bg-transparent" : "bg-[#095544] shadow-md";
 
   return (
     <header className={`${headerClass} ${bgClass}`}>

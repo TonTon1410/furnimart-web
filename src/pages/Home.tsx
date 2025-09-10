@@ -39,7 +39,7 @@ const Home: React.FC = () => {
       {/* HERO – 2 cột */}
       <section className="relative overflow-hidden bg-emerald-50">
         {/* overlay để navbar transparent dễ đọc */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/30 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/40 to-transparent" />
         <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-emerald-200 blur-3xl opacity-50" />
         <div className="pointer-events-none absolute -right-24 -bottom-12 h-80 w-80 rounded-full bg-emerald-200 blur-3xl opacity-40" />
 
@@ -95,7 +95,7 @@ const Home: React.FC = () => {
           >
             <div className="relative mx-auto aspect-[4/3] w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-xl">
               <img
-                src="/hero/hero-1.jpg"
+                src="src\assets\a.png"
                 alt="Phòng khách hiện đại"
                 onError={(e) => onImgError(e, "modern sofa")}
                 className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
