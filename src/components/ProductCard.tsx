@@ -2,20 +2,27 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 
-type Product = {
+export type Product = {
   id: string;
   title: string;
   price: number;
   image: string;
   badge?: string;
 };
-type Props = { data: Product; onAdd?: (id: string) => void };
 
-const ProductCard: React.FC<Props> = ({ data, onAdd }) => {
+type Props = {
+  data: Product;
+  /** Cho phép truyền thêm class bên ngoài (fix lỗi TS). */
+  className?: string;
+  /** Cho phép onAdd() KHÔNG truyền tham số hoặc truyền id. */
+  onAdd?: (id?: string) => void;
+};
+
+const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-soft"
+      className={`group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-soft ${className || ""}`}
     >
       {/* Badge */}
       {data.badge && (
@@ -37,11 +44,9 @@ const ProductCard: React.FC<Props> = ({ data, onAdd }) => {
       {/* Thông tin + nút thêm */}
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">
-            {data.title}
-          </h3>
+          <h3 className="text-base font-semibold text-gray-900">{data.title}</h3>
           <p className="mt-1 text-sm font-semibold text-emerald-600">
-            ${data.price.toFixed(2)}
+            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(data.price)}
           </p>
         </div>
 
@@ -61,7 +66,7 @@ const ProductCard: React.FC<Props> = ({ data, onAdd }) => {
         </button>
       </div>
 
-      {/* gradient glow toàn card khi hover */}
+      {/* glow khi hover */}
       <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition group-hover:opacity-100">
         <div className="absolute inset-0 -z-10 blur-2xl 
           [background:radial-gradient(40%_40%_at_50%_0%,rgba(16,185,129,.15),transparent)]" />
