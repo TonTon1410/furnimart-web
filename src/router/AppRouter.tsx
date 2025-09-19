@@ -7,6 +7,7 @@ import NotFound from "@/pages/NotFound";
 import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
+import ProductDetail from "@/pages/ProductDetail";
 
 
 export default function AppRouter() {
@@ -18,6 +19,7 @@ export default function AppRouter() {
       <Route path="/profile" element={<UserProfile />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/shop" element={<AllProducts />} />
+      <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="*" element={<NotFound />} />
 
       <Route path="/dashboard" element={<AppLayout />}>
