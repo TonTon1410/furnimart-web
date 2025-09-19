@@ -7,7 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 export default function App() {
   const location = useLocation();
 
-  const hideLayoutRoutes = ["/login", "/register", "/forgot-password"];
+  const hideLayoutRoutes = ["/login", "/register", "/forgot-password", "/dashboard"];
   const hideLayout = hideLayoutRoutes.includes(location.pathname);
 
   return (
