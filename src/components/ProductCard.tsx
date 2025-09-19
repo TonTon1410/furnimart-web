@@ -6,9 +6,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 export type Product = {
   id: string;
-  title: string;
+  description: string;
   price: number;
-  image: string;
+  thumbnailImage: string;
   badge?: string;
 };
 
@@ -46,8 +46,8 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
       {/* Ảnh → Link tới chi tiết */}
       <Link to={`/product/${data.id}`} className="block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
         <img
-          src={data.image}
-          alt={data.title}
+          src={data.thumbnailImage}
+          alt={data.description}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
@@ -61,7 +61,7 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
             to={`/product/${data.id}`}
             className="text-base font-semibold text-gray-900 hover:underline"
           >
-            {data.title}
+            {data.description}
           </Link>
           <p className="mt-1 text-sm font-semibold text-emerald-600">
             {new Intl.NumberFormat("vi-VN").format(data.price) + " đ"}

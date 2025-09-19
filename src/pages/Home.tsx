@@ -39,7 +39,7 @@ const Home: React.FC = () => {
       .then((res) => setProducts(res.data.data))
       .catch((err) => {
         console.error("Load products error:", err)
-        setProducts([]) // fallback rỗng
+        // setProducts([]) // fallback rỗng
       })
   }, [])
 
@@ -155,9 +155,9 @@ const Home: React.FC = () => {
             className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
             variants={stagger}
             initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="show"
           >
+            
             {products.map((p) => {
               const img =
                 p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
@@ -170,7 +170,7 @@ const Home: React.FC = () => {
                       id: p.id,
                       title: p.name,
                       price: p.price,
-                      image: img,
+                      thumbnailImage: img,
                       // Nếu ProductCard hiển thị giá, có thể truyền thêm fmtVND(p.price)
                     }}
                     onAdd={async () => {
