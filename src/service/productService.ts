@@ -35,5 +35,5 @@ interface ProductResponse {
 
 export const productService = {
   getById: (id: string) =>
-    axios.get<ProductResponse>(`http://localhost:8084/api/products/${id}`),
+    axios.get<ProductResponse>(`http://152.53.169.79:8084/api/products/${id}`),
 };
