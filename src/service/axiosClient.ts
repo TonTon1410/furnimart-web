@@ -5,7 +5,7 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios"
 // Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
 // ───────────────────────────────────────────────
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8086/api", // ✅ SỬA: Đổi port từ 8080 thành 8086
+  baseURL: "http://152.53.169.79:8086/api", // ✅ SỬA: Đổi port từ 8080 thành 8086
   headers: {
     "Content-Type": "application/json",
   },
@@ -116,7 +116,7 @@ axiosClient.interceptors.response.use(
 
         // ✅ SỬA: Cập nhật port trong refresh instance
         const refreshInstance = axios.create({
-          baseURL: "http://localhost:8086/api", // SỬA port
+          baseURL: "http://152.53.169.79:8086/api", // SỬA port
           headers: { "Content-Type": "application/json" },
         })
 

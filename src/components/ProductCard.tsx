@@ -46,7 +46,8 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
         <div>
           <h3 className="text-base font-semibold text-gray-900">{data.title}</h3>
           <p className="mt-1 text-sm font-semibold text-emerald-600">
-            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(data.price)}
+            {new Intl.NumberFormat("vi-VN").format(data.price) + " đ"}
+
           </p>
         </div>
 
