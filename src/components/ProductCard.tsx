@@ -1,6 +1,8 @@
+// src/components/ProductCard.tsx
 import React from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export type Product = {
   id: string;
@@ -12,17 +14,27 @@ export type Product = {
 
 type Props = {
   data: Product;
-  /** Cho phép truyền thêm class bên ngoài (fix lỗi TS). */
   className?: string;
-  /** Cho phép onAdd() KHÔNG truyền tham số hoặc truyền id. */
   onAdd?: (id?: string) => void;
 };
 
 const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
+  const navigate = useNavigate();
+
+  const goDetail = () => navigate(`/product/${data.id}`);
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
       className={`group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-soft ${className || ""}`}
+      // Cho phép Enter/Space mở chi tiết khi card đang focus
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          goDetail();
+        }
+      }}
     >
       {/* Badge */}
       {data.badge && (
@@ -31,35 +43,41 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
         </span>
       )}
 
-      {/* Ảnh sản phẩm */}
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
+      {/* Ảnh → Link tới chi tiết */}
+      <Link to={`/product/${data.id}`} className="block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
         <img
           src={data.image}
           alt={data.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-      </div>
+      </Link>
 
       {/* Thông tin + nút thêm */}
       <div className="mt-3 flex items-start justify-between gap-3">
+        {/* Tiêu đề → Link tới chi tiết */}
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{data.title}</h3>
+          <Link
+            to={`/product/${data.id}`}
+            className="text-base font-semibold text-gray-900 hover:underline"
+          >
+            {data.title}
+          </Link>
           <p className="mt-1 text-sm font-semibold text-emerald-600">
             {new Intl.NumberFormat("vi-VN").format(data.price) + " đ"}
-
           </p>
         </div>
 
+        {/* Nút thêm giỏ: chặn nổi bọt để không kích hoạt Link */}
         <button
-          onClick={() => onAdd?.(data.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onAdd?.(data.id);
+          }}
           className="relative rounded-full border border-gray-200 bg-white p-2 text-gray-700
              transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 
-             active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-300
-             before:absolute before:inset-0 before:rounded-full before:opacity-0 
-             before:transition before:duration-300
-             before:[background:radial-gradient(circle,rgba(16,185,129,0.25)_40%,transparent_70%)]
-             hover:before:opacity-100"
+             active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-300"
           aria-label="Thêm vào giỏ hàng"
           title="Thêm vào giỏ hàng"
         >
