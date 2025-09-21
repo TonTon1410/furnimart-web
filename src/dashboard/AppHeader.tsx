@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, LogOut } from "lucide-react";
-import { useSidebar } from "../../context/SidebarContext";
-import { useTheme } from "../../context/ThemeContext";
+import { useSidebar } from "../context/SidebarContext";
+import { useTheme } from "../context/ThemeContext";
 import Dropdown from "./Dropdown";
 import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
@@ -72,7 +72,7 @@ const AppHeader: React.FC = () => {
       try {
         const res = await axiosClient.get<{ data: UserProfile }>("/users/profile");
         setUser(res.data.data);
-      } catch (e) {
+      } catch {
         authService.logout();
         setUser(null);
       }
@@ -114,7 +114,8 @@ const AppHeader: React.FC = () => {
           <button
             onClick={handleToggleSidebar}
             aria-label="Toggle Sidebar"
-            aria-controls="app-sidebar"
+            aria-haspopup="true"
+            aria-controls={isMobileOpen ? "app-sidebar" : undefined}
             className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 border border-gray-200 rounded-lg text-gray-500 dark:border-gray-800 dark:text-gray-400"
           >
             {isMobileOpen ? (
