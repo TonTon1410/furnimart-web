@@ -4,7 +4,7 @@ import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import UserProfile from "@/pages/UserProfile";
 import NotFound from "@/pages/NotFound";
-import AppLayout from "@/dashboard/AppLayout";
+import AppLayout from "@/roles/admin-dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
@@ -22,9 +22,9 @@ export default function AppRouter() {
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="*" element={<NotFound />} />
 
-      <Route path="/dashboard" element={<AppLayout />}>
-        <Route index element={<Home />} />
-        <Route path="cart" element={<Cart />} />
+      <Route path="/dashboard_admin" element={<AppLayout />}>
+        <Route index element={<UserProfile />} />
+        <Route path="profile" element={<UserProfile />} />
       </Route>
     </Routes>
   );
