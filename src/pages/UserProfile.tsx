@@ -370,7 +370,10 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground
+                bg-gray-50 text-gray-900
+                dark:bg-gray-950 dark:text-gray-50">
+
       <div className="warm-gradient interior-texture">
         <div className="container mx-auto px-6 py-8">
           

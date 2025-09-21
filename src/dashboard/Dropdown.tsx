@@ -1,3 +1,4 @@
+// src/dashboard/Dropdown.tsx
 import type React from "react";
 import { Link } from "react-router-dom";
 
@@ -5,8 +6,8 @@ type DropdownProps = {
   isOpen: boolean;
   onClose?: () => void;
   className?: string;
-  labelledById?: string;  // id của button trigger
-  menuId?: string;        // id cho <ul role="menu">
+  labelledById?: string; // id của button trigger
+  menuId?: string;       // id cho <ul role="menu">
   children: React.ReactNode;
 };
 
@@ -17,11 +18,13 @@ export const Dropdown: React.FC<DropdownProps> & {
 
   return (
     <div
+      role="presentation"
       className={`absolute right-0 mt-2 z-40 rounded-xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 ${className}`}
       onKeyDown={(e) => {
-        if (e.key === "Escape" && onClose) onClose();
+        if (e.key === "Escape") onClose?.();
       }}
     >
+      {/* container role="menu" + aria-labelledby */}
       <ul id={menuId} role="menu" aria-labelledby={labelledById} className="py-1">
         {children}
       </ul>
@@ -47,20 +50,37 @@ const DropdownItemImpl: React.FC<DropdownItemProps> = ({
   children,
 }) => {
   const classes = `${baseClassName} ${className}`.trim();
+
   const handle = (e: React.MouseEvent) => {
     if (!to) e.preventDefault();
     onClick?.();
     onItemClick?.();
   };
 
-  return to ? (
-    <Link to={to} className={classes} onClick={handle} role="menuitem">
-      {children}
-    </Link>
-  ) : (
-    <button onClick={handle} className={classes} role="menuitem">
-      {children}
-    </button>
+  return (
+    <li role="none">
+      {to ? (
+        <Link
+          to={to}
+          role="menuitem"
+          tabIndex={-1}
+          className={classes}
+          onClick={handle}
+        >
+          {children}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={handle}
+          className={classes}
+        >
+          {children}
+        </button>
+      )}
+    </li>
   );
 };
 
