@@ -1,49 +1,60 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Edit3, 
-  Save, 
-  X, 
-  Camera, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Edit3,
+  Save,
+  X,
+  Camera,
   Lock,
   Settings,
-  LogOut,
-  ArrowLeft,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  CreditCard,
+  Star,
+  Shield,
+  UserCheck,
+  Award,
 } from "lucide-react"
-import { Link } from "react-router-dom"
-import axiosClient from "../service/axiosClient"
-import { authService } from "../service/authService"
+import axiosClient from "@/service/axiosClient"
+import { authService } from "@/service/authService"
+import { userService } from "@/service/userService"
 
-interface UserProfile {
+
+export interface UserProfile {
   id: string
   email: string
   fullName: string
   phone?: string
   address?: string
-  dateOfBirth?: string
+  birthday?: string // Changed from dateOfBirth to birthday to match API
   avatar?: string
+  role?: string
+  status?: string
+  point?: number | null // Allow null for compatibility with service type
+  gender?: boolean // Added gender field
+  cccd?: string | null // Allow null for compatibility with service type
   createdAt: string
   updatedAt: string
 }
 
-// API Response interface từ Swagger
-interface ApiResponse<T> {
-  status: number
-  message: string
-  data: T
-  timestamp?: string
-}
-
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
 
 export default function UserProfile() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -59,29 +70,31 @@ export default function UserProfile() {
     fullName: "",
     phone: "",
     address: "",
-    dateOfBirth: ""
+    birthday: "",
+    gender: false,
+    cccd: "",
   })
 
   // Check authentication on component mount
   useEffect(() => {
-    console.log("🔍 UserProfile component mounted");
-    
+    console.log("🔍 UserProfile component mounted")
+
     // Debug authentication
-    const isAuth = authService.isAuthenticated();
-    const tokenDebug = authService.debugTokens();
-    
+    const isAuth = authService.isAuthenticated()
+    const tokenDebug = authService.debugTokens()
+
     setDebugInfo({
       isAuthenticated: isAuth,
       tokens: tokenDebug,
-      timestamp: new Date().toLocaleString()
-    });
+      timestamp: new Date().toLocaleString(),
+    })
 
     if (!isAuth) {
-      console.log("❌ Not authenticated, redirecting to login");
+      console.log("❌ Not authenticated, redirecting to login")
       window.location.href = "/login"
       return
     }
-    
+
     fetchUserProfile()
   }, [])
 
@@ -89,36 +102,37 @@ export default function UserProfile() {
     try {
       setIsLoading(true)
       setError("")
-      
-      console.log("📡 Fetching user profile...");
-      
-      // Debug: kiểm tra token trước khi gọi API
-      const token = authService.getToken();
-      console.log("🔑 Current token:", token ? token.substring(0, 30) + "..." : "None");
-      
-      const response = await axiosClient.get<ApiResponse<UserProfile>>("/users/profile")
-      
-      console.log("✅ Profile response:", response);
 
-      if (response.data.status === 200 && response.data.data) {
-        const userData = response.data.data
-        console.log("👤 User data received:", userData);
-        
+      console.log("📡 Fetching user profile...")
+
+      // Debug: kiểm tra token trước khi gọi API
+      const token = authService.getToken()
+      console.log("🔑 Current token:", token ? token.substring(0, 30) + "..." : "None")
+
+      const response = await userService.getProfile()
+
+      console.log("✅ Profile response:", response)
+
+      if (response.status === 200 && response.data) {
+        const userData = response.data
+        console.log("👤 User data received:", userData)
+
         setUser(userData)
-        
-        // Initialize edit form with current data
+
         setEditForm({
           fullName: userData.fullName || "",
           phone: userData.phone || "",
           address: userData.address || "",
-          dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : ""
+          birthday: userData.birthday ? userData.birthday.split("T")[0] : "",
+          gender: userData.gender || false,
+          cccd: userData.cccd || "",
         })
       } else {
-        throw new Error(response.data.message || "Không thể tải thông tin profile")
+        throw new Error(response.message || "Không thể tải thông tin profile")
       }
     } catch (error: any) {
       console.error("❌ Fetch profile error:", error)
-      
+
       // Chi tiết error logging
       if (error.response) {
         console.error("Server Error Details:", {
@@ -126,23 +140,19 @@ export default function UserProfile() {
           statusText: error.response.statusText,
           data: error.response.data,
           url: error.config?.url,
-          fullURL: `${error.config?.baseURL}${error.config?.url}`
-        });
+          fullURL: `${error.config?.baseURL}${error.config?.url}`,
+        })
       }
-      
+
       if (error.response?.status === 401) {
-        console.log("🔓 Unauthorized - clearing tokens and redirecting");
+        console.log("🔓 Unauthorized - clearing tokens and redirecting")
         authService.logout()
         window.location.href = "/login"
         return
       }
-      
-      setError(
-        error.response?.data?.message || 
-        error.message || 
-        "Không thể tải thông tin profile"
-      )
-      
+
+      setError(error.response?.data?.message || error.message || "Không thể tải thông tin profile")
+
       // Cập nhật debug info
       setDebugInfo({
         ...debugInfo,
@@ -150,9 +160,9 @@ export default function UserProfile() {
           message: error.message,
           status: error.response?.status,
           url: error.config?.url,
-          timestamp: new Date().toLocaleString()
-        }
-      });
+          timestamp: new Date().toLocaleString(),
+        },
+      })
     } finally {
       setIsLoading(false)
     }
@@ -160,12 +170,13 @@ export default function UserProfile() {
 
   const handleEditToggle = () => {
     if (isEditing && user) {
-      // Cancel edit - reset form to current user data
       setEditForm({
         fullName: user.fullName || "",
         phone: user.phone || "",
         address: user.address || "",
-        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : ""
+        birthday: user.birthday ? user.birthday.split("T")[0] : "",
+        gender: user.gender || false,
+        cccd: user.cccd || "",
       })
     }
     setIsEditing(!isEditing)
@@ -179,6 +190,13 @@ export default function UserProfile() {
       return
     }
 
+    // Validate using userService
+    const validationErrors = userService.validateProfileData(editForm)
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(", "))
+      return
+    }
+
     try {
       setIsSaving(true)
       setError("")
@@ -187,33 +205,28 @@ export default function UserProfile() {
         fullName: editForm.fullName.trim(),
         phone: editForm.phone.trim(),
         address: editForm.address.trim(),
-        dateOfBirth: editForm.dateOfBirth || null
+        birthday: editForm.birthday || null,
+        gender: editForm.gender,
+        cccd: editForm.cccd.trim(),
       }
 
-      console.log("💾 Updating profile with data:", updateData);
+      console.log("💾 Updating profile with data:", updateData)
 
-      const response = await axiosClient.put<ApiResponse<UserProfile>>(
-        "/users/profile", 
-        updateData
-      )
+      const response = await userService.updateProfile(updateData)
 
-      if (response.data.status === 200 && response.data.data) {
-        setUser(response.data.data)
+      if (response.status === 200 && response.data) {
+        setUser(response.data)
         setIsEditing(false)
         setSuccess("Cập nhật thông tin thành công!")
-        
+
         // Clear success message after 5 seconds
         setTimeout(() => setSuccess(""), 5000)
       } else {
-        throw new Error(response.data.message || "Cập nhật thông tin thất bại")
+        throw new Error(response.message || "Cập nhật thông tin thất bại")
       }
     } catch (error: any) {
       console.error("Update profile error:", error)
-      setError(
-        error.response?.data?.message || 
-        error.message || 
-        "Cập nhật thông tin thất bại"
-      )
+      setError(error.response?.data?.message || error.message || "Cập nhật thông tin thất bại")
     } finally {
       setIsSaving(false)
     }
@@ -227,7 +240,7 @@ export default function UserProfile() {
     event.target.value = ""
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if (!allowedTypes.includes(file.type)) {
       setError("Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)")
       return
@@ -244,52 +257,31 @@ export default function UserProfile() {
       setIsUploadingAvatar(true)
       setError("")
 
-      const formData = new FormData()
-      formData.append('avatar', file)
+      const response = await userService.uploadAvatar(file)
 
-      const response = await axiosClient.post<ApiResponse<{ avatar: string }>>(
-        "/users/avatar", 
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      )
-
-      if (response.data.status === 200 && response.data.data && user) {
-        setUser({ ...user, avatar: response.data.data.avatar })
+      if (response.status === 200 && response.data && user) {
+        setUser({ ...user, avatar: response.data.avatar })
         setSuccess("Cập nhật avatar thành công!")
         setTimeout(() => setSuccess(""), 3000)
       } else {
-        throw new Error(response.data.message || "Cập nhật avatar thất bại")
+        throw new Error(response.message || "Cập nhật avatar thất bại")
       }
     } catch (error: any) {
       console.error("Upload avatar error:", error)
-      setError(
-        error.response?.data?.message || 
-        error.message || 
-        "Cập nhật avatar thất bại"
-      )
+      setError(error.response?.data?.message || error.message || "Cập nhật avatar thất bại")
     } finally {
       setIsUploadingAvatar(false)
     }
   }
 
-  const handleLogout = () => {
-    if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      authService.logout()
-      window.location.href = "/login"
-    }
-  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Chưa cập nhật"
     try {
       return new Date(dateString).toLocaleDateString("vi-VN", {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       })
     } catch {
       return "Chưa cập nhật"
@@ -298,29 +290,40 @@ export default function UserProfile() {
 
   const getAvatarUrl = (user: UserProfile) => {
     if (user.avatar) {
-      // If avatar starts with http, use as is, otherwise prepend base URL
-      return user.avatar.startsWith('http') 
-        ? user.avatar 
-        : `http://localhost:8086${user.avatar}`
+      // Nếu avatar là link tuyệt đối thì dùng luôn, nếu không thì nối với baseURL từ axiosClient
+      return user.avatar.startsWith("http")
+        ? user.avatar
+        : `${axiosClient.defaults.baseURL?.replace("/api", "")}${user.avatar}`
     }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=0ea5e9&color=fff&size=128`
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=d97706&color=fff&size=160`
+  }
+
+  const getRoleDisplay = (role?: string) => {
+    const roleMap: { [key: string]: { label: string; color: string; icon: React.ReactNode } } = {
+      CUSTOMER: { label: "Khách hàng", color: "bg-blue-100 text-blue-800", icon: <User className="h-4 w-4" /> },
+      ADMIN: { label: "Quản trị viên", color: "bg-red-100 text-red-800", icon: <Shield className="h-4 w-4" /> },
+      STAFF: { label: "Nhân viên", color: "bg-green-100 text-green-800", icon: <UserCheck className="h-4 w-4" /> },
+    }
+    return roleMap[role || "CUSTOMER"] || roleMap["CUSTOMER"]
+  }
+
+  const getStatusDisplay = (status?: string) => {
+    const statusMap: { [key: string]: { label: string; color: string } } = {
+      ACTIVE: { label: "Hoạt động", color: "bg-green-100 text-green-800" },
+      INACTIVE: { label: "Không hoạt động", color: "bg-gray-100 text-gray-800" },
+      SUSPENDED: { label: "Tạm khóa", color: "bg-red-100 text-red-800" },
+    }
+    return statusMap[status || "ACTIVE"] || statusMap["ACTIVE"]
   }
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải thông tin...</p>
-          
-          {/* Debug Panel khi loading */}
-          {debugInfo && (
-            <div className="mt-6 p-4 bg-white rounded-lg shadow text-left text-sm">
-              <h3 className="font-semibold mb-2">Debug Info:</h3>
-              <pre className="text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
-            </div>
-          )}
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto mb-6"></div>
+          <p className="text-foreground text-lg font-medium">Đang tải thông tin...</p>
+          <p className="text-muted-foreground mt-2">Vui lòng chờ trong giây lát...</p>
         </div>
       </div>
     )
@@ -329,222 +332,240 @@ export default function UserProfile() {
   // Error state - no user data
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-lg">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy thông tin</h2>
-          <p className="text-gray-600 mb-4">Vui lòng đăng nhập lại</p>
-          
-          {/* Chi tiết lỗi */}
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center bg-card p-12 rounded-2xl elegant-shadow max-w-2xl w-full"
+        >
+          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-foreground mb-4">Không tìm thấy thông tin</h2>
+          <p className="text-muted-foreground text-lg mb-8">Vui lòng đăng nhập lại để tiếp tục</p>
+
           {error && (
-            <div className="mb-4 p-3 bg-red-100 rounded text-red-700 text-left">
-              <p className="font-semibold">Lỗi chi tiết:</p>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-left">
+              <p className="font-semibold mb-2">Chi tiết lỗi:</p>
               <p className="text-sm">{error}</p>
             </div>
           )}
-          
-          {/* Debug info */}
-          {debugInfo && (
-            <div className="mb-4 p-3 bg-gray-100 rounded text-left text-xs">
-              <p className="font-semibold mb-2">Debug Information:</p>
-              <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-            </div>
-          )}
-          
-          <div className="flex gap-3 justify-center">
+
+          <div className="flex gap-4 justify-center">
             <button
               onClick={fetchUserProfile}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-5 w-5" />
               Thử lại
             </button>
-            <Link 
-              to="/login" 
-              className="flex items-center px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+            <button
+              onClick={() => (window.location.href = "/login")}
+              className="flex items-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/90 transition-all duration-200 font-medium"
             >
               Đăng nhập lại
-            </Link>
+            </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link 
-                to="/" 
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Quay lại</span>
-              </Link>
-              <h1 className="text-xl font-semibold text-gray-900">Thông tin cá nhân</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Đăng xuất</span>
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-background">
+      <div className="warm-gradient interior-texture">
+        <div className="container mx-auto px-6 py-8">
+          
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6">
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={fadeUp}
-          transition={{ duration: 0.6 }}
-        >
-          {/* Messages */}
+      <div className="container mx-auto px-6 -mt-4">
+        <motion.div initial="hidden" animate="show" variants={staggerContainer} className="space-y-8">
           {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-start justify-between"
+            <motion.div
+              variants={fadeUp}
+              className="p-6 bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl flex items-start justify-between elegant-shadow"
             >
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-4">
+                <AlertCircle className="h-6 w-6 mt-1 flex-shrink-0" />
                 <div>
-                  <div className="font-semibold">Có lỗi xảy ra:</div>
-                  <div className="text-sm">{error}</div>
-                  {debugInfo?.lastError && (
-                    <div className="text-xs mt-2 p-2 bg-red-50 rounded">
-                      <div>Status: {debugInfo.lastError.status}</div>
-                      <div>URL: {debugInfo.lastError.url}</div>
-                      <div>Time: {debugInfo.lastError.timestamp}</div>
-                    </div>
-                  )}
+                  <div className="font-semibold text-lg mb-1">Có lỗi xảy ra</div>
+                  <div className="text-sm opacity-90">{error}</div>
                 </div>
               </div>
-              <button 
-                onClick={() => setError("")}
-                className="text-red-500 hover:text-red-700 ml-2"
-              >
-                <X className="h-4 w-4" />
+              <button onClick={() => setError("")} className="text-destructive/60 hover:text-destructive p-1">
+                <X className="h-5 w-5" />
               </button>
             </motion.div>
           )}
 
           {success && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center justify-between"
+            <motion.div
+              variants={fadeUp}
+              className="p-6 bg-green-50 border border-green-200 text-green-800 rounded-2xl flex items-center justify-between elegant-shadow"
             >
-              <span>{success}</span>
-              <button 
-                onClick={() => setSuccess("")}
-                className="text-green-500 hover:text-green-700"
-              >
-                <X className="h-4 w-4" />
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Award className="h-5 w-5" />
+                </div>
+                <span className="font-medium">{success}</span>
+              </div>
+              <button onClick={() => setSuccess("")} className="text-green-600 hover:text-green-800 p-1">
+                <X className="h-5 w-5" />
               </button>
             </motion.div>
           )}
 
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Cover & Avatar Section */}
-            <div className="relative bg-gradient-to-r from-cyan-500 to-blue-600 h-32">
-              <div className="absolute -bottom-16 left-6">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-white p-2 shadow-lg">
-                    <img
-                      src={getAvatarUrl(user)}
-                      alt={user.fullName}
-                      className="w-full h-full rounded-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=0ea5e9&color=fff&size=128`
-                      }}
-                    />
-                    {isUploadingAvatar && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                      </div>
-                    )}
+          <motion.div variants={fadeUp} className="bg-card rounded-3xl elegant-shadow ">
+            <div className="relative h-80">
+              {/* Cover Image */}
+              <div className="absolute inset-0">
+                <img
+                  src="src/assets/noithat.jpg"
+                  alt="Cover"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+              </div>
+
+              {/* Cover Upload Button */}
+              <div className="absolute top-6 right-6">
+                <label className="bg-black/30 backdrop-blur-sm hover:bg-black/40 text-white p-3 rounded-2xl cursor-pointer transition-all duration-200 elegant-shadow flex items-center gap-2">
+                  <Camera className="h-5 w-5" />
+                  <span className="text-sm font-medium">Đổi ảnh bìa</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      // Handle cover upload logic here
+                      console.log("Cover upload:", e.target.files?.[0])
+                    }}
+                  />
+                </label>
+              </div>
+              {/* Profile Avatar positioned over cover */}
+<div className="absolute bottom-0 left-8 translate-y-1/2">
+  <div className="relative">
+    <div className="w-40 h-40 rounded-3xl bg-card p-3 elegant-shadow ring-4 ring-card">
+      <img
+        src={getAvatarUrl(user) || "/placeholder.svg"}
+        alt={user.fullName}
+        className="w-full h-full rounded-2xl object-cover"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement
+          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            user.fullName
+          )}&background=d97706&color=fff&size=160`
+        }}
+      />
+      {isUploadingAvatar && (
+        <div className="absolute inset-3 bg-black/50 rounded-2xl flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-3 border-white/20 border-t-white"></div>
+        </div>
+      )}
+    </div>
+    <label
+      className={`absolute -bottom-2 -right-2 bg-primary hover:bg-primary/90 text-primary-foreground p-3 rounded-2xl cursor-pointer transition-all duration-200 elegant-shadow ${
+        isUploadingAvatar ? "opacity-50 cursor-not-allowed" : ""
+      }`}
+    >
+      <Camera className="h-5 w-5" />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarUpload}
+        disabled={isUploadingAvatar}
+        className="hidden"
+      />
+    </label>
+  </div>
+</div>
+
+              {/* User info overlay on cover */}
+              <div className="absolute bottom-8 right-8 text-right">
+                <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 text-white">
+                  <h2 className="text-2xl font-bold mb-2">{user.fullName}</h2>
+                  <div className="flex items-center justify-end gap-3 mb-2">
+                    <span
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white`}
+                    >
+                      {getRoleDisplay(user.role).icon}
+                      {getRoleDisplay(user.role).label}
+                    </span>
                   </div>
-                  <label className={`absolute bottom-2 right-2 bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-full cursor-pointer transition-colors ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <Camera className="h-4 w-4" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      disabled={isUploadingAvatar}
-                      className="hidden"
-                    />
-                  </label>
+                  <p className="text-white/80 text-sm">{user.email}</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-20 p-6">
-              {/* Header Info */}
-              <div className="flex items-start justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{user.fullName}</h2>
-                  <p className="text-gray-600 flex items-center gap-2 mt-1">
-                    <Mail className="h-4 w-4" />
-                    {user.email}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Tham gia từ {formatDate(user.createdAt)}
-                  </p>
+            <div className="pt-24 p-8">
+              <div className="flex items-start justify-between mb-12">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="flex gap-3">
+                      <span
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusDisplay(user.status).color} elegant-shadow`}
+                      >
+                        {getStatusDisplay(user.status).label}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {user.point !== null && user.point !== undefined && (
+                      <p className="text-primary flex items-center gap-3 text-lg font-medium">
+                        <Star className="h-5 w-5" />
+                        {user.point} điểm thưởng
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex gap-3">
                   {isEditing ? (
                     <>
                       <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium elegant-shadow"
                       >
-                        <Save className="h-4 w-4" />
-                        {isSaving ? "Đang lưu..." : "Lưu"}
+                        <Save className="h-5 w-5" />
+                        {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                       </button>
                       <button
                         onClick={handleEditToggle}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-3 px-6 py-3 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 font-medium"
                       >
-                        <X className="h-4 w-4" />
-                        Hủy
+                        <X className="h-5 w-5" />
+                        Hủy bỏ
                       </button>
                     </>
                   ) : (
                     <button
                       onClick={handleEditToggle}
-                      className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+                      className="flex items-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium elegant-shadow"
                     >
-                      <Edit3 className="h-4 w-4" />
-                      Chỉnh sửa
+                      <Edit3 className="h-5 w-5" />
+                      Chỉnh sửa thông tin
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Profile Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 {/* Personal Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <User className="h-5 w-5 text-cyan-600" />
-                    Thông tin cá nhân
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                <motion.div variants={fadeUp} className="space-y-6">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-primary/10 rounded-2xl">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground">Thông tin cá nhân</h3>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
                         Họ và tên *
                       </label>
                       {isEditing ? (
@@ -552,20 +573,18 @@ export default function UserProfile() {
                           type="text"
                           value={editForm.fullName}
                           onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg"
                           placeholder="Nhập họ và tên"
                           required
                         />
                       ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg">
-                          {user.fullName || "Chưa cập nhật"}
-                        </p>
+                        <p className="text-lg font-medium text-foreground">{user.fullName || "Chưa cập nhật"}</p>
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        <Phone className="h-4 w-4 inline mr-1" />
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
                         Số điện thoại
                       </label>
                       {isEditing ? (
@@ -573,127 +592,151 @@ export default function UserProfile() {
                           type="tel"
                           value={editForm.phone}
                           onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg"
                           placeholder="Nhập số điện thoại"
                         />
                       ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg">
-                          {user.phone || "Chưa cập nhật"}
-                        </p>
+                        <p className="text-lg font-medium text-foreground">{user.phone || "Chưa cập nhật"}</p>
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        <Calendar className="h-4 w-4 inline mr-1" />
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
                         Ngày sinh
                       </label>
                       {isEditing ? (
                         <input
                           type="date"
-                          value={editForm.dateOfBirth}
-                          onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                          value={editForm.birthday}
+                          onChange={(e) => setEditForm({ ...editForm, birthday: e.target.value })}
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg"
                         />
                       ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg">
-                          {formatDate(user.dateOfBirth)}
-                        </p>
+                        <p className="text-lg font-medium text-foreground">{formatDate(user.birthday)}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
+                        Giới tính
+                      </label>
+                      {isEditing ? (
+                        <select
+                          value={editForm.gender ? "true" : "false"}
+                          onChange={(e) => setEditForm({ ...editForm, gender: e.target.value === "true" })}
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg"
+                        >
+                          <option value="false">Nữ</option>
+                          <option value="true">Nam</option>
+                        </select>
+                      ) : (
+                        <p className="text-lg font-medium text-foreground">{user.gender ? "Nam" : "Nữ"}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Căn cước công dân
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.cccd}
+                          onChange={(e) => setEditForm({ ...editForm, cccd: e.target.value })}
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg"
+                          placeholder="Nhập số CCCD (12 số)"
+                          maxLength={12}
+                        />
+                      ) : (
+                        <p className="text-lg font-medium text-foreground">{user.cccd || "Chưa cập nhật"}</p>
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Contact Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-cyan-600" />
-                    Thông tin liên hệ
-                  </h3>
+                <motion.div variants={fadeUp} className="space-y-6">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-secondary/10 rounded-2xl">
+                      <Mail className="h-6 w-6 text-secondary" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground">Thông tin liên hệ</h3>
+                  </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-6">
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
                         Email
                       </label>
-                      <p className="px-3 py-2 bg-gray-100 rounded-lg text-gray-600 flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        {user.email} 
-                        <span className="text-xs text-gray-500">(Không thể thay đổi)</span>
-                      </p>
+                      <div className="flex items-center gap-3 text-lg">
+                        <Mail className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-foreground">{user.email}</span>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          Không thể thay đổi
+                        </span>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        <MapPin className="h-4 w-4 inline mr-1" />
+                    <div className="bg-muted/30 p-6 rounded-2xl">
+                      <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
                         Địa chỉ
                       </label>
                       {isEditing ? (
                         <textarea
                           value={editForm.address}
                           onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                          rows={4}
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground text-lg resize-none"
                           placeholder="Nhập địa chỉ"
                         />
                       ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg min-h-[80px] whitespace-pre-wrap">
+                        <p className="text-lg font-medium text-foreground whitespace-pre-wrap min-h-[100px] leading-relaxed">
                           {user.address || "Chưa cập nhật"}
                         </p>
                       )}
                     </div>
 
-                    {/* Additional Info */}
-                    <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg">
-                      <p className="font-medium mb-1">Thông tin tài khoản:</p>
-                      <p>ID: {user.id}</p>
-                      <p>Cập nhật lần cuối: {formatDate(user.updatedAt)}</p>
+                    {/* Account Info Card */}
+                    <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl">
+                      <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-primary" />
+                        Thông tin tài khoản
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Cập nhật lần cuối:</span> {formatDate(user.updatedAt)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
 
-              {/* Additional Actions */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-cyan-600" />
-                  Cài đặt tài khoản
-                </h3>
-                
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    to="/change-password"
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Lock className="h-4 w-4" />
-                    Đổi mật khẩu
-                  </Link>
-                  
-                  <button
-                    onClick={fetchUserProfile}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 border border-cyan-300 text-cyan-600 rounded-lg hover:bg-cyan-50 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    {isLoading ? "Đang tải..." : "Làm mới"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Debug Panel - chỉ hiển thị khi có lỗi */}
-              {debugInfo && (error || debugInfo.lastError) && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-amber-600" />
-                    Thông tin debug
-                  </h3>
-                  <div className="bg-gray-100 p-4 rounded-lg text-sm font-mono">
-                    <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+              <motion.div variants={fadeUp} className="mt-16 pt-8 border-t border-border">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-accent/10 rounded-2xl">
+                    <Settings className="h-6 w-6 text-accent" />
                   </div>
+                  <h3 className="text-2xl font-bold text-foreground">Cài đặt tài khoản</h3>
                 </div>
-              )}
+
+                <div className="flex flex-wrap gap-4">
+                  <button
+                    onClick={() => (window.location.href = "/change-password")}
+                    className="flex items-center gap-3 px-6 py-4 border border-border rounded-xl hover:bg-muted/50 transition-all duration-200 font-medium"
+                  >
+                    <Lock className="h-5 w-5 text-primary" />
+                    <span>Đổi mật khẩu</span>
+                  </button>
+
+                 
+                </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </div>
