@@ -25,7 +25,6 @@ const pistachio = "oklch(85.2% 0.199 91.936)";
 
 const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
-  const [tab, setTab] = useState<"description" | "detail">("description");
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
   
@@ -50,39 +49,7 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="mb-4 flex space-x-4">
-        <button
-          className={`px-6 py-2 text-xl rounded-lg transition font-bold ${tab === "description" ? "text-black shadow-lg bg-gray-100" : "text-gray-500 bg-white"}`}
-          style={tab === "description" ? { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" } : {}}
-          onClick={() => setTab("description")}
-        >
-          Mô tả
-        </button>
-        <button
-          className={`px-6 py-2 text-xl rounded-lg transition font-bold ${tab === "detail" ? "text-black shadow-lg bg-gray-100" : "text-gray-500 bg-white"}`}
-          style={tab === "detail" ? { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" } : {}}
-          onClick={() => setTab("detail")}
-        >
-          Chi tiết
-        </button>
-      </div>
-
-      {tab === "description" && <p className="text-gray-700 text-lg">{product.description}</p>}
-      {tab === "detail" && (
-        <div className="grid grid-cols-2 gap-6 text-lg">
-          <div>
-            <div className="mb-2"><b>Chất liệu:</b> {product.materialName}</div>
-            <div><b>Danh mục:</b> {product.categoryName}</div>
-          </div>
-          <div>
-            <div className="mb-2"><b>Cao:</b> {product.height} cm</div>
-            <div className="mb-2"><b>Rộng:</b> {product.width} cm</div>
-            <div className="mb-2"><b>Dài:</b> {product.length} cm</div>
-            <div><b>Nặng:</b> {product.weight} kg</div>
-          </div>
-        </div>
-      )}
+      {/* ...existing code... */}
 
       {/* Nút AR / 3D */}
       <div className="flex space-x-4 mt-6">

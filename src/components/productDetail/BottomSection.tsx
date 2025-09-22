@@ -1,15 +1,75 @@
+
 import React from "react";
 
 interface Product {
   id: string;
   name: string;
+  description?: string;
   price: number;
+  height?: number;
+  width?: number;
+  length?: number;
+  weight?: number;
+  categoryName?: string;
+  materialName?: string;
   images: string[];
 }
 
-const BottomSection: React.FC<{ related: Product[] }> = ({ related }) => {
+interface BottomSectionProps {
+  related: Product[];
+  product: Product;
+}
+
+const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
+
   return (
     <div className="bg-white mt-10">
+      {/* Mô tả */}
+      <div className="mb-10">
+        <h2 className="text-2xl font-semibold mb-4">Mô tả</h2>
+        <p className="text-gray-700 text-base leading-relaxed">
+          {product.description}
+        </p>
+      </div>
+
+      {/* Chi tiết */}
+      <div className="grid grid-cols-2 gap-16 text-base">
+        {/* Materials & Category */}
+        <div>
+          <h2 className="text-xl font-semibold mb-6">Vật liệu & Danh mục</h2>
+          <div className="mb-3 flex">
+            <span className="w-40 text-gray-600">Vật liệu</span>
+            <span className="font-medium">{product.materialName}</span>
+          </div>
+          <div className="mb-3 flex">
+            <span className="w-40 text-gray-600">Danh mục</span>
+            <span className="font-medium">{product.categoryName}</span>
+          </div>
+        </div>
+
+        {/* Dimensions */}
+        <div>
+          <h2 className="text-xl font-semibold mb-6">Kích thước</h2>
+          <div className="mb-3 flex">
+            <span className="w-40 text-gray-600">Chiều cao</span>
+            <span className="font-medium">{product.height} in</span>
+          </div>
+          <div className="mb-3 flex">
+            <span className="w-40 text-gray-600">Chiều rộng</span>
+            <span className="font-medium">{product.width} in</span>
+          </div>
+          <div className="mb-3 flex">
+            <span className="w-40 text-gray-600">Chiều dài/sâu</span>
+            <span className="font-medium">{product.length} in</span>
+          </div>
+          <div className="flex">
+            <span className="w-40 text-gray-600">Trọng lượng</span>
+            <span className="font-medium">{product.weight} kg</span>
+          </div>
+        </div>
+      </div>
+
+      {/* You may be like */}
       <h2 className="text-2xl font-bold mb-4 text-center">Bạn có thể thích</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {related.map((item) => (
@@ -29,3 +89,4 @@ const BottomSection: React.FC<{ related: Product[] }> = ({ related }) => {
 };
 
 export default BottomSection;
+
