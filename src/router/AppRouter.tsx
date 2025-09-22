@@ -8,6 +8,7 @@ import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
+import AboutPage from "@/pages/AboutPage"
 
 
 export default function AppRouter() {
@@ -21,6 +22,7 @@ export default function AppRouter() {
       <Route path="/shop" element={<AllProducts />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="*" element={<NotFound />} />
+      <Route path="/about" element={<AboutPage/>}/>
 
       <Route path="/dashboard" element={<AppLayout />}>
         <Route index element={<Home />} />
