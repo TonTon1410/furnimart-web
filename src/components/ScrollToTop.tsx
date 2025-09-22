@@ -1,83 +1,105 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
+type HeaderMode = "sticky" | "fixed";
+
 interface ScrollToTopProps {
-  headerSelector?: string; // CSS selector cho Navbar, mặc định "header"
+  headerSelector?: string;
+  headerMode?: HeaderMode;       // "sticky" (mặc định) hoặc "fixed"
+  mainClassName?: string;
   children?: React.ReactNode;
 }
 
 export default function ScrollToTop({
   headerSelector = "header",
+  headerMode = "sticky",
+  mainClassName = "",
   children,
 }: ScrollToTopProps) {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const [headerHeight, setHeaderHeight] = useState(0);
-  const observerRef = useRef<ResizeObserver | null>(null); // ✅ có initial value
+  const observerRef = useRef<ResizeObserver | null>(null);
 
-  // Scroll lên đầu khi đổi route
+  // Cuộn lên đầu khi đổi route
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [pathname]);
 
-  // Tự động lấy chiều cao Navbar và set CSS variable --header-h
+  // Theo dõi chiều cao header và set CSS var --header-h
   useEffect(() => {
-    const header = document.querySelector(headerSelector) as HTMLElement | null;
-    if (!header) {
+    const el = document.querySelector(headerSelector) as HTMLElement | null;
+
+    const update = () => {
+      const h = el?.offsetHeight ?? 0;
+      setHeaderHeight(h);
+      document.documentElement.style.setProperty("--header-h", `${h}px`);
+    };
+
+    if (!el) {
       setHeaderHeight(0);
       document.documentElement.style.setProperty("--header-h", "0px");
       return;
     }
 
-    const updateHeight = () => {
-      const h = header.offsetHeight || 0;
-      setHeaderHeight(h);
-      document.documentElement.style.setProperty("--header-h", `${h}px`);
-    };
+    update();
 
-    // Khởi tạo observer
-    observerRef.current = new ResizeObserver(updateHeight);
-    observerRef.current.observe(header);
+    if (typeof ResizeObserver !== "undefined") {
+      observerRef.current = new ResizeObserver(update);
+      observerRef.current.observe(el);
+    }
 
-    // Set lần đầu
-    updateHeight();
-
-    // Cleanup
     return () => {
       observerRef.current?.disconnect();
       observerRef.current = null;
     };
   }, [headerSelector]);
 
-  // Smooth scroll cho anchor links, chừa khoảng trống Navbar
+  // Stable helper: cuộn đến id, trừ chiều cao header
+  const scrollToId = useCallback(
+    (id: string, behavior: ScrollBehavior = "smooth") => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const top =
+        target.getBoundingClientRect().top +
+        window.scrollY -
+        (headerHeight || 0);
+      window.scrollTo({ top, behavior });
+    },
+    [headerHeight]
+  );
+
+  // Bắt click anchor nội bộ (#id) để cuộn mượt và trừ header
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      const target = e.target as Element | null;
-      if (!target) return;
+      const a = (e.target as Element | null)?.closest(
+        'a[href^="#"]'
+      ) as HTMLAnchorElement | null;
+      if (!a) return;
 
-      // Tìm thẻ <a> gần nhất có href="#..."
-      const anchor = target.closest('a[href^="#"]') as HTMLAnchorElement | null;
-      if (!anchor) return;
-
-      const href = anchor.getAttribute("href");
-      if (!href || href.length <= 1) return;
-
+      const href = a.getAttribute("href") || "";
       const id = href.slice(1);
-      const el = document.getElementById(id);
-      if (!el) return;
+      if (!id) return;
 
       e.preventDefault();
-      const top =
-        el.getBoundingClientRect().top + window.scrollY - (headerHeight || 0);
-      window.scrollTo({ top, behavior: "smooth" });
+      scrollToId(id, "smooth");
     };
 
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
-  }, [headerHeight]);
+  }, [scrollToId]);
 
-  // Home: giữ hiệu ứng cũ => không chừa khoảng trống
-  const isHome = pathname === "/";
-  const mainClass = isHome ? "" : "pt-[var(--header-h)]"; // ✅ không dùng inline style
+  // Nếu URL có hash, cuộn đến đó sau render
+  useEffect(() => {
+    if (hash && hash.length > 1) {
+      const id = hash.slice(1);
+      const t = setTimeout(() => scrollToId(id, "auto"), 0);
+      return () => clearTimeout(t);
+    }
+  }, [hash, scrollToId]);
 
-  return <main className={mainClass}>{children}</main>;
+  // sticky: không bù pt; fixed: bù pt = --header-h
+  const mainPT = headerMode === "fixed" ? "pt-[var(--header-h)]" : "";
+  const mainClasses = `${mainPT} ${mainClassName}`.trim();
+
+  return <main className={mainClasses}>{children}</main>;
 }
