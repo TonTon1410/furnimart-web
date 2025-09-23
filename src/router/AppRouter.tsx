@@ -8,7 +8,16 @@ import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
+import AboutPage from "@/pages/AboutPage"
+import ScrollToTop from "@/components/ScrollToTop";
+import { authService } from "@/service/authService";
+import { DP } from "./paths";
+import RoleRoutes from "./RoleRoutes";
+import type { PropsWithChildren } from "react";
 
+const RequireAuth = ({ children }: PropsWithChildren) => {
+  return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+};
 
 export default function AppRouter() {
   return (
@@ -21,10 +30,23 @@ export default function AppRouter() {
       <Route path="/shop" element={<AllProducts />} />
       <Route path="/product/*" element={<ProductDetail />} />
       <Route path="*" element={<NotFound />} />
+      <Route path="/about" element={<AboutPage/>}/>
 
-      <Route path="/dashboard" element={<AppLayout />}>
-        <Route index element={<Home />} />
-        <Route path="cart" element={<Cart />} />
+      {/* Dashboard root */}
+      <Route
+        path={DP("*")}
+        element={
+          <RequireAuth>
+            <ScrollToTop>
+              <AppLayout />
+            </ScrollToTop>
+          </RequireAuth>
+        }
+      >
+        {/* Trang dùng chung cho mọi role */}
+        <Route path="profile" element={<UserProfile />} />
+        {/* Các trang còn lại render theo role */}
+        <Route path="*" element={<RoleRoutes />} />
       </Route>
     </Routes>
   );
