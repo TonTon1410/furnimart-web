@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import type React from "react"
@@ -181,7 +182,7 @@ export default function Login() {
     setSuccess("")
 
     try {
-      const { confirmPassword, ...registerPayload } = registerData
+      const {  ...registerPayload } = registerData
       console.log("Payload gửi đăng ký:", registerPayload)
       const response = await authService.register(registerPayload)
 
@@ -241,7 +242,7 @@ export default function Login() {
       const response = await authService.login(loginData)
 
       console.log("Đăng nhập thành công:", response.data)
-      navigate("/profile")
+      navigate("/")
 
       // Redirect hoặc cập nhật UI sau khi đăng nhập thành công
       // window.location.href = "/dashboard" // hoặc sử dụng navigate từ react-router
@@ -286,8 +287,8 @@ export default function Login() {
 
         <div className="absolute bottom-8 left-8 text-white">
           <h1 className="text-7xl font-bold mb-2">FurniMart</h1>
-          <p className="text-5xl text-white/90 font-bold text-lg">Ứng dụng công nghệ tiên tiến vào từng sản phẩm.</p>
-          <p className="text-5xl text-white/90 font-bold text-lg"> Tối ưu hóa không gian sống và tận hưởng sự tiện nghi mỗi ngày.</p>
+          <p className=" text-white/90 font-bold text-lg">Ứng dụng công nghệ tiên tiến vào từng sản phẩm.</p>
+          <p className=" text-white/90 font-bold text-lg"> Tối ưu hóa không gian sống và tận hưởng sự tiện nghi mỗi ngày.</p>
         </div>
       </div>
 

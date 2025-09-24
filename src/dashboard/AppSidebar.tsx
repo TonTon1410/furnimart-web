@@ -10,23 +10,28 @@ import { authService } from "@/service/authService";
 import { DP } from "@/router/paths";
 
 const AppSidebar: React.FC = () => {
-  // 👉 lấy role hiện tại từ auth
-  const role = (authService.getRole?.() as RoleKey) || "admin";
-
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const location = useLocation();
+
+  // ✅ role lấy từ token hoặc localStorage, không set mặc định "admin"
+  const role = (authService.getRole?.() as RoleKey) || "seller";
+
+  // nav của role hiện tại
   const { main: navItems, others: othersItems = [] } = getNavForRole(role);
 
+  // state & ref
   const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // helper
   const normalize = (p: string) => p.replace(/\/+$/, "");
   const isActive = useCallback(
     (path: string) => normalize(location.pathname) === normalize(path),
     [location.pathname]
   );
 
+  // mở submenu khi pathname trùng
   useEffect(() => {
     let matched = false;
     (["main", "others"] as const).forEach((type) => {
@@ -43,6 +48,7 @@ const AppSidebar: React.FC = () => {
     if (!matched) setOpenSubmenu(null);
   }, [location, isActive, navItems, othersItems]);
 
+  // set chiều cao submenu
   useEffect(() => {
     if (openSubmenu) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
@@ -102,7 +108,9 @@ const AppSidebar: React.FC = () => {
 
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
-             ref={(el) => { subRefs.current[`${type}-${index}`] = el; }}
+              ref={(el) => {
+                subRefs.current[`${type}-${index}`] = el;
+              }}
               className="overflow-hidden transition-all duration-300"
               style={{
                 height:

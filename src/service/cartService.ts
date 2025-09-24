@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/service/cartService.ts
 import axiosClient from "@/service/axiosClient"
 
@@ -24,7 +25,7 @@ export interface ApiResponse<T = any> {
 }
 
 // ✅ Cart chạy cổng 8085
-const CART_BASE = "http://152.53.169.79:8085/api"
+const CART_BASE = "http://152.53.169.79:8080/api"
 
 export const cartService = {
   // GET /api/carts  →  http://152.53.169.79:8085/api/carts

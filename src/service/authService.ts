@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/service/authService.ts
 import axiosClient from "./axiosClient";
 import { mapBackendRoleToKey, type RoleKey } from "@/router/paths";
@@ -43,10 +44,20 @@ interface RegisterResponse {
   timestamp: string;
 }
 
-/** ====== Thêm const key lưu trữ ====== */
+/** ====== LocalStorage keys ====== */
 const TOKEN_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
 const ROLE_KEY = "app:role";
+
+/** ====== DEV: Giả lập role khi test ======
+ *  - Mặc định = null (không override, dùng role thật từ token/localStorage)
+ *  - Khi cần test: bỏ comment 1 dòng dưới để ép role mong muốn rồi refresh trang.
+ */
+let DEV_FORCE_ROLE: RoleKey | null = null;
+DEV_FORCE_ROLE = "seller";
+// DEV_FORCE_ROLE = "admin";
+// DEV_FORCE_ROLE = "manager";
+// DEV_FORCE_ROLE = "delivery";
 
 /** ====== Helpers: decode JWT an toàn & suy ra role ====== */
 function safeBase64UrlDecode(b64url: string): string | null {
@@ -82,9 +93,7 @@ function inferRoleFromToken(token: string): RoleKey | null {
     p?.role ??
     (Array.isArray(p?.roles) ? p.roles[0] : undefined) ??
     (Array.isArray(p?.authorities)
-      ? typeof p.authorities[0] === "string"
-        ? p.authorities[0]
-        : p.authorities[0]?.authority
+      ? (typeof p.authorities[0] === "string" ? p.authorities[0] : p.authorities[0]?.authority)
       : undefined) ??
     (Array.isArray(p?.realm_access?.roles) ? p.realm_access.roles[0] : undefined);
 
@@ -94,42 +103,19 @@ function inferRoleFromToken(token: string): RoleKey | null {
 export const authService = {
   register: async (payload: RegisterPayload) => {
     try {
-      console.log("📝 Attempting registration with:", {
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-      });
-
       const res = await axiosClient.post<RegisterResponse>("/auth/register", payload);
-
-      console.log("✅ Registration response:", res.data);
-
-      if (res.data.status === 201 && res.data.data) {
-        console.log("✅ Registration successful for user:", res.data.data.fullName);
-        return res;
-      } else {
-        throw new Error(res.data.message || "Registration response không đúng format");
-      }
+      if (res.data.status === 201 && res.data.data) return res;
+      throw new Error(res.data.message || "Registration response không đúng format");
     } catch (error: any) {
-      console.error("❌ Registration service error:", error);
-
       if (error.response) {
-        console.error("Server Error Response:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers,
-        });
-
         const message =
           error.response.data?.message ||
           error.response.data?.error ||
           `Server error: ${error.response.status}`;
         throw new Error(message);
       } else if (error.request) {
-        console.error("Network Error - No response received:", error.request);
         throw new Error("Không thể kết nối đến server. Kiểm tra server có đang chạy?");
       } else {
-        console.error("Other error:", error.message);
         throw new Error(error.message || "Có lỗi xảy ra");
       }
     }
@@ -137,80 +123,59 @@ export const authService = {
 
   login: async (payload: LoginPayload) => {
     try {
-      console.log("🔐 Attempting login with:", { email: payload.email });
-
       const res = await axiosClient.post<LoginResponse>("/auth/login", payload);
-
-      console.log("✅ Login response:", res.data);
-
       if (res.data.status === 200 && res.data.data) {
         const { token, refreshToken } = res.data.data;
 
-        console.log("💾 Saving tokens to localStorage");
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(REFRESH_KEY, refreshToken);
 
-        // Suy ra role từ JWT (nếu token có claim role)
+        // Suy ra role từ JWT (nếu có claim)
         const role = inferRoleFromToken(token);
-        if (role) {
-          localStorage.setItem(ROLE_KEY, role);
-          console.log("✅ Role inferred & saved:", role);
-        } else {
-          console.log("ℹ️ Không suy ra được role từ token. Sẽ dùng setRole() sau khi fetch profile.");
-        }
-
-        const savedToken = localStorage.getItem(TOKEN_KEY);
-        console.log("✅ Token saved:", savedToken ? "Yes" : "No");
+        if (role) localStorage.setItem(ROLE_KEY, role);
 
         return res;
-      } else {
-        throw new Error(res.data.message || "Login response không đúng format");
       }
+      throw new Error(res.data.message || "Login response không đúng format");
     } catch (error: any) {
-      console.error("❌ Login service error:", error);
-
       if (error.response) {
-        console.error("Server Error Response:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers,
-        });
-
         const message =
           error.response.data?.message ||
           error.response.data?.error ||
           `Server error: ${error.response.status}`;
         throw new Error(message);
       } else if (error.request) {
-        console.error("Network Error - No response received:", error.request);
         throw new Error("Không thể kết nối đến server. Kiểm tra server có đang chạy?");
       } else {
-        console.error("Other error:", error.message);
         throw new Error(error.message || "Có lỗi xảy ra");
       }
     }
   },
 
   logout: () => {
-    console.log("🚪 Logging out - clearing tokens & role");
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(ROLE_KEY); // ✅ xoá luôn role
+    localStorage.removeItem(ROLE_KEY);
   },
 
   isAuthenticated: () => {
     const token = localStorage.getItem(TOKEN_KEY);
-    const hasToken = !!token;
-    console.log("🔍 Checking authentication:", hasToken ? "Authenticated" : "Not authenticated");
-    return hasToken;
+    return !!token;
   },
 
   getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
   },
 
-  /** ✅ Lấy role đồng bộ: ưu tiên cache → nếu chưa có thì decode từ JWT và cache lại */
+  /** ✅ Lấy role đồng bộ:
+   *  1) Nếu DEV_FORCE_ROLE khác null → dùng role test
+   *  2) Nếu đã cache trong localStorage → dùng cache
+   *  3) Nếu có token → decode để suy ra role & cache lại
+   */
   getRole(): RoleKey | null {
+    // ⚡️ DEV override khi test
+    if (DEV_FORCE_ROLE) return DEV_FORCE_ROLE;
+
     const cached = localStorage.getItem(ROLE_KEY) as RoleKey | null;
     if (cached) return cached;
 
@@ -235,19 +200,13 @@ export const authService = {
     localStorage.removeItem(ROLE_KEY);
   },
 
-  // Debug tokens giữ nguyên
+  // Debug tokens
   debugTokens: () => {
     const accessToken = localStorage.getItem(TOKEN_KEY);
     const refreshToken = localStorage.getItem(REFRESH_KEY);
-
-    console.log("🔍 Debug tokens:", {
+    return {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
-      accessTokenLength: accessToken?.length || 0,
-      refreshTokenLength: refreshToken?.length || 0,
-    });
-
-    return {
       accessToken: accessToken ? accessToken.substring(0, 20) + "..." : null,
       refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : null,
     };

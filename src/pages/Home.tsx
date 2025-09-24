@@ -1,47 +1,76 @@
-import React, { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { Truck, ShieldCheck, RotateCcw, MessageSquare, CheckCircle } from "lucide-react"
-import { Swiper, SwiperSlide } from "swiper/react"
-import { Autoplay, Pagination } from "swiper/modules"
-import { Link } from "react-router-dom"
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Truck, ShieldCheck, RotateCcw, MessageSquare, CheckCircle } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+import { Link } from "react-router-dom";
 
-import "swiper/css"
-import "swiper/css/pagination"
+import "swiper/css";
+import "swiper/css/pagination";
 
-import ProductCard from "@/components/ProductCard"
-import { useCartStore } from "@/store/cart"
-import { productService, type Product } from "@/service/homeService"
+import ProductCard from "@/components/ProductCard";
+import { useCartStore } from "@/store/cart";
+import { productService, type Product } from "@/service/homeService";
+import axiosClient from "@/service/axiosClient"; // ✅ dùng trực tiếp, không cần file service riêng
 
-// Import ảnh local đúng chuẩn (tránh "src/assets/..." trực tiếp)
-import heroImg from "@/assets/home-image.png"
+// Import ảnh local đúng chuẩn
+import heroImg from "@/assets/home-image.png";
 
 // ---- helpers & animation ----
-const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }
-const stagger = { show: { transition: { staggerChildren: 0.06 } } }
+const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
+const stagger = { show: { transition: { staggerChildren: 0.06 } } };
 
 const onImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  const t = e.currentTarget
-  if ((t as any)._fb) return
-  ;(t as any)._fb = 1
+  const t = e.currentTarget as HTMLImageElement;
+  if ((t as any)._fb) return;
+  (t as any)._fb = 1;
   t.src =
-    "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
-}
+    "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80";
+};
 
 // ---------------- Home ----------------
+type Category = {
+  id: number;
+  categoryName: string;
+  description?: string;
+  image?: string;
+  status: "ACTIVE" | "INACTIVE";
+};
+
 const Home: React.FC = () => {
-  const add = useCartStore((s) => s.add) // API: add(productId, qty)
-  const [products, setProducts] = useState<Product[]>([])
-  const [addedProduct, setAddedProduct] = useState<string | null>(null)
+  const add = useCartStore((s) => s.add); // API: add(productId, qty)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [addedProduct, setAddedProduct] = useState<string | null>(null);
+
+  // ✅ Categories (load bằng axiosClient tại chỗ)
+  const [cats, setCats] = useState<Category[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+  const [catsErr, setCatsErr] = useState<string | null>(null);
 
   useEffect(() => {
     productService
       .getAll()
       .then((res) => setProducts(res.data.data))
       .catch((err) => {
-        console.error("Load products error:", err)
-        // setProducts([]) // fallback rỗng
+        console.error("Load products error:", err);
+      });
+  }, []);
+
+  useEffect(() => {
+    // gọi /categories (baseURL của axiosClient đã có /api)
+    axiosClient
+      .get<{ status: number; message: string; data: Category[] }>("/categories")
+      .then((res) => {
+        const all = res.data?.data ?? [];
+        setCats(all.filter((c) => c.status === "ACTIVE"));
       })
-  }, [])
+      .catch((err: any) => {
+        console.error("Load categories error:", err);
+        setCatsErr(err?.response?.data?.message || err?.message || "Không tải được danh mục");
+      })
+      .finally(() => setCatsLoading(false));
+  }, []);
 
   return (
     <main className="min-h-screen relative">
@@ -111,30 +140,57 @@ const Home: React.FC = () => {
         </motion.div>
       </section>
 
-      {/* CATEGORIES – 3 banner */}
+      {/* ✅ CATEGORIES – render từ API */}
       <section className="mx-auto max-w-7xl px-6 py-14">
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              { title: "Ghế", img: "/cat/chairs.jpg", href: "/shop?cat=chair" },
-              { title: "Sofa", img: "/cat/sofas.jpg", href: "/shop?cat=sofa" },
-              { title: "Bàn", img: "/cat/tables.jpg", href: "/shop?cat=table" },
-            ].map((c) => (
-              <motion.a key={c.title} href={c.href} variants={fadeUp} className="group relative overflow-hidden rounded-3xl">
-                <img
-                  src={c.img}
-                  alt={c.title}
-                  onError={onImgError}
-                  className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-                <div className="absolute bottom-4 left-4 text-white">
-                  <div className="text-sm opacity-90">Khám phá</div>
-                  <div className="text-xl font-bold">{c.title}</div>
-                </div>
-              </motion.a>
-            ))}
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Danh mục</h2>
+              <p className="mt-1 text-sm text-gray-500">Khám phá các nhóm sản phẩm nổi bật</p>
+            </div>
+            <Link to="/shop" className="text-sm font-semibold text-emerald-700 hover:underline">
+              Xem tất cả →
+            </Link>
           </div>
+
+          {catsLoading ? (
+            <div className="grid gap-6 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-56 w-full animate-pulse rounded-3xl bg-gray-100" />
+              ))}
+            </div>
+          ) : catsErr ? (
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {catsErr}
+            </div>
+          ) : cats.length === 0 ? (
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 text-gray-600">
+              Chưa có danh mục khả dụng.
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-3">
+              {cats.slice(0, 6).map((c) => (
+                <motion.div key={c.id} variants={fadeUp} className="group relative overflow-hidden rounded-3xl">
+                  <Link to={`/shop?catId=${c.id}`}>
+                    <img
+                      src={
+                        c.image ||
+                        "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+                      }
+                      alt={c.categoryName}
+                      onError={onImgError}
+                      className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <div className="text-sm opacity-90">Khám phá</div>
+                      <div className="text-xl font-bold">{c.categoryName}</div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -157,10 +213,8 @@ const Home: React.FC = () => {
             initial="hidden"
             animate="show"
           >
-            
             {products.map((p) => {
-              const img =
-                p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
+              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -171,20 +225,19 @@ const Home: React.FC = () => {
                       title: p.name,
                       price: p.price,
                       thumbnailImage: img,
-                      // Nếu ProductCard hiển thị giá, có thể truyền thêm fmtVND(p.price)
                     }}
                     onAdd={async () => {
                       try {
-                        await add(p.id, 1) // ✅ dùng API store
-                        setAddedProduct(p.name)
-                        setTimeout(() => setAddedProduct(null), 2000)
+                        await add(p.id, 1); // ✅ dùng API store
+                        setAddedProduct(p.name);
+                        setTimeout(() => setAddedProduct(null), 2000);
                       } catch (err) {
-                        console.error("Add to cart error:", err)
+                        console.error("Add to cart error:", err);
                       }
                     }}
                   />
                 </motion.div>
-              )
+              );
             })}
           </motion.div>
         </div>
@@ -230,7 +283,7 @@ const Home: React.FC = () => {
         </div>
       </section>
     </main>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
