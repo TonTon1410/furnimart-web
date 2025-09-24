@@ -6,8 +6,8 @@ import { DP } from "../../router/paths";
 export const adminNav = (): RoleNav => ({
   main: [
     { icon: <Users/>,     name: "Users",      path: DP("users") },
-    { icon: <Building2/>, name: "Branches",   path: DP("branches") },
-    { icon: <Tags/>,      name: "Categories", path: DP("categories") },
+    { icon: <Building2/>, name: "Chất liệu",   path: DP("Materials") },
+    { icon: <Tags/>,      name: "Danh mục", path: DP("categories") },
     { icon: <Settings/>,  name: "Settings",   path: DP("settings") },
   ],
   others: [

@@ -4,12 +4,11 @@ import type { RoleKey } from "./paths";
 import { authService } from "@/service/authService";
 import { DP } from "./paths";
 
-// 👉 Các trang placeholder (bạn tạo file thật sau)
+import AdminCategoriesPage from "@/dashboard/roles/admin/AdminCategoriesPage";
+import AdminMaterialsPage from "@/dashboard/roles/admin/AdminMaterialsPage";
 const Placeholder = (t: string) => () => <div className="p-6 text-lg">{t}</div>;
 
 const AdminUsers = Placeholder("Admin • Users");
-const AdminBranches = Placeholder("Admin • Branches");
-const AdminCategories = Placeholder("Admin • Categories");
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -17,8 +16,7 @@ const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 
-const SellerProducts = Placeholder("Seller • Products");
-const SellerNewProduct = Placeholder("Seller • New Product");
+import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
@@ -39,16 +37,20 @@ const DeliveryPOD = Placeholder("Delivery • Proof of Delivery");
 const DeliveryHistory = Placeholder("Delivery • History");
 
 export default function RoleRoutes() {
-  const role = (authService.getRole?.() as RoleKey) || "seller";
+  const role = authService.getRole?.() as RoleKey | null;
+  if (!authService.isAuthenticated() || !role) {
+    return <Navigate to="/" replace />;
+  }
 
-  // một cây route/role, tất cả nằm dưới /dashboard/*
+  // ADMIN
   if (role === "admin") {
     return (
       <Routes>
-        <Route index element={<AdminUsers />} />
+        {/* index → chọn trang mặc định cho admin */}
+        <Route index element={<Navigate to={DP("users")} replace />} />
         <Route path="users" element={<AdminUsers />} />
-        <Route path="branches" element={<AdminBranches />} />
-        <Route path="categories" element={<AdminCategories />} />
+        <Route path="materials" element={<AdminMaterialsPage />} />
+        <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="reports/sales" element={<AdminSales />} />
         <Route path="reports/top-products" element={<AdminTop />} />
@@ -60,10 +62,11 @@ export default function RoleRoutes() {
     );
   }
 
+  // MANAGER
   if (role === "manager") {
     return (
       <Routes>
-        <Route index element={<ManagerInventory />} />
+        <Route index element={<Navigate to={DP("inventory")} replace />} />
         <Route path="inventory" element={<ManagerInventory />} />
         <Route path="orders/approval" element={<ManagerApproval />} />
         <Route path="deliveries/assign" element={<ManagerAssign />} />
@@ -76,10 +79,11 @@ export default function RoleRoutes() {
     );
   }
 
+  // DELIVERY
   if (role === "delivery") {
     return (
       <Routes>
-        <Route index element={<DeliveryOrders />} />
+        <Route index element={<Navigate to={DP("orders")} replace />} />
         <Route path="orders" element={<DeliveryOrders />} />
         <Route path="pickup" element={<DeliveryPickup />} />
         <Route path="status" element={<DeliveryStatus />} />
@@ -90,17 +94,21 @@ export default function RoleRoutes() {
     );
   }
 
-  // default: seller
-  return (
-    <Routes>
-      <Route index element={<SellerProducts />} />
-      <Route path="products" element={<SellerProducts />} />
-      <Route path="products/new" element={<SellerNewProduct />} />
-      <Route path="stock" element={<SellerStock />} />
-      <Route path="orders" element={<SellerOrders />} />
-      <Route path="invoices" element={<SellerInvoices />} />
-      <Route path="chat" element={<SellerChat />} />
-      <Route path="*" element={<Navigate to={DP()} replace />} />
-    </Routes>
-  );
+  // SELLER
+  if (role === "seller") {
+    return (
+      <Routes>
+        <Route index element={<Navigate to={DP("products")} replace />} />
+        <Route path="products" element={<SellerProductsPage />} />
+        <Route path="stock" element={<SellerStock />} />
+        <Route path="orders" element={<SellerOrders />} />
+        <Route path="invoices" element={<SellerInvoices />} />
+        <Route path="chat" element={<SellerChat />} />
+        <Route path="*" element={<Navigate to={DP()} replace />} />
+      </Routes>
+    );
+  }
+
+  // role không có dashboard (ví dụ CUSTOMER) → ra trang chủ hoặc 403
+  return <Navigate to="/" replace />;
 }

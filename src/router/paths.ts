@@ -1,4 +1,4 @@
-// src/routes/paths.ts
+// src/router/paths.ts
 export const DASHBOARD_BASE = "/dashboard";
 
 export type RoleKey = "admin" | "seller" | "manager" | "delivery";

@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_PRODUCT = import.meta.env.VITE_API_PRODUCT || "http://152.53.169.79:8084/api/";
+const API_PRODUCT = import.meta.env.VITE_API_PRODUCT || "http://152.53.169.79:8080/api/";
 console.log("API_PRODUCT:", API_PRODUCT);
 export interface Product {
   id: string;
