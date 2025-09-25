@@ -1,8 +1,8 @@
 
 import axios from "axios";
-const API_PRODUCT = import.meta.env.VITE_API_PRODUCT || "http://152.53.169.79:8084/api/";
-console.log("API_PRODUCT:", API_PRODUCT);
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 export interface Product {
+  categoryId: number;
   id: string;
   name: string;
   description: string;
@@ -35,25 +35,17 @@ interface ProductResponse {
   data: Product;
 }
 
-interface ProductListResponse {
-  status: number;
-  message: string;
-  data: Product[];
-}
-
 export const productService = {
   getById: (id: string) => {
-    return axios.get<ProductResponse>(`${API_PRODUCT}products/${id}`);
+  return axios.get<ProductResponse>(`${BASE_URL}/products/${id}`);
   },
   getBySlug: (slug: string) => {
-    const url = `${API_PRODUCT}products/slug/any`;
-    // "any" chỉ là placeholder, backend thực tế lấy query param "slug"
-    console.log("getBySlug URL:", url, "params:", slug);
+    const url = `${BASE_URL}/products/slug/any`;
     return axios.get<ProductResponse>(url, {
-      params: { slug: slug }, // ?slug=ghe%2Fghe-pippa-accent
+      params: { slug: slug }, 
     });
   },
-  getByCategory: (categoryName: string) => {
-    return axios.get<ProductListResponse>(`${API_PRODUCT}products/category/${categoryName}`);
+  getByCategory: (categoryId: number) => {
+    return axios.get<ProductResponse>(`${BASE_URL}/products/category/${categoryId}`);
   }
 };

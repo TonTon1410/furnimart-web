@@ -159,8 +159,7 @@ const Home: React.FC = () => {
           >
             
             {products.map((p) => {
-              const img =
-                p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
+              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -168,14 +167,14 @@ const Home: React.FC = () => {
                     className="group"
                     data={{
                       id: p.id,
-                      title: p.name,
+                      slug: p.slug,
+                      description: p.name,
                       price: p.price,
                       thumbnailImage: img,
-                      // Nếu ProductCard hiển thị giá, có thể truyền thêm fmtVND(p.price)
                     }}
                     onAdd={async () => {
                       try {
-                        await add(p.id, 1) // ✅ dùng API store
+                        await add(p.id, 1)
                         setAddedProduct(p.name)
                         setTimeout(() => setAddedProduct(null), 2000)
                       } catch (err) {

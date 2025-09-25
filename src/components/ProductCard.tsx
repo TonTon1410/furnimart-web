@@ -1,4 +1,3 @@
-// src/components/ProductCard.tsx
 import React from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
@@ -6,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 export type Product = {
   id: string;
+  slug: string;
   description: string;
   price: number;
   thumbnailImage: string;
@@ -21,7 +21,7 @@ type Props = {
 const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
   const navigate = useNavigate();
 
-  const goDetail = () => navigate(`/product/${data.id}`);
+  const goDetail = () => navigate(`/product/${data.slug}`);
 
   return (
     <motion.div
@@ -44,7 +44,7 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
       )}
 
       {/* Ảnh → Link tới chi tiết */}
-      <Link to={`/product/${data.id}`} className="block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
+  <Link to={`/product/${data.slug}`} className="block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
         <img
           src={data.thumbnailImage}
           alt={data.description}
@@ -58,7 +58,7 @@ const ProductCard: React.FC<Props> = ({ data, onAdd, className }) => {
         {/* Tiêu đề → Link tới chi tiết */}
         <div>
           <Link
-            to={`/product/${data.id}`}
+            to={`/product/${data.slug}`}
             className="text-base font-semibold text-gray-900 hover:underline"
           >
             {data.description}

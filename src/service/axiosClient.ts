@@ -1,21 +1,18 @@
 import axios, { type AxiosError } from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
 // ───────────────────────────────────────────────
-// Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
+// Tạo instance Axios chính
 // ───────────────────────────────────────────────
 const axiosClient = axios.create({
-  baseURL: "http://152.53.169.79:8086/api", // ✅ SỬA: Đổi port từ 8080 thành 8086
+  baseURL: BASE_URL, // Sử dụng biến môi trường
   headers: {
     "Content-Type": "application/json",
   },
   withCredentials: true,
-  timeout: 15000, // Tăng timeout lên 15 giây
+  timeout: 15000, // Timeout: 15s
 });
-
-// ───────────────────────────────────────────────
-// Mở rộng type để thêm _retry
-// ───────────────────────────────────────────────
 declare module "axios" {
   export interface InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -164,3 +161,4 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
+

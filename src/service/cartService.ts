@@ -1,6 +1,5 @@
-// src/service/cartService.ts
 import axiosClient from "@/service/axiosClient"
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 export interface CartItemDTO {
   productId: string
   productName: string
@@ -23,19 +22,17 @@ export interface ApiResponse<T = any> {
   redirectUrl?: string
 }
 
-// ✅ Cart chạy cổng 8085
-const CART_BASE = "http://152.53.169.79:8085/api"
 
 export const cartService = {
-  // GET /api/carts  →  http://152.53.169.79:8085/api/carts
+  // GET /api/carts
   async getMyCart() {
-    const res = await axiosClient.get<ApiResponse<CartDTO>>(`${CART_BASE}/carts`)
+  const res = await axiosClient.get<ApiResponse<CartDTO>>(`${BASE_URL}/carts`)
     return res.data.data
   },
 
   // POST /api/carts/add?productId=&quantity=
   async add(productId: string, quantity: number) {
-    const res = await axiosClient.post<ApiResponse>(`${CART_BASE}/carts/add`, null, {
+    const res = await axiosClient.post<ApiResponse>(`${BASE_URL}/carts/add`, null, {
       params: { productId, quantity },
     })
     return res.data
@@ -43,7 +40,7 @@ export const cartService = {
 
   // PATCH /api/carts/update?productId=&quantity=
   async update(productId: string, quantity: number) {
-    const res = await axiosClient.patch<ApiResponse>(`${CART_BASE}/carts/update`, null, {
+    const res = await axiosClient.patch<ApiResponse>(`${BASE_URL}/carts/update`, null, {
       params: { productId, quantity },
     })
     return res.data
@@ -51,7 +48,7 @@ export const cartService = {
 
   // DELETE /api/carts/remove/{productId}
   async removeOne(productId: string) {
-    const res = await axiosClient.delete<ApiResponse>(`${CART_BASE}/carts/remove/${productId}`)
+    const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts/remove/${productId}`)
     return res.data
   },
 
@@ -59,7 +56,8 @@ export const cartService = {
   async removeMany(productIds: string[]) {
     const params = new URLSearchParams()
     productIds.forEach((id) => params.append("productIds", id))
-    const res = await axiosClient.delete<ApiResponse>(`${CART_BASE}/carts/remove?${params.toString()}`)
+    const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts/remove?${params.toString()}`)
     return res.data
   },
 }
+

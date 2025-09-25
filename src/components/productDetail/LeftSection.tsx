@@ -27,7 +27,20 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
-  
+
+  // Thêm vào giỏ hàng
+  const handleAddToCart = async () => {
+    setActiveBtn("cart");
+    try {
+      const { cartService } = await import("@/service/cartService");
+      await cartService.add(product.id, quantity);
+      // Có thể thêm thông báo thành công ở đây nếu muốn
+    } catch (e) {
+      // Có thể thêm thông báo lỗi ở đây nếu muốn
+      console.error(e);
+    }
+    setTimeout(() => setActiveBtn(null), 180);
+  };
 
   return (
     <div className="bg-white">
@@ -48,8 +61,6 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
           />
         ))}
       </div>
-
-      {/* ...existing code... */}
 
       {/* Nút AR / 3D */}
       <div className="flex space-x-4 mt-6">
@@ -100,10 +111,7 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
         <button
           className="px-4 py-2 text-white text-lg font-medium rounded transition-colors"
           style={{ minWidth: 120, backgroundColor: activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest }}
-          onClick={() => {
-            setActiveBtn("cart");
-            setTimeout(() => setActiveBtn(null), 180);
-          }}
+          onClick={handleAddToCart}
           onMouseEnter={() => setHoverBtn("cart")}
           onMouseLeave={() => setHoverBtn(null)}
         >

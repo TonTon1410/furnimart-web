@@ -1,5 +1,5 @@
 import axios from "axios";
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 export interface Product {
   id: string;
   name: string;
@@ -35,5 +35,6 @@ interface ProductResponse {
 
 export const productService = {
   getAll: () =>
-    axios.get<ProductResponse>("http://152.53.169.79:8084/api/products"),
+    axios.get<ProductResponse>(`${BASE_URL}/products`),
 };
+
