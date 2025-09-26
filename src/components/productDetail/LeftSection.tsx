@@ -30,7 +30,8 @@ interface LeftSectionProps {
 
 const forest = "#095544";
 const pistachio = "oklch(85.2% 0.199 91.936)";
-const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
+const fmtVND = (n: number) =>
+  new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const LeftSection: React.FC<LeftSectionProps> = ({
   product,
@@ -56,12 +57,13 @@ const LeftSection: React.FC<LeftSectionProps> = ({
 
     try {
       const colorId =
-        selectedColorId || (product.color.length === 1 ? product.color[0].id : null);
+        selectedColorId ||
+        (product.color.length === 1 ? product.color[0].id : null);
       if (!colorId) {
         alert("Vui lòng chọn màu trước khi thêm vào giỏ hàng!");
         return;
       }
-      await add(product.id, quantity, colorId); // ✅ có colorId
+      await add(product.id, quantity, colorId);
       setAdded(true);
       setTimeout(() => setAdded(false), 1800);
     } catch (err) {
@@ -73,18 +75,22 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   };
 
   return (
-    <div className="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="relative p-4">
       {/* Tên + giá */}
-      <div className="mb-3">
-        <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-        <p className="mt-1 text-xl font-semibold text-amber-600">
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold text-gray-900">
+          {product.name}
+        </h1>
+        <p className="mt-2 text-2xl font-semibold text-amber-600">
           {fmtVND(product.price)}
         </p>
       </div>
 
-      {/* Chọn màu */}
-      <div className="mb-5">
-        <div className="mb-2 text-sm font-medium text-gray-700">Màu sắc</div>
+      {/* Màu sắc */}
+      <div className="mb-6">
+        <div className="mb-3 text-2xl font-bold text-gray-900">
+          Màu sắc
+        </div>
         <div className="flex flex-wrap gap-3">
           {product.color.map((c) => (
             <button
@@ -92,9 +98,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
               onClick={() => onColorChange(c.id)}
               aria-label={`Chọn màu ${c.colorName}`}
               title={c.colorName}
-              className={`h-10 w-10 rounded-full border-2 ring-0 transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                selectedColorId === c.id ? "border-emerald-600" : "border-gray-300"
-              }`}
+              className={`h-10 w-10 rounded-full border-2 ring-0 transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-500 ${selectedColorId === c.id
+                  ? "border-emerald-600"
+                  : "border-gray-300"
+                }`}
               style={{ backgroundColor: c.hexCode }}
             />
           ))}
@@ -102,60 +109,52 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       </div>
 
       {/* Nút AR / 3D */}
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex w-4/5 items-center justify-between space-x-2">
         <button
           type="button"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-          style={{
-            backgroundColor: activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest,
-          }}
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === '3d' ? 'ring-4 ring-amber-400' : ''}`}
+          style={{ backgroundColor: activeBtn === '3d' ? '#FFC107' : forest }}
           onClick={() => {
             setActiveBtn("3d");
             setTimeout(() => setActiveBtn(null), 180);
           }}
-          onMouseEnter={() => setHoverBtn("3d")}
-          onMouseLeave={() => setHoverBtn(null)}
         >
           Xem 3D
         </button>
         <button
           type="button"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-          style={{
-            backgroundColor: activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest,
-          }}
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === 'ar' ? 'ring-4 ring-amber-400' : ''}`}
+          style={{ backgroundColor: activeBtn === 'ar' ? '#FFC107' : forest }}
           onClick={() => {
             setActiveBtn("ar");
             setTimeout(() => setActiveBtn(null), 180);
           }}
-          onMouseEnter={() => setHoverBtn("ar")}
-          onMouseLeave={() => setHoverBtn(null)}
         >
           Xem AR
         </button>
       </div>
 
       {/* Số lượng + Thêm giỏ */}
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <div className="mt-6 flex w-4/5 items-center justify-between space-x-2">
         <div
-          className="inline-flex items-center rounded-lg border border-emerald-100 bg-emerald-600/90 text-white"
+          className="flex items-center border border-emerald-200 rounded-md"
+          style={{ backgroundColor: forest, color: 'white' }}
           role="group"
-          aria-label="Chọn số lượng"
         >
           <button
             type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="px-3 py-2 text-sm font-semibold hover:bg-emerald-700/80"
-            aria-label="Giảm số lượng"
+            className="px-4 py-2 text-base font-semibold hover:bg-emerald-700/80 rounded-l-md"
+            style={{ backgroundColor: forest, color: 'white' }}
           >
             −
           </button>
-          <span className="px-4 text-sm font-semibold">{quantity}</span>
+          <span className="px-5 text-base font-semibold" style={{ backgroundColor: forest, color: 'white' }}>{quantity}</span>
           <button
             type="button"
             onClick={() => setQuantity((q) => q + 1)}
-            className="px-3 py-2 text-sm font-semibold hover:bg-emerald-700/80"
-            aria-label="Tăng số lượng"
+            className="px-4 py-2 text-base font-semibold hover:bg-emerald-700/80 rounded-r-md"
+            style={{ backgroundColor: forest, color: 'white' }}
           >
             +
           </button>
@@ -164,22 +163,20 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         <button
           type="button"
           onClick={handleAddToCart}
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors"
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === 'cart' ? 'ring-4 ring-amber-400' : ''}`}
           style={{
-            backgroundColor:
-              activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest,
-            minWidth: 140,
+            backgroundColor: activeBtn === 'cart' ? '#FFC107' : forest,
+            minWidth: 160,
           }}
-          onMouseEnter={() => setHoverBtn("cart")}
-          onMouseLeave={() => setHoverBtn(null)}
         >
           Thêm vào giỏ hàng
         </button>
       </div>
 
+
       {/* Toast */}
       {added && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-emerald-600 px-5 py-3 text-white shadow-lg">
           <CheckCircle className="h-5 w-5 text-white" />
           <span>Thêm sản phẩm vào giỏ hàng thành công</span>
         </div>
