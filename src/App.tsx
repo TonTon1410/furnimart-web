@@ -10,16 +10,14 @@ export default function App() {
   const hideLayoutRoutes = ["/login", "/register", "/forgot-password", "/dashboard"];
   const hideLayout = hideLayoutRoutes.some((r) => location.pathname.startsWith(r));
 
-  // Chỉ Home mới cần chồng dưới Navbar để hưởng hiệu ứng trong suốt
-  const overlapNavbarRoutes = ["/"]; 
-  const overlapNavbar = overlapNavbarRoutes.includes(location.pathname);
+  const overlapNavbar = location.pathname === "/" && !hideLayout;
+  const shouldPadTop = !hideLayout && !overlapNavbar;
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {!hideLayout && <Navbar />}
       <ScrollToTop>
-        {/* Nếu KHÔNG overlap thì đẩy xuống bằng chiều cao navbar */}
-        <div className={overlapNavbar ? "" : "pt-20"}>
+        <div className={shouldPadTop ? "pt-20" : ""}>
           <AppRouter />
         </div>
       </ScrollToTop>
