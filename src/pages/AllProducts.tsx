@@ -1,6 +1,6 @@
 // src/pages/AllProducts.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { motion } from "framer-motion";
 import { productService, type Product } from "@/service/homeService";
