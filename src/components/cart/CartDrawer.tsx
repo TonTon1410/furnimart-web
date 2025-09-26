@@ -1,27 +1,33 @@
 // src/components/CartDrawer.tsx
-import React, { useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X, LogIn } from "lucide-react"
-import { useCartStore } from "@/store/cart"
-import { authService } from "@/service/authService"
-import { Link } from "react-router-dom"
+import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, LogIn } from "lucide-react";
+import { useCartStore } from "@/store/cart";
+import { authService } from "@/service/authService";
+import { Link, useNavigate } from "react-router-dom";
 
 type Props = {
-  open: boolean
-  onClose: () => void
-}
+  open: boolean;
+  onClose: () => void;
+};
 
-const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫"
+const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
-  const { items, remove, updateQty, total, fetch, loading, error } = useCartStore()
-  const isAuthed = authService.isAuthenticated()
+  const { items, remove, updateQty, total, fetch, loading, error } = useCartStore();
+  const isAuthed = authService.isAuthenticated();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open && isAuthed) {
-      fetch()
+      fetch();
     }
-  }, [open, isAuthed, fetch])
+  }, [open, isAuthed, fetch]);
+
+  const handleCheckout = () => {
+    onClose();              // ✅ đóng Drawer trước
+    navigate("/checkout");  // ✅ điều hướng
+  };
 
   return (
     <AnimatePresence>
@@ -83,9 +89,9 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           {fmtVND(i.price)} × {i.qty}
                         </p>
 
-                        {/* qty control */}
                         <div className="mt-2 inline-flex items-center rounded-lg border">
                           <button
+                            type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
                             onClick={() => updateQty(i.id, Math.max(1, i.qty - 1))}
                             aria-label="Giảm"
@@ -95,6 +101,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           </button>
                           <span className="px-3 text-sm">{i.qty}</span>
                           <button
+                            type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
                             onClick={() => updateQty(i.id, i.qty + 1)}
                             aria-label="Tăng"
@@ -106,6 +113,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => remove(i.id)}
                         className="text-xs text-red-500 hover:underline disabled:opacity-50"
                         disabled={loading}
@@ -125,6 +133,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                 <span className="text-base font-bold">{fmtVND(total)}</span>
               </div>
               <button
+                type="button"
+                onClick={handleCheckout}
                 className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
                 disabled={!isAuthed || loading || items.length === 0}
               >
@@ -135,7 +145,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
         </>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default CartDrawer
+export default CartDrawer;
