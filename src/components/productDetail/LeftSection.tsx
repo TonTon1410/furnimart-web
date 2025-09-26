@@ -18,6 +18,13 @@ interface Product {
   categoryName: string;
   materialName: string;
   color: Color[];
+  materials?: {
+    id: number;
+    image: string;
+    materialName: string;
+    description: string;
+    status: string;
+  }[];
 }
 
 const forest = "#095544";
@@ -44,11 +51,11 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
 
   return (
     <div className="bg-white">
-    {/* Tên sản phẩm */}
-    <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+      {/* Tên sản phẩm */}
+      <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-    {/* Giá */}
-    <p className="text-2xl font-semibold mb-4 text-amber-500">{product.price.toLocaleString()} ₫</p>
+      {/* Giá */}
+      <p className="text-2xl font-semibold mb-4 text-amber-500">{product.price.toLocaleString()} ₫</p>
 
       {/* Màu sắc */}
       <div className="flex space-x-4 mb-4">

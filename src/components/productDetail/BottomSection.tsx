@@ -12,6 +12,13 @@ interface Product {
   categoryName?: string;
   materialName?: string;
   images: string[];
+  materials?: {
+    id: number;
+    image: string;
+    materialName: string;
+    description: string;
+    status: string;
+  }[];
 }
 
 interface BottomSectionProps {
@@ -34,9 +41,21 @@ const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
       <div className="grid grid-cols-2 gap-16 text-lg">
         <div>
           <h2 className="text-2xl font-bold mb-4">Vật liệu & Danh mục</h2>
-          <div className="mb-3 flex">
-            <span className="w-40 text-gray-600 text-lg">Vật liệu</span>
-            <span className="font-medium text-lg">{product.materialName || "-"}</span>
+          {/* Vật liệu: hiển thị danh sách vật liệu và hình ảnh giống LeftSection */}
+          <div className="mb-3 flex flex-col">
+            <span className="w-40 text-gray-600 text-lg mb-2">Vật liệu</span>
+            {product.materials && product.materials.length > 0 ? (
+              <div className="flex space-x-4">
+                {product.materials.map((m) => (
+                  <div key={m.id} className="flex flex-col items-center">
+                    <img src={m.image} alt={m.materialName} className="w-12 h-12 object-cover rounded mb-1 border" />
+                    <span className="text-sm font-medium">{m.materialName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="font-medium text-lg">-</span>
+            )}
           </div>
           <div className="mb-3 flex">
             <span className="w-40 text-gray-600 text-lg">Danh mục</span>

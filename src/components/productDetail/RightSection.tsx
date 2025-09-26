@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import defaultImage from "../../assets/default-image.jpg";
 
@@ -9,11 +8,24 @@ interface RightSectionProps {
 }
 
 const RightSection: React.FC<RightSectionProps> = ({ thumbnailImage, images, images3d }) => {
-  const allImages = [
-    thumbnailImage || defaultImage,
-    ...(images && images.length > 0 ? images : []),
-    ...(images3d?.map((i) => i.previewImage) || []),
-  ].filter(Boolean);
+  // Gom toàn bộ hình ảnh
+  const allImages: string[] = [];
+
+  if (thumbnailImage) {
+    allImages.push(thumbnailImage);
+  }
+
+  if (images && images.length > 0) {
+    allImages.push(...images);
+  }
+
+  if (images3d && images3d.length > 0) {
+    allImages.push(...images3d.map((i) => i.previewImage).filter(Boolean));
+  }
+
+  if (allImages.length === 0) {
+    allImages.push(defaultImage);
+  }
 
   const [mainImage, setMainImage] = useState(allImages[0] || defaultImage);
 
