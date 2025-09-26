@@ -14,7 +14,7 @@ const Cart: React.FC = () => {
   }, [fetch]);
 
   const handleCheckout = () => {
-    navigate("/checkout"); // ✅ điều hướng
+    navigate("/checkout");
   };
 
   return (
@@ -32,9 +32,22 @@ const Cart: React.FC = () => {
           <ul className="mt-6 divide-y divide-gray-100">
             {items.map((i) => (
               <li key={i.id} className="flex items-center gap-4 py-4">
-                <img src={i.image} alt={i.title || "Cart item"} className="h-16 w-16 rounded-lg object-cover" />
+                <img
+                  src={i.image}
+                  alt={i.title || "Cart item"}
+                  className="h-16 w-16 rounded-lg object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                  }}
+                />
                 <div className="flex-1">
                   <p className="font-medium">{i.title}</p>
+
+                  {/* Màu đã chọn (theo API hiện trả colorId) */}
+                  <div className="mt-0.5 text-xs text-gray-600">
+                    Màu: <span className="font-medium">{i.colorId}</span>
+                  </div>
+
                   <p className="text-sm text-gray-500">
                     {fmtVND(i.price)} × {i.qty}
                   </p>
@@ -43,7 +56,7 @@ const Cart: React.FC = () => {
                     <button
                       type="button"
                       className="px-2 py-1 text-sm"
-                      onClick={() => updateQty(i.id, Math.max(1, i.qty - 1))}
+                      onClick={() => updateQty(i.productId, i.colorId, Math.max(1, i.qty - 1))}
                     >
                       −
                     </button>
@@ -51,7 +64,7 @@ const Cart: React.FC = () => {
                     <button
                       type="button"
                       className="px-2 py-1 text-sm"
-                      onClick={() => updateQty(i.id, i.qty + 1)}
+                      onClick={() => updateQty(i.productId, i.colorId, i.qty + 1)}
                     >
                       +
                     </button>
@@ -60,7 +73,7 @@ const Cart: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => remove(i.id)}
+                  onClick={() => remove(i.productId)}
                   className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
                 >
                   Xóa
@@ -72,7 +85,12 @@ const Cart: React.FC = () => {
           <div className="mt-6 flex items-center justify-between">
             <p className="text-lg font-semibold">Tổng: {fmtVND(total)}</p>
             <div className="flex gap-3">
-              <button type="button" onClick={clear} className="rounded-lg border px-4 py-2 text-sm">
+              <button
+                type="button"
+                onClick={clear}
+                className="rounded-lg border px-4 py-2 text-sm"
+                title="Xóa tất cả sản phẩm theo productId"
+              >
                 Xóa tất cả
               </button>
               <button

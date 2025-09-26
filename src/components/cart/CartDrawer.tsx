@@ -25,8 +25,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
   }, [open, isAuthed, fetch]);
 
   const handleCheckout = () => {
-    onClose();              // ✅ đóng Drawer trước
-    navigate("/checkout");  // ✅ điều hướng
+    onClose();
+    navigate("/checkout");
   };
 
   return (
@@ -44,7 +44,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
           {/* panel */}
           <motion.div
-            className="fixed right-0 top-0 z-50 h-full w-80 max-w-full bg-white shadow-xl flex flex-col"
+            className="fixed right-0 top-0 z-50 flex h-full w-80 max-w-full flex-col bg-white shadow-xl"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -82,18 +82,32 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                 <ul className="space-y-4">
                   {items.map((i) => (
                     <li key={i.id} className="flex items-center gap-3">
-                      <img src={i.image} alt={i.title} className="h-16 w-16 rounded-lg object-cover" />
+                      <img
+                        src={i.image}
+                        alt={i.title}
+                        className="h-16 w-16 rounded-lg object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                        }}
+                      />
                       <div className="flex-1">
                         <p className="font-medium">{i.title}</p>
+
+                        {/* Màu đã chọn */}
+                        <div className="mt-0.5 text-xs text-gray-600">
+                          Màu: <span className="font-medium">{i.colorId}</span>
+                        </div>
+
                         <p className="text-sm text-gray-500">
                           {fmtVND(i.price)} × {i.qty}
                         </p>
 
+                        {/* qty control */}
                         <div className="mt-2 inline-flex items-center rounded-lg border">
                           <button
                             type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.id, Math.max(1, i.qty - 1))}
+                            onClick={() => updateQty(i.productId, i.colorId, Math.max(1, i.qty - 1))}
                             aria-label="Giảm"
                             disabled={loading}
                           >
@@ -103,7 +117,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           <button
                             type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.id, i.qty + 1)}
+                            onClick={() => updateQty(i.productId, i.colorId, i.qty + 1)}
                             aria-label="Tăng"
                             disabled={loading}
                           >
@@ -114,7 +128,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
                       <button
                         type="button"
-                        onClick={() => remove(i.id)}
+                        onClick={() => remove(i.productId)}
                         className="text-xs text-red-500 hover:underline disabled:opacity-50"
                         disabled={loading}
                       >

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { cartService } from "@/service/cartService";
 import { addressService } from "@/service/addressService";
@@ -47,61 +48,76 @@ const CheckoutPage: React.FC = () => {
   if (!cart) return <LoadingPage />;
 
   return (
-    <div className="checkout-container">
-      <h2>Thanh toán</h2>
+    <div className="mx-auto max-w-4xl px-6 py-10">
+      <h2 className="mb-6 text-2xl font-bold text-gray-800">Thanh toán</h2>
 
       {/* Địa chỉ */}
-      <div>
-        <h3>Chọn địa chỉ giao hàng</h3>
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-gray-700">Chọn địa chỉ giao hàng</h3>
         {addresses.map((a) => (
-          <div key={a.id}>
+          <label key={a.id} className="mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
             <input
               type="radio"
               name="address"
               value={a.id}
               checked={selectedAddress === a.id}
               onChange={() => setSelectedAddress(a.id)}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
             />
-            {a.name} - {a.phone}, {a.addressLine}
-          </div>
+            <span className="text-gray-700">{a.name} - {a.phone}, {a.addressLine}</span>
+          </label>
         ))}
       </div>
 
       {/* Phương thức thanh toán */}
-      <div>
-        <h3>Phương thức thanh toán</h3>
-        <label>
-          <input
-            type="radio"
-            value="COD"
-            checked={paymentMethod === "COD"}
-            onChange={() => setPaymentMethod("COD")}
-          />
-          Thanh toán khi nhận hàng (COD)
-        </label>
-        <label>
-          <input
-            type="radio"
-            value="VNPAY"
-            checked={paymentMethod === "VNPAY"}
-            onChange={() => setPaymentMethod("VNPAY")}
-          />
-          Thanh toán qua VNPAY
-        </label>
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-gray-700">Phương thức thanh toán</h3>
+        <div className="space-y-2">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+            <input
+              type="radio"
+              value="COD"
+              checked={paymentMethod === "COD"}
+              onChange={() => setPaymentMethod("COD")}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span>Thanh toán khi nhận hàng (COD)</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+            <input
+              type="radio"
+              value="VNPAY"
+              checked={paymentMethod === "VNPAY"}
+              onChange={() => setPaymentMethod("VNPAY")}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span>Thanh toán qua VNPAY</span>
+          </label>
+        </div>
       </div>
 
       {/* Tóm tắt giỏ hàng */}
-      <div>
-        <h3>Tóm tắt đơn hàng</h3>
-        {cart.items.map((item: any) => (
-          <div key={item.productId}>
-            {item.productName} x {item.quantity} = {item.totalItemPrice.toLocaleString()} VND
-          </div>
-        ))}
-        <strong>Tổng tiền: {cart.totalPrice.toLocaleString()} VND</strong>
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-gray-700">Tóm tắt đơn hàng</h3>
+        <ul className="mb-3 space-y-2 text-sm text-gray-700">
+          {cart.items.map((item: any) => (
+            <li key={item.productId} className="flex justify-between border-b pb-2 last:border-0 last:pb-0">
+              <span>{item.productName} × {item.quantity}</span>
+              <span>{item.totalItemPrice.toLocaleString()} VND</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex items-center justify-between border-t pt-3 text-base font-semibold">
+          <span>Tổng tiền:</span>
+          <span className="text-emerald-600">{cart.totalPrice.toLocaleString()} VND</span>
+        </div>
       </div>
 
-      <button onClick={handleCheckout} disabled={loading}>
+      <button
+        onClick={handleCheckout}
+        disabled={loading}
+        className="w-full rounded-lg bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
         {loading ? "Đang xử lý..." : "Xác nhận đặt hàng"}
       </button>
     </div>

@@ -9,7 +9,6 @@ interface Color {
   colorName: string;
   hexCode: string;
 }
-
 interface Product {
   id: string;
   name: string;
@@ -23,7 +22,6 @@ interface Product {
   materialName: string;
   color: Color[];
 }
-
 interface LeftSectionProps {
   product: Product;
   selectedColorId: string | null;
@@ -32,8 +30,13 @@ interface LeftSectionProps {
 
 const forest = "#095544";
 const pistachio = "oklch(85.2% 0.199 91.936)";
+const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
-const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onColorChange }) => {
+const LeftSection: React.FC<LeftSectionProps> = ({
+  product,
+  selectedColorId,
+  onColorChange,
+}) => {
   const [quantity, setQuantity] = useState(1);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
@@ -42,7 +45,6 @@ const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onC
   const add = useCartStore((s) => s.add);
   const navigate = useNavigate();
 
-  // Thêm vào giỏ hàng
   const handleAddToCart = async () => {
     setActiveBtn("cart");
 
@@ -53,54 +55,59 @@ const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onC
     }
 
     try {
-      const colorId = selectedColorId || (product.color.length === 1 ? product.color[0].id : null);
+      const colorId =
+        selectedColorId || (product.color.length === 1 ? product.color[0].id : null);
       if (!colorId) {
         alert("Vui lòng chọn màu trước khi thêm vào giỏ hàng!");
         return;
       }
-
-      await add(product.id, quantity, colorId); // truyền thêm colorId
+      await add(product.id, quantity, colorId); // ✅ có colorId
       setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
+      setTimeout(() => setAdded(false), 1800);
     } catch (err) {
       console.error("Add to cart error:", err);
       alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+    } finally {
+      setTimeout(() => setActiveBtn(null), 180);
     }
-
-    setTimeout(() => setActiveBtn(null), 180);
   };
 
   return (
-    <div className="bg-white relative">
-      {/* Tên sản phẩm */}
-      <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+    <div className="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      {/* Tên + giá */}
+      <div className="mb-3">
+        <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+        <p className="mt-1 text-xl font-semibold text-amber-600">
+          {fmtVND(product.price)}
+        </p>
+      </div>
 
-      {/* Giá */}
-      <p className="text-2xl font-semibold mb-4 text-amber-500">
-        {product.price.toLocaleString()} ₫
-      </p>
-
-      {/* Màu sắc */}
-      <div className="flex space-x-4 mb-4">
-        {product.color.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onColorChange(c.id)}
-            className={`w-10 h-10 rounded-full border-2 ${selectedColorId === c.id ? "border-green-600" : "border-gray-300"
+      {/* Chọn màu */}
+      <div className="mb-5">
+        <div className="mb-2 text-sm font-medium text-gray-700">Màu sắc</div>
+        <div className="flex flex-wrap gap-3">
+          {product.color.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onColorChange(c.id)}
+              aria-label={`Chọn màu ${c.colorName}`}
+              title={c.colorName}
+              className={`h-10 w-10 rounded-full border-2 ring-0 transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                selectedColorId === c.id ? "border-emerald-600" : "border-gray-300"
               }`}
-            title={c.colorName}
-            style={{ backgroundColor: c.hexCode }}
-          />
-        ))}
+              style={{ backgroundColor: c.hexCode }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Nút AR / 3D */}
-      <div className="flex space-x-4 mt-6">
+      <div className="mt-4 flex flex-wrap gap-3">
         <button
-          className="px-4 py-2 text-white rounded text-lg transition-colors"
+          type="button"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
           style={{
-            backgroundColor:
-              activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest,
+            backgroundColor: activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest,
           }}
           onClick={() => {
             setActiveBtn("3d");
@@ -112,10 +119,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onC
           Xem 3D
         </button>
         <button
-          className="px-4 py-2 text-white rounded text-lg transition-colors"
+          type="button"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
           style={{
-            backgroundColor:
-              activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest,
+            backgroundColor: activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest,
           }}
           onClick={() => {
             setActiveBtn("ar");
@@ -128,35 +135,41 @@ const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onC
         </button>
       </div>
 
-      {/* Số lượng và nút giỏ hàng */}
-      <div className="flex items-center mb-4 mt-4">
+      {/* Số lượng + Thêm giỏ */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <div
-          className="flex items-center px-3 py-2 text-white rounded"
-          style={{ backgroundColor: forest }}
+          className="inline-flex items-center rounded-lg border border-emerald-100 bg-emerald-600/90 text-white"
+          role="group"
+          aria-label="Chọn số lượng"
         >
           <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="px-2 text-lg"
+            type="button"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            className="px-3 py-2 text-sm font-semibold hover:bg-emerald-700/80"
+            aria-label="Giảm số lượng"
           >
-            -
+            −
           </button>
-          <span className="mx-2 text-lg font-semibold">{quantity}</span>
+          <span className="px-4 text-sm font-semibold">{quantity}</span>
           <button
-            onClick={() => setQuantity(quantity + 1)}
-            className="px-2 text-lg"
+            type="button"
+            onClick={() => setQuantity((q) => q + 1)}
+            className="px-3 py-2 text-sm font-semibold hover:bg-emerald-700/80"
+            aria-label="Tăng số lượng"
           >
             +
           </button>
         </div>
-        <div className="w-1" />
+
         <button
-          className="px-4 py-2 text-white text-lg font-medium rounded transition-colors"
+          type="button"
+          onClick={handleAddToCart}
+          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors"
           style={{
-            minWidth: 120,
             backgroundColor:
               activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest,
+            minWidth: 140,
           }}
-          onClick={handleAddToCart}
           onMouseEnter={() => setHoverBtn("cart")}
           onMouseLeave={() => setHoverBtn(null)}
         >
@@ -164,9 +177,9 @@ const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onC
         </button>
       </div>
 
-      {/* Toast thông báo */}
+      {/* Toast */}
       {added && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg animate-slideUp">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg">
           <CheckCircle className="h-5 w-5 text-white" />
           <span>Thêm sản phẩm vào giỏ hàng thành công</span>
         </div>
