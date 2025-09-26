@@ -5,14 +5,14 @@ import { cartService, type CartDTO } from "@/service/cartService"
 
 /* ===== Types ===== */
 export type CartItem = {
-  id: string;        // ✅ khóa hiển thị: productId:colorId (để phân biệt biến thể)
+  id: string;        // productId:colorId (phân biệt biến thể)
   productId: string;
   colorId: string;
   title: string;
   price: number;
   qty: number;
   image?: string;
-  cartItemId?: number; // nếu cần debug/hiển thị
+  cartItemId?: number;
 }
 
 type CartState = {
@@ -25,7 +25,7 @@ type CartState = {
   fetch: () => Promise<void>;
   add: (productId: string, qty?: number, colorId?: string) => Promise<void>;
   updateQty: (productId: string, colorId: string, qty: number) => Promise<void>;
-  remove: (productId: string) => Promise<void>;  // ⚠️ xóa theo productId (API limit)
+  remove: (productId: string) => Promise<void>;   // ⚠️ xóa theo productId (API hiện có)
   clear: () => Promise<void>;
 
   addLocal: (item: Omit<CartItem, "qty" | "id">, qty?: number) => void;
@@ -34,25 +34,25 @@ type CartState = {
 /* ===== Helpers ===== */
 const mapFromDTO = (data: CartDTO): { items: CartItem[]; total: number; count: number } => {
   const items: CartItem[] = data.items.map((i) => ({
-    id: `${i.productId}:${i.colorId}`, // ✅ phân biệt theo biến thể
+    id: `${i.productId}:${i.colorId}`,
     productId: i.productId,
     colorId: i.colorId,
     title: i.productName,
-    image: i.image,         // ảnh theo màu đã được backend trả
+    image: i.image,           // ảnh theo màu từ backend
     price: i.price,
     qty: i.quantity,
     cartItemId: i.cartItemId,
-  }));
-  const total = data.totalPrice;
-  const count = items.reduce((s, it) => s + it.qty, 0);
-  return { items, total, count };
-};
+  }))
+  const total = data.totalPrice
+  const count = items.reduce((s, it) => s + it.qty, 0)
+  return { items, total, count }
+}
 
 const recompute = (items: CartItem[]) => ({
   items,
   count: items.reduce((s, i) => s + i.qty, 0),
   total: items.reduce((s, i) => s + i.price * i.qty, 0),
-});
+})
 
 /* ===== Store ===== */
 export const useCartStore = create<CartState>((set, get) => ({
@@ -63,57 +63,82 @@ export const useCartStore = create<CartState>((set, get) => ({
   error: undefined,
 
   fetch: async () => {
-    set({ loading: true, error: undefined });
+    set({ loading: true, error: undefined })
     try {
-      const data = await cartService.getMyCart();
-      const mapped = mapFromDTO(data);
-      set({ items: mapped.items, total: mapped.total, count: mapped.count });
+      const data = await cartService.getMyCart()
+      const mapped = mapFromDTO(data)
+      set({ items: mapped.items, total: mapped.total, count: mapped.count })
     } catch (e: any) {
-      set({ error: e?.response?.data?.message || "Không thể tải giỏ hàng" });
+      set({ error: e?.response?.data?.message || "Không thể tải giỏ hàng" })
     } finally {
-      set({ loading: false });
+      set({ loading: false })
     }
   },
 
-  // ✅ thêm colorId theo spec
+  // Giữ fetch() để đồng bộ chính xác sau khi thêm (server có thể gộp item)
   add: async (productId, qty = 1, colorId) => {
-    if (!colorId) throw new Error("colorId là bắt buộc khi thêm vào giỏ hàng");
-    await cartService.add(productId, qty, colorId);
-    await get().fetch();
+    if (!colorId) throw new Error("colorId là bắt buộc khi thêm vào giỏ hàng")
+    set({ error: undefined })
+    await cartService.add(productId, qty, colorId)
+    await get().fetch()
   },
 
-  // ✅ update kèm colorId theo spec
+  // ✅ Optimistic update cho số lượng (KHÔNG fetch lại)
   updateQty: async (productId, colorId, qty) => {
-    await cartService.update(productId, qty, colorId);
-    await get().fetch();
+    set({ error: undefined })
+    const minQty = Math.max(1, qty)
+    const key = `${productId}:${colorId}`
+
+    // 1) Snapshot để rollback nếu API lỗi
+    const prevItems = get().items
+
+    // 2) Cập nhật local ngay
+    const nextItems = prevItems.map((it) =>
+      it.id === key ? { ...it, qty: minQty } : it
+    )
+    set(recompute(nextItems))
+
+    try {
+      // 3) Gọi API nền
+      await cartService.update(productId, minQty, colorId)
+      // 4) Thành công: không cần làm gì thêm (đã cập nhật local)
+    } catch (e: any) {
+      // 5) Lỗi: rollback
+      set({
+        ...recompute(prevItems),
+        error: e?.response?.data?.message || "Cập nhật số lượng thất bại",
+      })
+    }
   },
 
   // ⚠️ API remove theo productId → có thể xóa hết biến thể của sản phẩm
   remove: async (productId) => {
-    await cartService.removeOne(productId);
-    await get().fetch();
+    set({ error: undefined })
+    await cartService.removeOne(productId)
+    await get().fetch()
   },
 
   clear: async () => {
-    const ids = [...new Set(get().items.map((i) => i.productId))];
-    if (ids.length === 0) return;
-    await cartService.removeMany(ids);
-    await get().fetch();
+    const ids = [...new Set(get().items.map((i) => i.productId))]
+    if (ids.length === 0) return
+    set({ error: undefined })
+    await cartService.removeMany(ids)
+    await get().fetch()
   },
 
-  // Local mode (guest) — nếu cần giữ biến thể, cũng nên phân biệt theo colorId
+  // Local mode (guest)
   addLocal: (item, qty = 1) => {
-    const items = [...get().items];
-    const key = `${item.productId}:${item.colorId}`;
-    const idx = items.findIndex((i) => i.id === key);
-    if (idx >= 0) items[idx] = { ...items[idx], qty: items[idx].qty + qty };
-    else items.push({ ...item, id: key, qty });
-    set(recompute(items));
+    const items = [...get().items]
+    const key = `${item.productId}:${item.colorId}`
+    const idx = items.findIndex((i) => i.id === key)
+    if (idx >= 0) items[idx] = { ...items[idx], qty: items[idx].qty + qty }
+    else items.push({ ...item, id: key, qty })
+    set(recompute(items))
   },
-}));
+}))
 
-export const selectCartItems  = (s: CartState) => s.items;
-export const selectCartTotal  = (s: CartState) => s.total;
-export const selectCartCount  = (s: CartState) => s.count;
+export const selectCartItems  = (s: CartState) => s.items
+export const selectCartTotal  = (s: CartState) => s.total
+export const selectCartCount  = (s: CartState) => s.count
 
-export default useCartStore;
+export default useCartStore
