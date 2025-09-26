@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Truck, ShieldCheck, RotateCcw, MessageSquare, CheckCircle } from "lucide-react";
+import {
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  MessageSquare,
+  CheckCircle,
+} from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Link } from "react-router-dom";
@@ -12,7 +18,7 @@ import "swiper/css/pagination";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/store/cart";
 import { productService, type Product } from "@/service/homeService";
-import axiosClient from "@/service/axiosClient"; // ✅ dùng trực tiếp, không cần file service riêng
+import axiosClient from "@/service/axiosClient";
 
 // Import ảnh local đúng chuẩn
 import heroImg from "@/assets/home-image.png";
@@ -58,7 +64,6 @@ const Home: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // gọi /categories (baseURL của axiosClient đã có /api)
     axiosClient
       .get<{ status: number; message: string; data: Category[] }>("/categories")
       .then((res) => {
@@ -67,7 +72,11 @@ const Home: React.FC = () => {
       })
       .catch((err: any) => {
         console.error("Load categories error:", err);
-        setCatsErr(err?.response?.data?.message || err?.message || "Không tải được danh mục");
+        setCatsErr(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Không tải được danh mục"
+        );
       })
       .finally(() => setCatsLoading(false));
   }, []);
@@ -81,12 +90,19 @@ const Home: React.FC = () => {
 
         {/* Cột trái: text */}
         <div className="relative flex flex-col justify-center px-8 py-20 sm:pl-16">
-          <motion.div initial="hidden" animate="show" variants={fadeUp} transition={{ duration: 0.6 }}>
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+          >
             <h1 className="text-5xl font-extrabold leading-tight text-gray-900 sm:text-6xl">
-              Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối giản
+              Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối
+              giản
             </h1>
             <p className="mt-6 max-w-prose text-lg text-gray-600">
-              Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm không gian sống của bạn.
+              Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm
+              không gian sống của bạn.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -140,25 +156,51 @@ const Home: React.FC = () => {
         </motion.div>
       </section>
 
-      {/* ✅ CATEGORIES – render từ API */}
+      {/* ✅ CATEGORIES – 1 hàng, tự chạy bằng Swiper */}
       <section className="mx-auto max-w-7xl px-6 py-14">
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-80px" }}
+        >
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Danh mục</h2>
-              <p className="mt-1 text-sm text-gray-500">Khám phá các nhóm sản phẩm nổi bật</p>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                Danh mục
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Khám phá các nhóm sản phẩm nổi bật
+              </p>
             </div>
-            <Link to="/shop" className="text-sm font-semibold text-emerald-700 hover:underline">
+            <Link
+              to="/shop"
+              className="text-sm font-semibold text-emerald-700 hover:underline"
+            >
               Xem tất cả →
             </Link>
           </div>
 
           {catsLoading ? (
-            <div className="grid gap-6 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-56 w-full animate-pulse rounded-3xl bg-gray-100" />
+            <Swiper
+              modules={[Autoplay]}
+              slidesPerView={1.2}
+              spaceBetween={16}
+              autoplay={{ delay: 2200, disableOnInteraction: false }}
+              loop
+              speed={650}
+              breakpoints={{
+                640: { slidesPerView: 2.2, spaceBetween: 18 },
+                1024: { slidesPerView: 3.2, spaceBetween: 20 },
+                1280: { slidesPerView: 4, spaceBetween: 22 },
+              }}
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SwiperSlide key={i}>
+                  <div className="h-56 w-full animate-pulse rounded-3xl bg-gray-100" />
+                </SwiperSlide>
               ))}
-            </div>
+            </Swiper>
           ) : catsErr ? (
             <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {catsErr}
@@ -168,28 +210,48 @@ const Home: React.FC = () => {
               Chưa có danh mục khả dụng.
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-3">
-              {cats.slice(0, 6).map((c) => (
-                <motion.div key={c.id} variants={fadeUp} className="group relative overflow-hidden rounded-3xl">
-                  <Link to={`/shop?catId=${c.id}`}>
-                    <img
-                      src={
-                        c.image ||
-                        "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
-                      }
-                      alt={c.categoryName}
-                      onError={onImgError}
-                      className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <div className="text-sm opacity-90">Khám phá</div>
-                      <div className="text-xl font-bold">{c.categoryName}</div>
-                    </div>
-                  </Link>
-                </motion.div>
+            <Swiper
+              modules={[Autoplay]}
+              slidesPerView={1.2}
+              spaceBetween={16}
+              autoplay={{ delay: 2200, disableOnInteraction: false }}
+              loop
+              speed={650}
+              loopAdditionalSlides={4}
+              breakpoints={{
+                640: { slidesPerView: 2.2, spaceBetween: 18 },
+                1024: { slidesPerView: 3.2, spaceBetween: 20 },
+                1280: { slidesPerView: 4, spaceBetween: 22 },
+              }}
+            >
+              {cats.map((c) => (
+                <SwiperSlide key={c.id}>
+                  <motion.div
+                    variants={fadeUp}
+                    className="group relative overflow-hidden rounded-3xl"
+                  >
+                    <Link to={`/shop?catId=${c.id}`}>
+                      <img
+                        src={
+                          c.image ||
+                          "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+                        }
+                        alt={c.categoryName}
+                        onError={onImgError}
+                        className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+                      <div className="absolute bottom-4 left-4 text-white">
+                        <div className="text-sm opacity-90">Khám phá</div>
+                        <div className="text-xl font-bold">
+                          {c.categoryName}
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                </SwiperSlide>
               ))}
-            </div>
+            </Swiper>
           )}
         </motion.div>
       </section>
@@ -199,10 +261,17 @@ const Home: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Sản phẩm nổi bật</h2>
-              <p className="mt-1 text-sm text-gray-500">Gợi ý cho không gian tối giản</p>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                Sản phẩm nổi bật
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Gợi ý cho không gian tối giản
+              </p>
             </div>
-            <Link to="/shop" className="text-sm font-semibold text-emerald-700 hover:underline">
+            <Link
+              to="/shop"
+              className="text-sm font-semibold text-emerald-700 hover:underline"
+            >
               Xem tất cả →
             </Link>
           </div>
@@ -214,11 +283,8 @@ const Home: React.FC = () => {
             animate="show"
           >
             {products.map((p) => {
-<<<<<<< HEAD
-              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
-=======
+
               const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
->>>>>>> a860b5e11858f96356f6031a6af60bd659027a71
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -233,15 +299,11 @@ const Home: React.FC = () => {
                     }}
                     onAdd={async () => {
                       try {
-<<<<<<< HEAD
-                        await add(p.id, 1)
-                        setAddedProduct(p.name)
-                        setTimeout(() => setAddedProduct(null), 2000)
-=======
-                        await add(p.id, 1); // ✅ dùng API store
-                        setAddedProduct(p.name);
-                        setTimeout(() => setAddedProduct(null), 2000);
->>>>>>> a860b5e11858f96356f6031a6af60bd659027a71
+                    // Khi thêm sản phẩm
+                 await add(p.id, 1); // ✅ Gọi API thêm sản phẩm vào store
+                 setAddedProduct(p.name); // Lưu tên sản phẩm để hiển thị
+                 setTimeout(() => setAddedProduct(null), 2000); // Reset sau 2 giây
+
                       } catch (err) {
                         console.error("Add to cart error:", err);
                       }
@@ -259,7 +321,8 @@ const Home: React.FC = () => {
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg">
           <CheckCircle className="h-5 w-5 text-white" />
           <span>
-            Đã thêm <span className="font-semibold">{addedProduct}</span> vào giỏ hàng
+            Đã thêm <span className="font-semibold">{addedProduct}</span> vào
+            giỏ hàng
           </span>
         </div>
       )}
@@ -267,7 +330,9 @@ const Home: React.FC = () => {
       {/* KHÁCH HÀNG NÓI GÌ */}
       <section className="bg-white py-16">
         <div className="mx-auto max-w-3xl px-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">Khách hàng nói gì</h3>
+          <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Khách hàng nói gì
+          </h3>
 
           <div className="mt-6">
             <Swiper
@@ -278,14 +343,25 @@ const Home: React.FC = () => {
               slidesPerView={1}
             >
               {[
-                { q: "Thiết kế tối giản nhưng chắc chắn. Giao hàng nhanh.", n: "Minh T." },
-                { q: "Sofa êm và mát. Dịch vụ chăm sóc khách hàng tuyệt vời.", n: "Lan P." },
-                { q: "Bàn trà gỗ sồi đẹp hơn mong đợi. Sẽ quay lại mua lần nữa.", n: "Hải D." },
+                {
+                  q: "Thiết kế tối giản nhưng chắc chắn. Giao hàng nhanh.",
+                  n: "Minh T.",
+                },
+                {
+                  q: "Sofa êm và mát. Dịch vụ chăm sóc khách hàng tuyệt vời.",
+                  n: "Lan P.",
+                },
+                {
+                  q: "Bàn trà gỗ sồi đẹp hơn mong đợi. Sẽ quay lại mua lần nữa.",
+                  n: "Hải D.",
+                },
               ].map((t, i) => (
                 <SwiperSlide key={i}>
                   <blockquote className="mx-auto max-w-xl rounded-3xl border border-gray-100 bg-gray-50 px-6 py-8 text-gray-700 shadow">
                     “{t.q}”
-                    <footer className="mt-4 text-sm font-semibold text-gray-900">— {t.n}</footer>
+                    <footer className="mt-4 text-sm font-semibold text-gray-900">
+                      — {t.n}
+                    </footer>
                   </blockquote>
                 </SwiperSlide>
               ))}
