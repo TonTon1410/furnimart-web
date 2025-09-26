@@ -1,4 +1,8 @@
 import React, { useState } from "react";
+import { CheckCircle } from "lucide-react";
+import { authService } from "@/service/authService";
+import { useCartStore } from "@/store/cart";
+import { useNavigate } from "react-router-dom";
 
 interface Color {
   id: string;
@@ -27,28 +31,42 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
+
+  const add = useCartStore((s) => s.add);
+  const navigate = useNavigate();
 
   // Thêm vào giỏ hàng
   const handleAddToCart = async () => {
     setActiveBtn("cart");
-    try {
-      const { cartService } = await import("@/service/cartService");
-      await cartService.add(product.id, quantity);
-      // Có thể thêm thông báo thành công ở đây nếu muốn
-    } catch (e) {
-      // Có thể thêm thông báo lỗi ở đây nếu muốn
-      console.error(e);
+
+    if (!authService.isAuthenticated()) {
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      navigate("/login");
+      return;
     }
+
+    try {
+      await add(product.id, quantity);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+    }
+
     setTimeout(() => setActiveBtn(null), 180);
   };
 
   return (
-    <div className="bg-white">
-    {/* Tên sản phẩm */}
-    <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+    <div className="bg-white relative">
+      {/* Tên sản phẩm */}
+      <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-    {/* Giá */}
-    <p className="text-2xl font-semibold mb-4 text-amber-500">{product.price.toLocaleString()} ₫</p>
+      {/* Giá */}
+      <p className="text-2xl font-semibold mb-4 text-amber-500">
+        {product.price.toLocaleString()} ₫
+      </p>
 
       {/* Màu sắc */}
       <div className="flex space-x-4 mb-4">
@@ -66,7 +84,10 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
       <div className="flex space-x-4 mt-6">
         <button
           className="px-4 py-2 text-white rounded text-lg transition-colors"
-          style={{ backgroundColor: activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest }}
+          style={{
+            backgroundColor:
+              activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest,
+          }}
           onClick={() => {
             setActiveBtn("3d");
             setTimeout(() => setActiveBtn(null), 180);
@@ -78,7 +99,10 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
         </button>
         <button
           className="px-4 py-2 text-white rounded text-lg transition-colors"
-          style={{ backgroundColor: activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest }}
+          style={{
+            backgroundColor:
+              activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest,
+          }}
           onClick={() => {
             setActiveBtn("ar");
             setTimeout(() => setActiveBtn(null), 180);
@@ -92,7 +116,10 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
 
       {/* Số lượng và nút giỏ hàng */}
       <div className="flex items-center mb-4 mt-4">
-        <div className="flex items-center px-3 py-2 text-white rounded" style={{ backgroundColor: forest }}>
+        <div
+          className="flex items-center px-3 py-2 text-white rounded"
+          style={{ backgroundColor: forest }}
+        >
           <button
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
             className="px-2 text-lg"
@@ -110,7 +137,11 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
         <div className="w-1" />
         <button
           className="px-4 py-2 text-white text-lg font-medium rounded transition-colors"
-          style={{ minWidth: 120, backgroundColor: activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest }}
+          style={{
+            minWidth: 120,
+            backgroundColor:
+              activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest,
+          }}
           onClick={handleAddToCart}
           onMouseEnter={() => setHoverBtn("cart")}
           onMouseLeave={() => setHoverBtn(null)}
@@ -118,6 +149,14 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
           Thêm vào giỏ hàng
         </button>
       </div>
+
+      {/* Toast thông báo */}
+      {added && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg animate-slideUp">
+          <CheckCircle className="h-5 w-5 text-white" />
+          <span>Thêm sản phẩm vào giỏ hàng thành công</span>
+        </div>
+      )}
     </div>
   );
 };

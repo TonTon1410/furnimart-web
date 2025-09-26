@@ -65,10 +65,22 @@ const ProductDetail: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Hình ảnh */}
           <RightSection
-            thumbnailImage={product.images?.[0]?.image || "/default-image.png"}
-            images={product.images?.map((img) => img.image) || []}
-            images3d={product.images3d}
+            thumbnailImage={product.thumbnailImage || "/default-image.png"}
+            images={
+              product.color && product.color.length > 0
+                ? product.color.flatMap((c) => c.images?.map((img) => img.image) || [])
+                : []
+            }
+            images3d={
+              product.color && product.color.length > 0
+                ? product.color.flatMap(
+                  (c) =>
+                    c.models3D?.map((m) => ({ previewImage: m.previewImage })) || []
+                )
+                : []
+            }
           />
+
 
           {/* Thông tin */}
           <LeftSection product={product} />
