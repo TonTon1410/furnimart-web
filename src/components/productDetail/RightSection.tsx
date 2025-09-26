@@ -1,4 +1,6 @@
+
 import React, { useState } from "react";
+import defaultImage from "../../assets/default-image.jpg";
 
 interface RightSectionProps {
   thumbnailImage: string;
@@ -7,21 +9,20 @@ interface RightSectionProps {
 }
 
 const RightSection: React.FC<RightSectionProps> = ({ thumbnailImage, images, images3d }) => {
-  // Ảnh chính đang hiển thị
   const allImages = [
-    thumbnailImage,
-    ...images,
+    thumbnailImage || defaultImage,
+    ...(images && images.length > 0 ? images : []),
     ...(images3d?.map((i) => i.previewImage) || []),
   ].filter(Boolean);
 
-  const [mainImage, setMainImage] = useState(allImages[0]);
+  const [mainImage, setMainImage] = useState(allImages[0] || defaultImage);
 
   return (
     <div className="bg-white flex flex-col items-center">
       {/* Ảnh chính */}
       <div className="w-full flex justify-center mb-4">
         <img
-          src={mainImage}
+          src={mainImage || defaultImage}
           alt="Product"
           className="max-h-[400px] object-contain"
         />
@@ -32,13 +33,13 @@ const RightSection: React.FC<RightSectionProps> = ({ thumbnailImage, images, ima
         {allImages.map((img, index) => (
           <button
             key={index}
-            onClick={() => setMainImage(img)}
+            onClick={() => setMainImage(img || defaultImage)}
             className={`w-20 h-20 border rounded overflow-hidden ${
               mainImage === img ? "border-green-600" : "border-gray-300"
             }`}
           >
             <img
-              src={img}
+              src={img || defaultImage}
               alt={`thumb-${index}`}
               className="w-full h-full object-cover"
             />

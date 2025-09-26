@@ -1,24 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { type AxiosError, AxiosHeaders } from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
-/** =========================================================================
- *  CẤU HÌNH CHUNG
- *  ========================================================================= */
-const API_BASE =
-  (import.meta as any)?.env?.VITE_API_BASE ??
-  "http://152.53.169.79:8080/api"; // ✅ mặc định 8080
-
-export const axiosClient = axios.create({
-  baseURL: API_BASE,
-  headers: { "Content-Type": "application/json" },
+// ───────────────────────────────────────────────
+// Tạo instance Axios chính
+// ───────────────────────────────────────────────
+const axiosClient = axios.create({
+  baseURL: BASE_URL, // Sử dụng biến môi trường
+  headers: {
+    "Content-Type": "application/json",
+  },
   withCredentials: true,
-  timeout: 15000,
+  timeout: 15000, // Tăng timeout lên 15 giây
 });
 
-/** =========================================================================
- *  MỞ RỘNG TYPE: THÊM CỜ _retry CHO REQUEST GỐC
- *  ========================================================================= */
+// ───────────────────────────────────────────────
+// Mở rộng type để thêm _retry
+// ───────────────────────────────────────────────
 declare module "axios" {
   export interface InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -169,3 +168,4 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
+
