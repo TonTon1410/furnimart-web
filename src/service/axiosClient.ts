@@ -4,8 +4,9 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 // ───────────────────────────────────────────────
 // Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
 // ───────────────────────────────────────────────
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8086/api", // ✅ SỬA: Đổi port từ 8080 thành 8086
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -118,9 +119,9 @@ axiosClient.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        // ✅ SỬA: Cập nhật port trong refresh instance
+        // Sử dụng biến môi trường cho refresh instance
         const refreshInstance = axios.create({
-          baseURL: "http://localhost:8086/api", // SỬA port
+          baseURL: API_BASE_URL,
           headers: { "Content-Type": "application/json" },
         });
 
