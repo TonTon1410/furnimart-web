@@ -3,6 +3,7 @@ import { cartService } from "@/service/cartService";
 import { addressService } from "@/service/addressService";
 import { paymentService } from "@/service/paymentService";
 import { useNavigate } from "react-router-dom";
+import LoadingPage from "./LoadingPage";
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  if (!cart) return <p>Đang tải...</p>;
+  if (!cart) return <LoadingPage />;
 
   return (
     <div className="checkout-container">
