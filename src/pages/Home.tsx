@@ -298,15 +298,9 @@ const Home: React.FC = () => {
                     }}
                     onAdd={async () => {
                       try {
-<<<<<<< HEAD
-                        await add(p.id, 1)
-                        setAddedProduct(p.name)
-                        setTimeout(() => setAddedProduct(null), 2000)
-=======
                         await add(p.id, 1); // ✅ dùng API store
                         setAddedProduct(p.name);
                         setTimeout(() => setAddedProduct(null), 2000);
->>>>>>> a860b5e11858f96356f6031a6af60bd659027a71
                       } catch (err) {
                         console.error("Add to cart error:", err);
                       }
