@@ -109,7 +109,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       </div>
 
       {/* Nút AR / 3D */}
-      <div className="mt-4 flex w-4/5 items-center justify-between space-x-2">
+      <div className="mt-4 flex w-4/5 items-center justify-between space-x-1">
         <button
           type="button"
           className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === '3d' ? 'ring-4 ring-amber-400' : ''}`}
@@ -135,7 +135,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       </div>
 
       {/* Số lượng + Thêm giỏ */}
-      <div className="mt-6 flex w-4/5 items-center justify-between space-x-2">
+      <div className="mt-6 flex w-4/5 items-center justify-between space-x-1">
         <div
           className="flex items-center border border-emerald-200 rounded-md"
           style={{ backgroundColor: forest, color: 'white' }}
