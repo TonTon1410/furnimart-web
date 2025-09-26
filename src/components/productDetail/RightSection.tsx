@@ -14,6 +14,7 @@ const RightSection: React.FC<RightSectionProps> = ({
   images3d,
   selectedColorImages,
 }) => {
+  // Tập hợp tất cả ảnh khả dụng (thumbnail, images, 3D previews)
   const allImages = useMemo(() => {
     const arr: string[] = [];
     if (thumbnailImage) arr.push(thumbnailImage);
@@ -24,30 +25,41 @@ const RightSection: React.FC<RightSectionProps> = ({
     return arr.length > 0 ? arr : [defaultImage];
   }, [thumbnailImage, images, images3d]);
 
-  // Ảnh ưu tiên theo màu chọn (nếu có)
+  // Giá trị khởi tạo (nếu có ảnh theo màu thì ưu tiên, else ảnh đầu tiên)
   const initialImage =
     selectedColorImages && selectedColorImages.length > 0
       ? selectedColorImages[0]
       : allImages[0];
 
-  const [mainImage, setMainImage] = useState<string>(initialImage || defaultImage);
+  const [mainImage, setMainImage] = useState<string>(
+    initialImage || defaultImage
+  );
 
-  // Khi đổi màu → đổi ảnh chính
+  // Khi props ảnh thay đổi (ví dụ: điều hướng sang product khác),
+  // đồng bộ mainImage: ưu tiên ảnh theo màu, nếu không dùng allImages[0].
   useEffect(() => {
     if (selectedColorImages && selectedColorImages.length > 0) {
       setMainImage(selectedColorImages[0]);
+      return;
     }
-  }, [selectedColorImages]);
+    if (allImages && allImages.length > 0) {
+      setMainImage(allImages[0]);
+    } else {
+      setMainImage(defaultImage);
+    }
+  }, [allImages, selectedColorImages]);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div>
       {/* Ảnh chính */}
-      <div className="mb-4 flex w-full justify-center rounded-xl bg-gray-50 p-3">
+      <div className="mb-4 flex w-full justify-center bg-gray-50 p-4 border border-gray-200">
         <img
           src={mainImage || defaultImage}
           alt="Hình sản phẩm"
-          className="max-h-[420px] w-full max-w-full object-contain"
-          onError={(e) => ((e.currentTarget.src = defaultImage))}
+          className="max-h-[500px] w-full object-contain"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = defaultImage;
+          }}
         />
       </div>
 
@@ -60,8 +72,10 @@ const RightSection: React.FC<RightSectionProps> = ({
               key={index}
               type="button"
               onClick={() => setMainImage(img || defaultImage)}
-              className={`h-20 w-20 overflow-hidden rounded-lg border transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                active ? "border-emerald-600 shadow-sm" : "border-gray-300 hover:border-emerald-300"
+              className={`h-20 w-20 overflow-hidden border transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                active
+                  ? "border-emerald-600 shadow-sm"
+                  : "border-gray-300 hover:border-emerald-300"
               }`}
               aria-label={`Ảnh ${index + 1}`}
             >
@@ -69,7 +83,9 @@ const RightSection: React.FC<RightSectionProps> = ({
                 src={img || defaultImage}
                 alt={`thumb-${index}`}
                 className="h-full w-full object-cover"
-                onError={(e) => ((e.currentTarget.src = defaultImage))}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = defaultImage;
+                }}
               />
             </button>
           );
