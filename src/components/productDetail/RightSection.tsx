@@ -5,29 +5,37 @@ interface RightSectionProps {
   thumbnailImage: string;
   images: string[];
   images3d?: { previewImage: string }[];
+  selectedColorImages?: string[];
 }
 
-const RightSection: React.FC<RightSectionProps> = ({ thumbnailImage, images, images3d }) => {
-  // Gom toàn bộ hình ảnh
+const RightSection: React.FC<RightSectionProps> = ({
+  thumbnailImage,
+  images,
+  images3d,
+  selectedColorImages,
+}) => {
   const allImages: string[] = [];
 
-  if (thumbnailImage) {
-    allImages.push(thumbnailImage);
-  }
-
-  if (images && images.length > 0) {
-    allImages.push(...images);
-  }
-
-  if (images3d && images3d.length > 0) {
+  if (thumbnailImage) allImages.push(thumbnailImage);
+  if (images && images.length > 0) allImages.push(...images);
+  if (images3d && images3d.length > 0)
     allImages.push(...images3d.map((i) => i.previewImage).filter(Boolean));
-  }
+  if (allImages.length === 0) allImages.push(defaultImage);
 
-  if (allImages.length === 0) {
-    allImages.push(defaultImage);
-  }
+  // Nếu có màu được chọn -> ảnh chính = ảnh đầu tiên của màu đó
+  const initialImage =
+    selectedColorImages && selectedColorImages.length > 0
+      ? selectedColorImages[0]
+      : allImages[0];
 
-  const [mainImage, setMainImage] = useState(allImages[0] || defaultImage);
+  const [mainImage, setMainImage] = useState(initialImage || defaultImage);
+
+  // Khi đổi màu thì mainImage thay đổi theo
+  React.useEffect(() => {
+    if (selectedColorImages && selectedColorImages.length > 0) {
+      setMainImage(selectedColorImages[0]);
+    }
+  }, [selectedColorImages]);
 
   return (
     <div className="bg-white flex flex-col items-center">
@@ -61,5 +69,6 @@ const RightSection: React.FC<RightSectionProps> = ({ thumbnailImage, images, ima
     </div>
   );
 };
+
 
 export default RightSection;

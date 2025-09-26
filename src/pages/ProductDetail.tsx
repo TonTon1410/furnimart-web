@@ -15,6 +15,13 @@ const ProductDetail: React.FC = () => {
   const slug = location.pathname.replace("/product/", "");
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
+  const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (product?.color?.length === 1) {
+      setSelectedColorId(product.color[0].id); // nếu chỉ có 1 màu thì auto chọn
+    }
+  }, [product]);
 
   const getRelatedProducts = async (categoryId: number, productId: string): Promise<Product[]> => {
     if (!categoryId) return [];
@@ -59,31 +66,35 @@ const ProductDetail: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-white">
-      {/* Khoảng cách giữa header và ProductDetail */}
+
       <div className="h-32" />
       <div className="w-full max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Hình ảnh */}
           <RightSection
-            thumbnailImage={product.thumbnailImage || "/default-image.png"}
-            images={
-              product.color && product.color.length > 0
-                ? product.color.flatMap((c) => c.images?.map((img) => img.image) || [])
-                : []
-            }
-            images3d={
-              product.color && product.color.length > 0
-                ? product.color.flatMap(
-                  (c) =>
-                    c.models3D?.map((m) => ({ previewImage: m.previewImage })) || []
-                )
-                : []
-            }
-          />
+  thumbnailImage={product.thumbnailImage || "/default-image.png"}
+  images={
+    product.color?.flatMap((c) => c.images?.map((img) => img.image) || []) || []
+  }
+  images3d={
+    product.color?.flatMap(
+      (c) => c.models3D?.map((m) => ({ previewImage: m.previewImage })) || []
+    ) || []
+  }
+  selectedColorImages={
+    selectedColorId
+      ? product.color.find((c) => c.id === selectedColorId)?.images?.map((img) => img.image) || []
+      : []
+  }
+/>
 
 
           {/* Thông tin */}
-          <LeftSection product={product} />
+          <LeftSection
+            product={product}
+            selectedColorId={selectedColorId}
+            onColorChange={setSelectedColorId}
+          />
         </div>
         {/* Khoảng cách giữa Right/LeftSection và BottomSection */}
         <div className="h-10" />

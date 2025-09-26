@@ -30,12 +30,12 @@ export const cartService = {
     return res.data.data
   },
 
-  // POST /api/carts/add?productId=&quantity=
-  async add(productId: string, quantity: number) {
+  // POST /api/carts/add?productId=&quantity=&colorId=
+  async add(productId: string, quantity: number, colorId: string) {
     const res = await axiosClient.post<ApiResponse>(`${BASE_URL}/carts/add`, null, {
-      params: { productId, quantity },
-    })
-    return res.data
+      params: { productId, quantity, colorId },
+    });
+    return res.data;
   },
 
   // PATCH /api/carts/update?productId=&quantity=
