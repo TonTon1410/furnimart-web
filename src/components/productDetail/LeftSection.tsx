@@ -24,10 +24,16 @@ interface Product {
   color: Color[];
 }
 
+interface LeftSectionProps {
+  product: Product;
+  selectedColorId: string | null;
+  onColorChange: (id: string) => void;
+}
+
 const forest = "#095544";
 const pistachio = "oklch(85.2% 0.199 91.936)";
 
-const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
+const LeftSection: React.FC<LeftSectionProps> = ({ product, selectedColorId, onColorChange }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
@@ -47,7 +53,13 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
     }
 
     try {
-      await add(product.id, quantity);
+      const colorId = selectedColorId || (product.color.length === 1 ? product.color[0].id : null);
+      if (!colorId) {
+        alert("Vui lòng chọn màu trước khi thêm vào giỏ hàng!");
+        return;
+      }
+
+      await add(product.id, quantity, colorId); // truyền thêm colorId
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
@@ -71,9 +83,11 @@ const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
       {/* Màu sắc */}
       <div className="flex space-x-4 mb-4">
         {product.color.map((c) => (
-          <span
+          <button
             key={c.id}
-            className="w-10 h-10 rounded-full border-2 border-gray-300"
+            onClick={() => onColorChange(c.id)}
+            className={`w-10 h-10 rounded-full border-2 ${selectedColorId === c.id ? "border-green-600" : "border-gray-300"
+              }`}
             title={c.colorName}
             style={{ backgroundColor: c.hexCode }}
           />
