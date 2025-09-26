@@ -174,7 +174,7 @@ const Home: React.FC = () => {
               </p>
             </div>
             <Link
-              to="/shop"
+              to="/shop?catId=${c.id}"
               className="text-sm font-semibold text-emerald-700 hover:underline"
             >
               Xem tất cả →
