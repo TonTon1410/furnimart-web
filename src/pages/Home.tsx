@@ -283,8 +283,8 @@ const Home: React.FC = () => {
             animate="show"
           >
             {products.map((p) => {
-              const img =
-                p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
+
+              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -292,15 +292,18 @@ const Home: React.FC = () => {
                     className="group"
                     data={{
                       id: p.id,
-                      title: p.name,
+                      slug: p.slug,
+                      description: p.name,
                       price: p.price,
                       thumbnailImage: img,
                     }}
                     onAdd={async () => {
                       try {
-                        await add(p.id, 1);
-                        setAddedProduct(p.name);
-                        setTimeout(() => setAddedProduct(null), 2000);
+                    // Khi thêm sản phẩm
+                 await add(p.id, 1); // ✅ Gọi API thêm sản phẩm vào store
+                 setAddedProduct(p.name); // Lưu tên sản phẩm để hiển thị
+                 setTimeout(() => setAddedProduct(null), 2000); // Reset sau 2 giây
+
                       } catch (err) {
                         console.error("Add to cart error:", err);
                       }

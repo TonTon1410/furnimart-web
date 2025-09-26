@@ -48,19 +48,18 @@ const AllProducts: React.FC = () => {
                   className="group"
                   data={{
                     id: p.id,
-                    // ProductCard linh hoạt: dùng name/title/description đều được
+                    slug: p.slug,
                     description: p.name,
                     price: p.price,
                     thumbnailImage: p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg",
                   }}
                   onAdd={async () => {
-                    // 🔐 Chỉ thêm giỏ khi đã đăng nhập
                     if (!authService.isAuthenticated()) {
                       window.location.href = "/login";
                       return;
                     }
                     try {
-                      await add(p.id, 1); // ✅ gọi API: /carts/add?productId=&quantity=
+                      await add(p.id, 1);
                       setAddedProduct(p.name);
                       setTimeout(() => setAddedProduct(null), 2000);
                     } catch (err) {

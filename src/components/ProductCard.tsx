@@ -1,4 +1,3 @@
-// src/components/ProductCard.tsx
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
@@ -6,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 export type Product = {
   id: string;
+  slug: string;
   description: string;
   price: number;
   thumbnailImage: string;
@@ -19,8 +19,8 @@ type Props = {
 
 const ProductCard: React.FC<Props> = ({ data, className }) => {
   const navigate = useNavigate();
-  const goDetail = () => navigate(`/product/${data.id}`);
-
+  const goDetail = () => navigate(`/product/${data.slug}`);
+  
   return (
     <motion.div
       whileHover={{ y: -4 }}
@@ -40,13 +40,8 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
         </span>
       )}
 
-      {/* Khối ảnh */}
-      <Link
-        to={`/product/${data.id}`}
-        className="relative block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-100"
-        aria-label={`Xem chi tiết: ${data.description}`}
-        title={data.description}
-      >
+      {/* Ảnh → Link tới chi tiết */}
+  <Link to={`/product/${data.slug}`} className="block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50">
         <img
           src={data.thumbnailImage}
           alt={data.description}
@@ -87,9 +82,9 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
             Nhấn để xem chi tiết
           </span>
           <Link
-            to={`/product/${data.id}`}
-            className="inline-flex items-center gap-1 rounded-full border border-transparent px-2 py-1 text-sm text-gray-700 transition
-                       hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+
+            to={`/product/${data.slug}`}
+            className="text-base font-semibold text-gray-900 hover:underline"
           >
             Xem chi tiết
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
