@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import axios, { type AxiosError, AxiosHeaders } from "axios";
+import axios, { type AxiosError } from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
 // ───────────────────────────────────────────────
-// Tạo instance Axios chính
+// Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
 // ───────────────────────────────────────────────
 const axiosClient = axios.create({
-  baseURL: BASE_URL, // Sử dụng biến môi trường
+  baseURL: "http://localhost:8086/api", // ✅ SỬA: Đổi port từ 8080 thành 8086
   headers: {
     "Content-Type": "application/json",
   },
@@ -24,81 +22,85 @@ declare module "axios" {
   }
 }
 
-/** =========================================================================
- *  HÀNG ĐỢI KHI ĐANG REFRESH TOKEN
- *  ========================================================================= */
+// ───────────────────────────────────────────────
+// Quản lý hàng đợi request khi đang refresh token
+// ───────────────────────────────────────────────
 let isRefreshing = false;
-let failedQueue: Array<{
+let failedQueue: {
   resolve: (token: string) => void;
   reject: (err: unknown) => void;
-}> = [];
+}[] = [];
 
 const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach((p) => (token ? p.resolve(token) : p.reject(error)));
+  failedQueue.forEach((prom) => {
+    if (token) prom.resolve(token);
+    else prom.reject(error);
+  });
   failedQueue = [];
 };
 
-/** =========================================================================
- *  HELPER: SET HEADER Authorization CHO NHIỀU KIỂU CẤU TRÚC HEADERS
- *  - axios v1 có thể dùng AxiosHeaders hoặc object thường (HeadersDefaults)
- *  ========================================================================= */
-function setAuthHeader(headersObj: unknown, token: string) {
-  if (!headersObj) return;
-
-  // Trường hợp AxiosHeaders: có .set()
-  if (typeof (headersObj as any).set === "function") {
-    (headersObj as any).set("Authorization", `Bearer ${token}`);
-    return;
-  }
-
-  // Trường hợp object thường: gán trực tiếp + gán vào common
-  const h = headersObj as Record<string, any>;
-  h["Authorization"] = `Bearer ${token}`;
-  if (h.common && typeof h.common === "object") {
-    h.common["Authorization"] = `Bearer ${token}`;
-  }
-}
-
-/** =========================================================================
- *  REQUEST INTERCEPTOR → GẮN ACCESS TOKEN
- *  ========================================================================= */
+// ───────────────────────────────────────────────
+// Request interceptor → đính kèm access token
+// ───────────────────────────────────────────────
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    console.log("🚀 API Request:", {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+    });
+
     const token = localStorage.getItem("access_token");
     if (token) {
-      // Dùng AxiosHeaders.from để đảm bảo đúng kiểu trong v1
-      const hdr = AxiosHeaders.from(config.headers);
-      hdr.set("Authorization", `Bearer ${token}`);
-      config.headers = hdr;
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("✅ Token attached:", token.substring(0, 20) + "...");
+    } else {
+      console.log("⚠️ No token found in localStorage");
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("❌ Request interceptor error:", error);
+    return Promise.reject(error);
+  }
 );
 
-/** =========================================================================
- *  RESPONSE INTERCEPTOR → TỰ ĐỘNG REFRESH TOKEN KHI 401
- *  ========================================================================= */
+// ───────────────────────────────────────────────
+// Response interceptor → tự refresh token nếu 401
+// ───────────────────────────────────────────────
 axiosClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    console.log("✅ API Response:", {
+      status: response.status,
+      url: response.config.url,
+      data: response.data,
+    });
+    return response;
+  },
   async (error: AxiosError<any>) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig | undefined;
-    const status = error.response?.status;
+    const originalRequest = error.config as InternalAxiosRequestConfig;
 
-    // Không refresh cho chính endpoint auth
-    const url = originalRequest?.url || "";
-    const isAuthEndpoint =
-      url.includes("/auth/login") || url.includes("/auth/refresh");
+    // Log chi tiết error để debug
+    console.error("❌ API Error:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: error.message,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      fullURL: `${error.config?.baseURL}${error.config?.url}`,
+      responseData: error.response?.data,
+    });
 
-    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       if (isRefreshing) {
-        // Đợi tới khi refresh xong, dùng token mới retry request
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token: string) => {
-              const hdr = AxiosHeaders.from(originalRequest.headers);
-              hdr.set("Authorization", `Bearer ${token}`);
-              originalRequest.headers = hdr;
+              originalRequest.headers.Authorization = `Bearer ${token}`;
               resolve(axiosClient(originalRequest));
             },
             reject,
@@ -111,51 +113,45 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refresh_token");
-        if (!refreshToken) throw new Error("No refresh token available");
 
-        // Dùng cùng base URL (8080)
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
+        }
+
+        // ✅ SỬA: Cập nhật port trong refresh instance
         const refreshInstance = axios.create({
-          baseURL: API_BASE,
+          baseURL: "http://localhost:8086/api", // SỬA port
           headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-          timeout: 15000,
         });
 
         const res = await refreshInstance.post<{
           data: { token: string; refreshToken: string };
-        }>("/auth/refresh", { refreshToken });
+        }>("/auth/refresh", {
+          refreshToken,
+        });
 
-        const newAccessToken = res.data?.data?.token;
-        const newRefreshToken = res.data?.data?.refreshToken;
+        const newAccessToken = res.data.data.token;
+        const newRefreshToken = res.data.data.refreshToken;
 
-        if (!newAccessToken) throw new Error("Refresh response missing access token");
-
-        // Lưu token mới
         localStorage.setItem("access_token", newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem("refresh_token", newRefreshToken);
-        }
+        localStorage.setItem("refresh_token", newRefreshToken);
 
-        // Gắn vào default headers (tránh TS lỗi bằng helper)
-        setAuthHeader(axiosClient.defaults.headers, newAccessToken);
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
 
-        // Đánh thức hàng đợi
         processQueue(null, newAccessToken);
-
-        // Gắn token mới cho request gốc và retry
-        const hdr = AxiosHeaders.from(originalRequest.headers);
-        hdr.set("Authorization", `Bearer ${newAccessToken}`);
-        originalRequest.headers = hdr;
-
         return axiosClient(originalRequest);
-      } catch (err) {
-        // Báo lỗi cho các request đang chờ
+      } catch (err: unknown) {
+        console.error("Refresh token failed:", err);
         processQueue(err, null);
 
-        // Dọn token & về /login
+        // Clear tokens
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        if (typeof window !== "undefined") window.location.href = "/login";
+
+        // Redirect to login
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
 
         return Promise.reject(err);
       } finally {
@@ -168,4 +164,3 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
-

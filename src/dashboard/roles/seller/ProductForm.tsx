@@ -56,8 +56,33 @@ type Props = {
   onCancel?: () => void;
 };
 
-type Category = { id: number; categoryName: string; status: Status; image?: string };
-type Material = { id: number; materialName: string; status: Status; image?: string };
+type Category = {
+  id: number;
+  categoryName: string;
+  status: Status;
+  image?: string;
+};
+type Material = {
+  id: number;
+  materialName: string;
+  status: Status;
+  image?: string;
+};
+
+const emptyForm: ProductFormValues = {
+  code: "",
+  name: "",
+  description: "",
+  price: 0,
+  thumbnailImage: "",
+  weight: 0,
+  height: 0,
+  width: 0,
+  length: 0,
+  categoryId: 0,
+  materialIds: [],
+  colorRequests: [],
+};
 
 const fallbackImg =
   "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80";
@@ -95,7 +120,10 @@ const ProductForm: React.FC<Props> = ({
   });
 
   const canSubmit = useMemo(
-    () => form.name.trim().length >= 2 && form.code.trim().length >= 1 && form.categoryId > 0,
+    () =>
+      form.name.trim().length >= 2 &&
+      form.code.trim().length >= 1 &&
+      form.categoryId > 0,
     [form.name, form.code, form.categoryId]
   );
 
@@ -120,21 +148,74 @@ const ProductForm: React.FC<Props> = ({
       }
     })();
   }, []);
+  useEffect(() => {
+    if (mode === "create") {
+      setForm(emptyForm);
+    } else if (mode === "edit" && initial) {
+      // merge để đảm bảo có đủ field mặc định
+      setForm({ ...emptyForm, ...initial });
+    }
+  }, [mode, initial]);
+  const update = (patch: Partial<ProductFormValues>) =>
+    setForm((s) => ({ ...s, ...patch }));
 
-  const update = (patch: Partial<ProductFormValues>) => setForm((s) => ({ ...s, ...patch }));
+  const numericKeys = new Set<keyof ProductFormValues>([
+    "price",
+    "weight",
+    "height",
+    "width",
+    "length",
+  ]);
+  // Cho phép nhập số dạng "12.5" hoặc có dấu phẩy "1,234.56"
+  const parseNumberInput = (raw: string): number | undefined => {
+    const s = raw.replaceAll(",", "").trim();
+    if (s === "") return undefined; // cho phép để trống
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined; // nếu không phải số thì bỏ qua
+  };
 
   const handleChange =
     (key: keyof ProductFormValues) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
+    ) => {
       const v = e.target.value;
-      if (["price", "weight", "height", "width", "length"].includes(key)) {
-        update({ [key]: Number(v) } as any);
-      } else if (key === "categoryId") {
-        update({ categoryId: Number(v) });
-      } else {
-        update({ [key]: v } as any);
+
+      // numeric fields: parse về number | undefined
+      if (numericKeys.has(key)) {
+        const num = parseNumberInput(v);
+        update({ [key]: num as any });
+        return;
       }
+
+      // select: categoryId (number)
+      if (key === "categoryId") {
+        update({ categoryId: Number(v) });
+        return;
+      }
+
+      // còn lại là text
+      update({ [key]: v } as any);
     };
+
+  // đặt gần các util khác
+  const normalizeHex = (v: string) => {
+    let s = (v || "").trim();
+    if (!s) return "#000000";
+    if (s[0] !== "#") s = "#" + s;
+    // chấp nhận #RGB hoặc #RRGGBB; chuyển RRGGBB
+    const short = /^#([0-9a-fA-F]{3})$/;
+    const long = /^#([0-9a-fA-F]{6})$/;
+    if (short.test(s)) {
+      const m = s.slice(1);
+      s = `#${m[0]}${m[0]}${m[1]}${m[1]}${m[2]}${m[2]}`;
+    }
+    if (!long.test(s)) return s.toUpperCase(); // để nguyên, validation xử lý thêm
+    return s.toUpperCase();
+  };
+  const isValidHex6 = (v: string) => /^#[0-9A-F]{6}$/i.test(v);
 
   const toggleMaterial = (id: number) => {
     update({
@@ -149,7 +230,11 @@ const ProductForm: React.FC<Props> = ({
     update({
       colorRequests: [
         ...(form.colorRequests || []),
-        { colorName: "", hexCode: "#000000", imageRequestList: [{ imageUrl: "" }] },
+        {
+          colorName: "",
+          hexCode: "#000000",
+          imageRequestList: [{ imageUrl: "" }],
+        },
       ],
     });
   };
@@ -165,7 +250,15 @@ const ProductForm: React.FC<Props> = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const arr = [...(form.colorRequests || [])];
       const item = { ...(arr[idx] || {}) } as ColorReq;
-      (item as any)[key] = e.target.value;
+
+      if (key === "hexCode") {
+        const raw = e.target.value;
+        const norm = normalizeHex(raw);
+        item.hexCode = norm;
+      } else {
+        item.colorName = e.target.value;
+      }
+
       arr[idx] = item;
       update({ colorRequests: arr });
     };
@@ -173,7 +266,10 @@ const ProductForm: React.FC<Props> = ({
   const addColorImage = (idx: number) => {
     const arr = [...(form.colorRequests || [])];
     const item = { ...(arr[idx] || {}) } as ColorReq;
-    item.imageRequestList = [...(item.imageRequestList || []), { imageUrl: "" }];
+    item.imageRequestList = [
+      ...(item.imageRequestList || []),
+      { imageUrl: "" },
+    ];
     arr[idx] = item;
     update({ colorRequests: arr });
   };
@@ -214,8 +310,12 @@ const ProductForm: React.FC<Props> = ({
       colorRequests: (form.colorRequests || []).map((c) => ({
         ...c,
         hexCode: c.hexCode?.trim() || "#000000",
-        imageRequestList: (c.imageRequestList || []).filter((i) => i.imageUrl?.trim()),
-        model3DRequestList: (c.model3DRequestList || []).length ? c.model3DRequestList : undefined,
+        imageRequestList: (c.imageRequestList || []).filter((i) =>
+          i.imageUrl?.trim()
+        ),
+        model3DRequestList: (c.model3DRequestList || []).length
+          ? c.model3DRequestList
+          : undefined,
       })),
     });
   };
@@ -224,15 +324,15 @@ const ProductForm: React.FC<Props> = ({
 
   return (
     // ✅ form rộng hơn: 3 cột lớn, form chiếm 2 cột
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
       {/* Form */}
       <form
         onSubmit={submit}
-        className="lg:col-span-2 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+        className="lg:col-span-2 xl:col-span-3 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
       >
         <div className="grid gap-5 min-w-0">
           {/* code & name */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="min-w-0">
               <label
                 htmlFor={idOf("p-code")}
@@ -284,7 +384,7 @@ const ProductForm: React.FC<Props> = ({
           </div>
 
           {/* price & thumb */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="min-w-0">
               <label
                 htmlFor={idOf("p-price")}
@@ -306,7 +406,8 @@ const ProductForm: React.FC<Props> = ({
                 htmlFor={idOf("p-thumb")}
                 className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
               >
-                <ImageIcon className="h-4 w-4 text-emerald-600" /> Ảnh thumbnail (URL)
+                <ImageIcon className="h-4 w-4 text-emerald-600" /> Ảnh thumbnail
+                (URL)
               </label>
               <input
                 id={idOf("p-thumb")}
@@ -318,27 +419,73 @@ const ProductForm: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* dims */}
-          <div className="min-w-0">
-            <label className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-              <Ruler className="h-4 w-4 text-emerald-600" /> Kích thước & khối lượng
-            </label>
-            <div className="grid gap-3 sm:grid-cols-4">
-              {(["weight", "length", "width", "height"] as const).map((k) => (
-                <input
-                  key={k}
-                  id={idOf(`p-${k}`)}
-                  aria-label={k}
-                  type="number"
-                  min={0}
-                  placeholder={k}
-                  value={Number((form as any)[k] || 0)}
-                  onChange={handleChange(k)}
-                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
+          {/* Kích thước & khối lượng */}
+          <fieldset className="min-w-0">
+            <legend className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <Ruler className="h-4 w-4 text-emerald-600" /> Kích thước & khối
+              lượng
+            </legend>
+
+            <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+              {[
+                {
+                  key: "weight",
+                  label: "Khối lượng",
+                  unit: "kg",
+                  placeholder: "VD: 12.5",
+                },
+                {
+                  key: "length",
+                  label: "Dài",
+                  unit: "cm",
+                  placeholder: "VD: 200",
+                },
+                {
+                  key: "width",
+                  label: "Rộng",
+                  unit: "cm",
+                  placeholder: "VD: 85",
+                },
+                {
+                  key: "height",
+                  label: "Cao",
+                  unit: "cm",
+                  placeholder: "VD: 75",
+                },
+              ].map(({ key, label, unit, placeholder }) => (
+                <div key={key} className="min-w-0">
+                  <label
+                    htmlFor={idOf(`p-${key}`)}
+                    className="block text-xs font-medium text-gray-600 dark:text-gray-300"
+                  >
+                    {label} ({unit})
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      id={idOf(`p-${key}`)}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*\.?[0-9]*"
+                      placeholder={placeholder}
+                      value={String(form[key as keyof ProductFormValues] ?? "")}
+                      onChange={handleChange(key as keyof ProductFormValues)}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-gray-900 placeholder:text-gray-400
+                       focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200
+                       dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-gray-500">
+                      {unit}
+                    </span>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
+
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Quy ước: Dài × Rộng × Cao (cm). Bạn có thể nhập số thập phân (ví
+              dụ 182.5).
+            </p>
+          </fieldset>
 
           {/* category */}
           <div className="min-w-0">
@@ -370,7 +517,7 @@ const ProductForm: React.FC<Props> = ({
             <label className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
               <Box className="h-4 w-4 text-emerald-600" /> Chất liệu
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pr-1">
               {mats.map((m) => {
                 const active = (form.materialIds || []).includes(m.id);
                 return (
@@ -389,7 +536,11 @@ const ProductForm: React.FC<Props> = ({
                   </button>
                 );
               })}
-              {mats.length === 0 && <span className="text-sm text-gray-500">Chưa có chất liệu khả dụng</span>}
+              {mats.length === 0 && (
+                <span className="text-sm text-gray-500">
+                  Chưa có chất liệu khả dụng
+                </span>
+              )}
             </div>
           </div>
 
@@ -409,36 +560,90 @@ const ProductForm: React.FC<Props> = ({
             </div>
 
             {(form.colorRequests || []).length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Chưa thêm màu nào.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Chưa thêm màu nào.
+              </p>
             ) : (
               // ✅ cho phép kéo nếu quá dài, tránh “tràn”
-              <div className="grid gap-4 max-h-[28rem] overflow-auto pr-1">
+              <div className="grid gap-4 max-h-[34rem] overflow-auto pr-1">
                 {(form.colorRequests || []).map((c, idx) => (
-                  <div key={idx} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800"
+                  >
                     <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        {/* Tên màu */}
                         <input
                           id={idOf(`color-name-${idx}`)}
                           aria-label={`Tên màu ${idx + 1}`}
                           value={c.colorName}
                           onChange={setColorValue(idx, "colorName")}
                           placeholder="Tên màu (VD: Kem, Ghi đậm)"
-                          className="w-48 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                          className="w-48 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
+                   text-gray-900 placeholder:text-gray-400
+                   dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                         />
+
+                        {/* Color picker */}
                         <input
-                          id={idOf(`color-hex-${idx}`)}
-                          aria-label={`Mã hex ${idx + 1}`}
-                          value={c.hexCode}
-                          onChange={setColorValue(idx, "hexCode")}
-                          placeholder="#000000"
-                          className="w-32 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                          type="color"
+                          value={
+                            isValidHex6(c.hexCode || "")
+                              ? (c.hexCode as string)
+                              : "#000000"
+                          }
+                          onChange={(e) => {
+                            const arr = [...(form.colorRequests || [])];
+                            const item = { ...(arr[idx] || {}) } as ColorReq;
+                            item.hexCode = e.target.value.toUpperCase();
+                            arr[idx] = item;
+                            update({ colorRequests: arr });
+                          }}
+                          className="h-9 w-12 cursor-pointer rounded-lg border border-gray-300 p-1
+                   dark:border-gray-700"
+                          title="Chọn màu"
                         />
-                        <span
-                          className="inline-block h-6 w-6 rounded border border-gray-300 dark:border-gray-700"
-                          style={{ backgroundColor: c.hexCode || "#000000" }}
-                          title={c.hexCode}
-                        />
+
+                        {/* Ô nhập mã hex */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            id={idOf(`color-hex-${idx}`)}
+                            aria-label={`Mã hex ${idx + 1}`}
+                            value={c.hexCode}
+                            onChange={setColorValue(idx, "hexCode")}
+                            onBlur={(e) => {
+                              const arr = [...(form.colorRequests || [])];
+                              const item = { ...(arr[idx] || {}) } as ColorReq;
+                              const norm = normalizeHex(e.target.value);
+                              item.hexCode = norm;
+                              arr[idx] = item;
+                              update({ colorRequests: arr });
+                            }}
+                            placeholder="#000000"
+                            inputMode="text"
+                            className={`w-36 min-w-0 rounded-lg border px-3 py-2 text-sm
+                     text-gray-900 placeholder:text-gray-400
+                     dark:text-gray-100
+                     ${
+                       isValidHex6(c.hexCode || "#")
+                         ? "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+                         : "border-red-400 bg-red-50 dark:border-red-800 dark:bg-red-950/40"
+                     }`}
+                          />
+                          {/* Swatch nhỏ (thừa kế màu) */}
+                          <span
+                            className="inline-block h-6 w-6 rounded border border-gray-300 dark:border-gray-700"
+                            style={{
+                              backgroundColor: isValidHex6(c.hexCode || "")
+                                ? c.hexCode
+                                : "#000000",
+                            }}
+                            title={c.hexCode}
+                          />
+                        </div>
                       </div>
+
                       <button
                         type="button"
                         onClick={() => removeColor(idx)}
@@ -448,8 +653,11 @@ const ProductForm: React.FC<Props> = ({
                       </button>
                     </div>
 
+                    {/* Ảnh (URL) */}
                     <div className="grid gap-2">
-                      <div className="text-xs font-medium text-gray-600 dark:text-gray-300">Ảnh (URL)</div>
+                      <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Ảnh (URL)
+                      </div>
                       {(c.imageRequestList || []).map((img, imgIdx) => (
                         <div key={imgIdx} className="flex items-center gap-2">
                           <input
@@ -458,7 +666,9 @@ const ProductForm: React.FC<Props> = ({
                             value={img.imageUrl}
                             onChange={setColorImage(idx, imgIdx)}
                             placeholder="https://...jpg"
-                            className="grow min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                            className="grow min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
+                     text-gray-900 placeholder:text-gray-400
+                     dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                           />
                           <button
                             type="button"
@@ -476,6 +686,12 @@ const ProductForm: React.FC<Props> = ({
                       >
                         <Plus className="h-4 w-4" /> Thêm ảnh
                       </button>
+                      {!isValidHex6(c.hexCode || "") && (
+                        <p className="text-xs text-red-600 dark:text-red-400">
+                          Nhập mã dạng #RRGGBB (ví dụ #FFCC00). Bạn có thể dùng
+                          bộ chọn màu bên trái.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -490,7 +706,11 @@ const ProductForm: React.FC<Props> = ({
               disabled={!canSubmit || submitting}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow enabled:hover:bg-emerald-700 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
               {submitting
                 ? mode === "edit"
                   ? "Đang lưu..."
@@ -510,15 +730,25 @@ const ProductForm: React.FC<Props> = ({
             )}
           </div>
 
-          {serverMsg && <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{serverMsg}</p>}
-          {serverErr && <p className="text-sm font-medium text-red-600 dark:text-red-400">{serverErr}</p>}
+          {serverMsg && (
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              {serverMsg}
+            </p>
+          )}
+          {serverErr && (
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              {serverErr}
+            </p>
+          )}
         </div>
       </form>
 
       {/* Preview */}
       <aside className="space-y-4">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Xem trước</h3>
+          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Xem trước
+          </h3>
           <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-900/10">
             <div className="aspect-[16/9] w-full">
               <img
@@ -531,7 +761,9 @@ const ProductForm: React.FC<Props> = ({
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
             <div className="absolute bottom-4 left-4 text-white drop-shadow">
               <div className="text-sm opacity-90">{form.code || "CODE"}</div>
-              <div className="text-xl font-bold">{form.name || "(Chưa có tên)"}</div>
+              <div className="text-xl font-bold">
+                {form.name || "(Chưa có tên)"}
+              </div>
               <div className="mt-0.5 text-sm opacity-90">
                 {form.price ? `${form.price.toLocaleString()}₫` : ""}
               </div>

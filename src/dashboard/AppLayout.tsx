@@ -14,7 +14,7 @@ const LayoutContent: React.FC = () => {
           ${isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"}`}
       >
         <AppHeader />
-        <main className="mx-auto max-w-(--breakpoint-2xl)">
+        <main className="mx-auto w-full max-w-none ">
           <Outlet />
         </main>
       </div>
