@@ -5,7 +5,10 @@ import { Plus, Package, Loader2, Trash2, Edit3, Power } from "lucide-react";
 import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
-import ProductForm, { type ProductFormValues, type Status } from "./ProductForm";
+import ProductForm, {
+  type ProductFormValues,
+  type Status,
+} from "./ProductForm";
 
 type ProductItem = {
   id: string;
@@ -67,9 +70,13 @@ const Card: React.FC<{
       <div className="absolute bottom-4 left-4 right-4 text-white drop-shadow">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs opacity-90">{p.status === "ACTIVE" ? "Đang bán" : "Đã tắt"}</div>
+            <div className="text-xs opacity-90">
+              {p.status === "ACTIVE" ? "Đang bán" : "Đã tắt"}
+            </div>
             <div className="text-xl font-bold">{p.name}</div>
-            <div className="text-sm opacity-90 mt-0.5">{p.price?.toLocaleString()}₫</div>
+            <div className="text-sm opacity-90 mt-0.5">
+              {p.price?.toLocaleString()}₫
+            </div>
           </div>
         </div>
       </div>
@@ -89,7 +96,11 @@ const Card: React.FC<{
           title={p.status === "ACTIVE" ? "Tắt sản phẩm" : "Bật sản phẩm"}
           disabled={busy}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Power className="h-4 w-4" />
+          )}
         </button>
         <button
           onClick={() => onDelete(p.id)}
@@ -129,7 +140,9 @@ const SellerProductsPage: React.FC = () => {
         const res = await axiosClient.get("/products");
         setList(res.data?.data ?? []);
       } catch (e: any) {
-        setError(e?.response?.data?.message || e?.message || "Không tải được sản phẩm");
+        setError(
+          e?.response?.data?.message || e?.message || "Không tải được sản phẩm"
+        );
       } finally {
         setLoading(false);
       }
@@ -185,11 +198,15 @@ const SellerProductsPage: React.FC = () => {
         colorRequests: (p.color || []).map((c) => ({
           colorName: c.colorName,
           hexCode: c.hexCode || "#000000",
-          imageRequestList: (c.images || []).map((i) => ({ imageUrl: i.image })),
+          imageRequestList: (c.images || []).map((i) => ({
+            imageUrl: i.image,
+          })),
         })),
       });
     } catch (e: any) {
-      setServerErr(e?.response?.data?.message || e?.message || "Không tải được sản phẩm");
+      setServerErr(
+        e?.response?.data?.message || e?.message || "Không tải được sản phẩm"
+      );
     }
   };
 
@@ -207,22 +224,31 @@ const SellerProductsPage: React.FC = () => {
           setServerMsg("Tạo sản phẩm thành công!");
           setTimeout(() => setOpen(false), 600);
         } else {
-          setServerMsg(res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả");
+          setServerMsg(
+            res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả"
+          );
         }
       } else {
-        if (!selectedId) throw new Error("Không xác định được ID sản phẩm đang sửa");
+        if (!selectedId)
+          throw new Error("Không xác định được ID sản phẩm đang sửa");
         const res = await axiosClient.put(`/products/${selectedId}`, values);
         if (res.status === 200) {
           const updated: ProductItem = res.data.data;
-          setList((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+          setList((prev) =>
+            prev.map((x) => (x.id === updated.id ? updated : x))
+          );
           setServerMsg("Lưu thay đổi thành công!");
           setTimeout(() => setOpen(false), 600);
         } else {
-          setServerMsg(res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả");
+          setServerMsg(
+            res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả"
+          );
         }
       }
     } catch (e: any) {
-      setServerErr(e?.response?.data?.message || e?.message || "Không thể xử lý yêu cầu");
+      setServerErr(
+        e?.response?.data?.message || e?.message || "Không thể xử lý yêu cầu"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -241,7 +267,9 @@ const SellerProductsPage: React.FC = () => {
       }
     } catch (e: any) {
       setList(prev);
-      alert(e?.response?.data?.message || e?.message || "Không thể xoá sản phẩm");
+      alert(
+        e?.response?.data?.message || e?.message || "Không thể xoá sản phẩm"
+      );
     } finally {
       setBusyId(null);
     }
@@ -253,13 +281,21 @@ const SellerProductsPage: React.FC = () => {
       const res = await axiosClient.patch(`/products/${id}`);
       if (res.status === 200) {
         setList((prev) =>
-          prev.map((x) => (x.id === id ? { ...x, status: cur === "ACTIVE" ? "INACTIVE" : "ACTIVE" } : x))
+          prev.map((x) =>
+            x.id === id
+              ? { ...x, status: cur === "ACTIVE" ? "INACTIVE" : "ACTIVE" }
+              : x
+          )
         );
       } else {
         alert(res?.data?.message || "Thao tác không thành công");
       }
     } catch (e: any) {
-      alert(e?.response?.data?.message || e?.message || "Không thể thay đổi trạng thái");
+      alert(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể thay đổi trạng thái"
+      );
     } finally {
       setBusyId(null);
     }
@@ -269,9 +305,16 @@ const SellerProductsPage: React.FC = () => {
     <main className="min-h-screen w-full bg-gray-50 px-6 py-8 dark:bg-gray-950">
       {/* breadcrumb + action */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="text-sm text-gray-600 dark:text-gray-300" aria-label="Breadcrumb">
+        <nav
+          className="text-sm text-gray-600 dark:text-gray-300"
+          aria-label="Breadcrumb"
+        >
           <ol className="flex items-center gap-1">
-            <li><Link to={DP()} className="hover:underline">Bảng điều khiển</Link></li>
+            <li>
+              <Link to={DP()} className="hover:underline">
+                Bảng điều khiển
+              </Link>
+            </li>
             <li className="opacity-60">/</li>
             <li className="font-semibold">Sản phẩm</li>
           </ol>
@@ -292,7 +335,9 @@ const SellerProductsPage: React.FC = () => {
       <section className="mt-6">
         <div className="mb-4 flex items-center gap-2 text-gray-700 dark:text-gray-200">
           <Package className="h-4 w-4 text-emerald-600" />
-          <span className="text-sm">Tổng: {loading ? "-" : list.length} sản phẩm</span>
+          <span className="text-sm">
+            Tổng: {loading ? "-" : list.length} sản phẩm
+          </span>
         </div>
 
         {loading ? (
@@ -306,7 +351,8 @@ const SellerProductsPage: React.FC = () => {
           </div>
         ) : list.length === 0 ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-            Chưa có sản phẩm nào. Hãy bấm <strong>Thêm sản phẩm</strong> để tạo mới.
+            Chưa có sản phẩm nào. Hãy bấm <strong>Thêm sản phẩm</strong> để tạo
+            mới.
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -329,7 +375,7 @@ const SellerProductsPage: React.FC = () => {
         open={open}
         onClose={() => setOpen(false)}
         title={mode === "edit" ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm"}
-        widthClass="w-full max-w-3xl"
+        widthClass="w-full max-w-[1280px] 2xl:max-w-[1440px]"
       >
         {mode === "edit" && !initial ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
