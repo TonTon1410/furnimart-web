@@ -8,7 +8,6 @@ import AdminCategoriesPage from "@/dashboard/roles/admin/AdminCategoriesPage";
 import AdminMaterialsPage from "@/dashboard/roles/admin/AdminMaterialsPage";
 const Placeholder = (t: string) => () => <div className="p-6 text-lg">{t}</div>;
 
-const AdminUsers = Placeholder("Admin • Users");
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -17,6 +16,7 @@ const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 
 import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
+import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
@@ -48,7 +48,7 @@ export default function RoleRoutes() {
       <Routes>
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
-        <Route path="users" element={<AdminUsers />} />
+        <Route path="users" element={<AdminUsersPage />} />
         <Route path="materials" element={<AdminMaterialsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="settings" element={<AdminSettings />} />

@@ -1,87 +1,204 @@
 // src/pages/AllProducts.tsx
-import React, { useEffect, useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useMemo, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { motion } from "framer-motion";
-import { useCartStore } from "@/store/cart";
 import { productService, type Product } from "@/service/homeService";
-import { CheckCircle } from "lucide-react";
-import { authService } from "@/service/authService";
+import axiosClient from "@/service/axiosClient";
+import { useSearchParams } from "react-router-dom";
+
+type Category = {
+  id: number;
+  categoryName: string;
+  description?: string;
+  image?: string;
+  status: "ACTIVE" | "INACTIVE";
+};
 
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 const stagger = { show: { transition: { staggerChildren: 0.06 } } };
 
 const AllProducts: React.FC = () => {
-  const add = useCartStore((s) => s.add); // ✅ add(productId, qty)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCatId = searchParams.get("catId");
+  const [selectedCat, setSelectedCat] = useState<number | null>(
+    initialCatId ? Number(initialCatId) : null
+  );
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+  const [catsErr, setCatsErr] = useState<string | null>(null);
+
   const [products, setProducts] = useState<Product[]>([]);
-  const [addedProduct, setAddedProduct] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedCat]);
+  // ---- Load categories (ACTIVE) ----
+  useEffect(() => {
+    setCatsLoading(true);
+    axiosClient
+      .get<{ status: number; message: string; data: Category[] }>("/categories")
+      .then((res) => {
+        const all = res.data?.data ?? [];
+        setCategories(all.filter((c) => c.status === "ACTIVE"));
+      })
+      .catch((e: any) => {
+        setCatsErr(
+          e?.response?.data?.message || e?.message || "Không tải được danh mục"
+        );
+      })
+      .finally(() => setCatsLoading(false));
+  }, []);
+  useEffect(() => {
+    const fromUrl = searchParams.get("catId");
+    setSelectedCat(fromUrl ? Number(fromUrl) : null);
+  }, [searchParams]);
+  // ---- Load products: ALL (productService) | BY CATEGORY (category API) ----
+  const fetchProducts = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      if (selectedCat === null) {
+        const res = await productService.getAll();
+        setProducts(res.data.data);
+      } else {
+        const res = await axiosClient.get<{ data: Product[] }>(
+          `/products/category/${selectedCat}`
+        );
+        // endpoint này trả mảng thẳng theo spec
+        setProducts(res.data.data as unknown as Product[]);
+      }
+    } catch (e: any) {
+      setErr(
+        e?.response?.data?.message || e?.message || "Không tải được sản phẩm"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    productService
-      .getAll()
-      .then((res) => setProducts(res.data.data))
-      .catch(console.error);
-  }, []);
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat]);
+
+  // Đồng bộ URL khi đổi danh mục
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams);
+    if (selectedCat === null) sp.delete("catId");
+    else sp.set("catId", String(selectedCat));
+    setSearchParams(sp, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat]);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Tiêu đề */}
-      <section className="bg-white py-10 shadow-sm">
-        <div className="mx-auto max-w-7xl px-6">
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Tất cả sản phẩm</h1>
-          <p className="mt-2 text-gray-500">Khám phá toàn bộ bộ sưu tập nội thất của chúng tôi</p>
+      {/* Layout 2 cột: Sidebar trái (danh mục) + Lưới sản phẩm */}
+      <section className="mx-auto max-w-7xl px-6 py-10">
+        <div className="grid grid-cols-12 gap-8">
+          {/* Sidebar danh mục */}
+          <aside className="col-span-12 md:col-span-3">
+            <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 text-base font-semibold text-gray-900">
+                Danh mục
+              </h3>
+
+              {/* Skeleton / lỗi / danh sách */}
+              {catsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-9 w-full animate-pulse rounded-lg bg-gray-100"
+                    />
+                  ))}
+                </div>
+              ) : catsErr ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {catsErr}
+                </div>
+              ) : (
+                <ul className="space-y-1">
+                  <li>
+                    <button
+                      onClick={() => setSelectedCat(null)}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                        selectedCat === null
+                          ? "bg-emerald-600 text-white"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      Tất cả
+                    </button>
+                  </li>
+                  {categories.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        onClick={() => setSelectedCat(c.id)}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                          selectedCat === c.id
+                            ? "bg-emerald-600 text-white"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {c.categoryName}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </aside>
+
+          {/* Lưới sản phẩm */}
+          <div className="col-span-12 md:col-span-9">
+            <motion.div
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+              variants={stagger}
+              initial="hidden"
+              animate="show"
+            >
+              {loading && products.length === 0 ? (
+                Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border bg-white p-3">
+                    <div className="h-44 w-full animate-pulse rounded-lg bg-gray-200" />
+                    <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-gray-200" />
+                    <div className="mt-2 h-4 w-1/3 animate-pulse rounded bg-gray-200" />
+                  </div>
+                ))
+              ) : err ? (
+                <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                  {err}
+                </div>
+              ) : products.length === 0 ? (
+                <div className="col-span-full rounded-xl border bg-white p-6 text-gray-600">
+                  Không có sản phẩm phù hợp.
+                </div>
+              ) : (
+                products.map((p) => (
+                  <motion.div key={p.id} variants={fadeUp}>
+                    <ProductCard
+                      className="group"
+                      data={{
+                        id: p.id,
+                        slug: p.slug,
+                        description: p.name,
+                        price: p.price,
+                        thumbnailImage:
+                          p.thumbnailImage ||
+                          p.images?.[0]?.image ||
+                          "/fallback.jpg",
+                      }}
+                    />
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          </div>
         </div>
       </section>
-
-      {/* Lưới sản phẩm */}
-      <section className="mx-auto max-w-7xl px-6 py-12">
-        <motion.div
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          variants={stagger}
-          initial="hidden"
-          animate="show"
-        >
-          {products.map((p) => {
-            const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
-            return (
-              <motion.div key={p.id} variants={fadeUp}>
-                <ProductCard
-                  className="group"
-                  data={{
-                    id: p.id,
-                    slug: p.slug,
-                    description: p.name,
-                    price: p.price,
-                    thumbnailImage: p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg",
-                  }}
-                  onAdd={async () => {
-                    if (!authService.isAuthenticated()) {
-                      window.location.href = "/login";
-                      return;
-                    }
-                    try {
-                      await add(p.id, 1);
-                      setAddedProduct(p.name);
-                      setTimeout(() => setAddedProduct(null), 2000);
-                    } catch (err) {
-                      console.error("Add to cart error:", err);
-                    }
-                  }}
-                />
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </section>
-
-      {/* Toast xác nhận thêm giỏ hàng */}
-      {addedProduct && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg animate-slideUp">
-          <CheckCircle className="h-5 w-5 text-white" />
-          <span>
-            Đã thêm <span className="font-semibold">{addedProduct}</span> vào giỏ hàng
-          </span>
-        </div>
-      )}
     </main>
   );
 };
