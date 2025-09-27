@@ -3,11 +3,11 @@
 import { create } from "zustand"
 import { cartService, type CartDTO } from "@/service/cartService"
 
-/* ===== Types ===== */
 export type CartItem = {
-  id: string;        // productId:colorId (phân biệt biến thể)
+  id: string;        // productId:colorId
   productId: string;
   colorId: string;
+  colorName?: string;
   title: string;
   price: number;
   qty: number;
@@ -25,20 +25,20 @@ type CartState = {
   fetch: () => Promise<void>;
   add: (productId: string, qty?: number, colorId?: string) => Promise<void>;
   updateQty: (productId: string, colorId: string, qty: number) => Promise<void>;
-  remove: (productId: string) => Promise<void>;   // ⚠️ xóa theo productId (API hiện có)
+  remove: (productId: string, colorId: string) => Promise<void>;   // <- nhận thêm colorId
   clear: () => Promise<void>;
 
   addLocal: (item: Omit<CartItem, "qty" | "id">, qty?: number) => void;
 }
 
-/* ===== Helpers ===== */
-const mapFromDTO = (data: CartDTO): { items: CartItem[]; total: number; count: number } => {
+const mapFromDTO = (data: CartDTO) => {
   const items: CartItem[] = data.items.map((i) => ({
     id: `${i.productId}:${i.colorId}`,
     productId: i.productId,
     colorId: i.colorId,
+    colorName: i.colorName,
     title: i.productName,
-    image: i.image,           // ảnh theo màu từ backend
+    image: i.image,
     price: i.price,
     qty: i.quantity,
     cartItemId: i.cartItemId,
@@ -54,7 +54,6 @@ const recompute = (items: CartItem[]) => ({
   total: items.reduce((s, i) => s + i.price * i.qty, 0),
 })
 
-/* ===== Store ===== */
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   count: 0,
@@ -75,7 +74,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // Giữ fetch() để đồng bộ chính xác sau khi thêm (server có thể gộp item)
   add: async (productId, qty = 1, colorId) => {
     if (!colorId) throw new Error("colorId là bắt buộc khi thêm vào giỏ hàng")
     set({ error: undefined })
@@ -83,42 +81,39 @@ export const useCartStore = create<CartState>((set, get) => ({
     await get().fetch()
   },
 
-  // ✅ Optimistic update cho số lượng (KHÔNG fetch lại)
   updateQty: async (productId, colorId, qty) => {
     set({ error: undefined })
     const minQty = Math.max(1, qty)
     const key = `${productId}:${colorId}`
-
-    // 1) Snapshot để rollback nếu API lỗi
     const prevItems = get().items
-
-    // 2) Cập nhật local ngay
     const nextItems = prevItems.map((it) =>
       it.id === key ? { ...it, qty: minQty } : it
     )
     set(recompute(nextItems))
-
     try {
-      // 3) Gọi API nền
       await cartService.update(productId, minQty, colorId)
-      // 4) Thành công: không cần làm gì thêm (đã cập nhật local)
     } catch (e: any) {
-      // 5) Lỗi: rollback
-      set({
-        ...recompute(prevItems),
-        error: e?.response?.data?.message || "Cập nhật số lượng thất bại",
-      })
+      set({ ...recompute(prevItems), error: e?.response?.data?.message || "Cập nhật số lượng thất bại" })
     }
   },
 
-  // ⚠️ API remove theo productId → có thể xóa hết biến thể của sản phẩm
-  remove: async (productId) => {
+  // ✅ Xoá đúng 1 biến thể (optimistic)
+  remove: async (productId, colorId) => {
     set({ error: undefined })
-    await cartService.removeOne(productId)
-    await get().fetch()
+    const key = `${productId}:${colorId}`
+    const prevItems = get().items
+    const nextItems = prevItems.filter(it => it.id !== key)
+    set(recompute(nextItems))
+    try {
+      await cartService.removeOne(productId, colorId)
+    } catch (e: any) {
+      // rollback nếu lỗi
+      set({ ...recompute(prevItems), error: e?.response?.data?.message || "Xoá sản phẩm thất bại" })
+    }
   },
 
   clear: async () => {
+    // Nếu backend có /api/carts/clear thì dùng thẳng; nếu không, dùng removeMany theo productId (xoá hết biến thể)
     const ids = [...new Set(get().items.map((i) => i.productId))]
     if (ids.length === 0) return
     set({ error: undefined })
@@ -126,7 +121,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     await get().fetch()
   },
 
-  // Local mode (guest)
   addLocal: (item, qty = 1) => {
     const items = [...get().items]
     const key = `${item.productId}:${item.colorId}`

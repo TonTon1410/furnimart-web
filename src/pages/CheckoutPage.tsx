@@ -13,18 +13,18 @@ const CheckoutPage: React.FC = () => {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("COD");
+  const [voucherCode, setVoucherCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       const c = await cartService.getMyCart();
       setCart(c);
-      // Lấy userId từ profile
+
       const userProfileRes = await userService.getProfile();
       const userId = userProfileRes.data?.id;
       if (userId) {
         const addrRes = await addressService.getAddressesByUserId(userId);
-        // Lấy danh sách địa chỉ từ addrRes.data.data
         const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
         setAddresses(addressList);
         if (addressList.length > 0) setSelectedAddress(addressList[0].id);
@@ -40,14 +40,21 @@ const CheckoutPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      const res = await paymentService.checkout(selectedAddress, cart.cartId, paymentMethod);
+      const res = await paymentService.checkout(
+        selectedAddress,
+        cart.cartId,
+        paymentMethod,
+        voucherCode || undefined
+      );
+
       if (paymentMethod === "VNPAY") {
-        window.location.href = res.redirectUrl; // chuyển sang trang VNPAY
+        // Backend trả redirectUrl thì chuyển hướng
+        window.location.href = res.redirectUrl;
       } else {
         navigate("/order-confirmation", { state: { order: res.data } });
       }
     } catch (error: any) {
-      alert("Thanh toán thất bại: " + error.message);
+      alert("Thanh toán thất bại: " + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -62,11 +69,16 @@ const CheckoutPage: React.FC = () => {
       {/* Địa chỉ */}
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold text-gray-700">Chọn địa chỉ giao hàng</h3>
-        {Array.isArray(addresses) && addresses.length === 0 ? (
+        {addresses.length === 0 ? (
           <div className="text-gray-500">Không có địa chỉ nào, vui lòng thêm địa chỉ giao hàng.</div>
         ) : (
-          Array.isArray(addresses) && addresses.map((a) => (
-            <label key={a.id} className={`mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 ${a.isDefault ? 'border-emerald-500 bg-emerald-50' : ''}`}>
+          addresses.map((a) => (
+            <label
+              key={a.id}
+              className={`mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 ${
+                a.isDefault ? "border-emerald-500 bg-emerald-50" : ""
+              }`}
+            >
               <input
                 type="radio"
                 name="address"
@@ -76,13 +88,32 @@ const CheckoutPage: React.FC = () => {
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
               />
               <div className="flex flex-col">
-                <span className="font-semibold text-gray-800">{a.name} {a.isDefault && <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Mặc định</span>}</span>
+                <span className="font-semibold text-gray-800">
+                  {a.name}{" "}
+                  {a.isDefault && (
+                    <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                      Mặc định
+                    </span>
+                  )}
+                </span>
                 <span className="text-gray-700">SĐT: {a.phone}</span>
                 <span className="text-gray-700">{a.fullAddress || a.addressLine}</span>
               </div>
             </label>
           ))
         )}
+      </div>
+
+      {/* Voucher code */}
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-gray-700">Mã giảm giá (nếu có)</h3>
+        <input
+          type="text"
+          value={voucherCode}
+          onChange={(e) => setVoucherCode(e.target.value)}
+          className="w-full rounded border px-3 py-2 text-sm"
+          placeholder="Nhập mã giảm giá"
+        />
       </div>
 
       {/* Phương thức thanh toán */}
@@ -117,8 +148,13 @@ const CheckoutPage: React.FC = () => {
         <h3 className="mb-4 text-lg font-semibold text-gray-700">Tóm tắt đơn hàng</h3>
         <ul className="mb-3 space-y-2 text-sm text-gray-700">
           {cart.items.map((item: any) => (
-            <li key={item.productId} className="flex justify-between border-b pb-2 last:border-0 last:pb-0">
-              <span>{item.productName} × {item.quantity}</span>
+            <li
+              key={item.productId}
+              className="flex justify-between border-b pb-2 last:border-0 last:pb-0"
+            >
+              <span>
+                {item.productName} × {item.quantity}
+              </span>
               <span>{item.totalItemPrice.toLocaleString()} VND</span>
             </li>
           ))}

@@ -325,10 +325,6 @@ class OrderService {
     }
   }
 
-  // Helper method to check if we're in browser environment
-  private isBrowser(): boolean {
-    return typeof window !== 'undefined'
-  }
 
   // Enhanced error handling with user-friendly messages
   private handleError(error: any, defaultMessage: string): string {
