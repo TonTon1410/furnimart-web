@@ -14,7 +14,8 @@ type Props = {
 const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
-  const { items, remove, updateQty, total, fetch, loading, error } = useCartStore();
+  const { items, remove, updateQty, total, fetch, loading, error } =
+    useCartStore();
   const isAuthed = authService.isAuthenticated();
   const navigate = useNavigate();
 
@@ -53,7 +54,11 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
             {/* header */}
             <div className="flex items-center justify-between border-b border-gray-200 p-4">
               <h2 className="text-lg font-bold">Giỏ hàng</h2>
-              <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100" aria-label="Đóng">
+              <button
+                onClick={onClose}
+                className="rounded-lg p-1 hover:bg-gray-100"
+                aria-label="Đóng"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -63,7 +68,9 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
               {!isAuthed ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-gray-600">
                   <LogIn className="mb-3 h-6 w-6 text-emerald-600" />
-                  <p className="mb-3 text-sm">Bạn cần đăng nhập để sử dụng giỏ hàng.</p>
+                  <p className="mb-3 text-sm">
+                    Bạn cần đăng nhập để sử dụng giỏ hàng.
+                  </p>
                   <Link
                     to="/login"
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -87,7 +94,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                         alt={i.title}
                         className="h-16 w-16 rounded-lg object-cover"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                          (e.currentTarget as HTMLImageElement).src =
+                            "/placeholder.png";
                         }}
                       />
                       <div className="flex-1">
@@ -95,7 +103,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
                         {/* Màu đã chọn */}
                         <div className="mt-0.5 text-xs text-gray-600">
-                          Màu: <span className="font-medium">{i.colorId}</span>
+                          Màu:{" "}
+                          <span className="font-medium">{i.colorName}</span>
                         </div>
 
                         <p className="text-sm text-gray-500">
@@ -107,7 +116,13 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           <button
                             type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.productId, i.colorId, Math.max(1, i.qty - 1))}
+                            onClick={() =>
+                              updateQty(
+                                i.productId,
+                                i.colorId,
+                                Math.max(1, i.qty - 1)
+                              )
+                            }
                             aria-label="Giảm"
                             disabled={loading}
                           >
@@ -117,7 +132,9 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           <button
                             type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.productId, i.colorId, i.qty + 1)}
+                            onClick={() =>
+                              updateQty(i.productId, i.colorId, i.qty + 1)
+                            }
                             aria-label="Tăng"
                             disabled={loading}
                           >
@@ -128,7 +145,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
                       <button
                         type="button"
-                        onClick={() => remove(i.productId)}
+                        onClick={() => remove(i.productId, i.colorId)} // <-- truyền cả colorId
                         className="text-xs text-red-500 hover:underline disabled:opacity-50"
                         disabled={loading}
                       >

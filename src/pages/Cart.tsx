@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const Cart: React.FC = () => {
-  const { items, remove, clear, total, fetch, loading, error, updateQty } = useCartStore();
+  const { items, remove, clear, total, fetch, loading, error, updateQty } =
+    useCartStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,15 +38,16 @@ const Cart: React.FC = () => {
                   alt={i.title || "Cart item"}
                   className="h-16 w-16 rounded-lg object-cover"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                    (e.currentTarget as HTMLImageElement).src =
+                      "/placeholder.png";
                   }}
                 />
                 <div className="flex-1">
                   <p className="font-medium">{i.title}</p>
 
-                  {/* Màu đã chọn (theo API hiện trả colorId) */}
+                  {/* Màu đã chọn (theo API hiện trả colorName ) */}
                   <div className="mt-0.5 text-xs text-gray-600">
-                    Màu: <span className="font-medium">{i.colorId}</span>
+                    Màu: <span className="font-medium">{i.colorName}</span>
                   </div>
 
                   <p className="text-sm text-gray-500">
@@ -56,7 +58,13 @@ const Cart: React.FC = () => {
                     <button
                       type="button"
                       className="px-2 py-1 text-sm"
-                      onClick={() => updateQty(i.productId, i.colorId, Math.max(1, i.qty - 1))}
+                      onClick={() =>
+                        updateQty(
+                          i.productId,
+                          i.colorId,
+                          Math.max(1, i.qty - 1)
+                        )
+                      }
                     >
                       −
                     </button>
@@ -64,7 +72,9 @@ const Cart: React.FC = () => {
                     <button
                       type="button"
                       className="px-2 py-1 text-sm"
-                      onClick={() => updateQty(i.productId, i.colorId, i.qty + 1)}
+                      onClick={() =>
+                        updateQty(i.productId, i.colorId, i.qty + 1)
+                      }
                     >
                       +
                     </button>
@@ -73,7 +83,7 @@ const Cart: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => remove(i.productId)}
+                  onClick={() => remove(i.productId, i.colorId)} // <-- truyền cả colorId
                   className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
                 >
                   Xóa
