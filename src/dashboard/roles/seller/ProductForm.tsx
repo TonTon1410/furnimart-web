@@ -263,16 +263,16 @@ const ProductForm: React.FC<Props> = ({
       update({ colorRequests: arr });
     };
 
-  const addColorImage = (idx: number) => {
-    const arr = [...(form.colorRequests || [])];
-    const item = { ...(arr[idx] || {}) } as ColorReq;
-    item.imageRequestList = [
-      ...(item.imageRequestList || []),
-      { imageUrl: "" },
-    ];
-    arr[idx] = item;
-    update({ colorRequests: arr });
-  };
+  // const addColorImage = (idx: number) => {
+  //   const arr = [...(form.colorRequests || [])];
+  //   const item = { ...(arr[idx] || {}) } as ColorReq;
+  //   item.imageRequestList = [
+  //     ...(item.imageRequestList || []),
+  //     { imageUrl: "" },
+  //   ];
+  //   arr[idx] = item;
+  //   update({ colorRequests: arr });
+  // };
 
   const setColorImage =
     (idx: number, imgIdx: number) =>
@@ -679,13 +679,13 @@ const ProductForm: React.FC<Props> = ({
                           </button>
                         </div>
                       ))}
-                      <button
+                      {/* <button
                         type="button"
                         onClick={() => addColorImage(idx)}
                         className="mt-1 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                       >
                         <Plus className="h-4 w-4" /> Thêm ảnh
-                      </button>
+                      </button> */}
                       {!isValidHex6(c.hexCode || "") && (
                         <p className="text-xs text-red-600 dark:text-red-400">
                           Nhập mã dạng #RRGGBB (ví dụ #FFCC00). Bạn có thể dùng

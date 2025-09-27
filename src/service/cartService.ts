@@ -4,12 +4,13 @@ import axiosClient from "@/service/axiosClient"
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
 export interface CartItemDTO {
-  cartItemId: number;      // ✅ theo response
+  cartItemId: number;
   productId: string;
   productName: string;
-  image: string;           // ✅ theo response
+  image: string;
   price: number;
-  colorId: string;         // ✅ theo response
+  colorId: string;
+  colorName: string;
   quantity: number;
   totalItemPrice: number;
 }
@@ -49,9 +50,11 @@ export const cartService = {
     return res.data;
   },
 
-  // DELETE /api/carts/remove/{productId}  (⚠️ xóa theo productId, không phân biệt color)
-  async removeOne(productId: string) {
-    const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts/remove/${productId}`);
+  // ✅ DELETE /api/carts/remove/{productId}/color/{colorId} — xoá đúng 1 biến thể
+  async removeOne(productId: string, colorId: string) {
+    const res = await axiosClient.delete<ApiResponse>(
+      `${BASE_URL}/carts/remove/${productId}/color/${colorId}`
+    );
     return res.data;
   },
 
