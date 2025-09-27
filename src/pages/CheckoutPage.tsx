@@ -40,17 +40,22 @@ const CheckoutPage: React.FC = () => {
     }
     setLoading(true);
     try {
+      // paymentService.checkout expects voucherCode to be null if not provided
       const res = await paymentService.checkout(
         selectedAddress,
         cart.cartId,
         paymentMethod,
-        voucherCode || undefined
+        voucherCode ? voucherCode : null
       );
 
       if (paymentMethod === "VNPAY") {
-        // Backend trả redirectUrl thì chuyển hướng
-        window.location.href = res.redirectUrl;
+        if (res.redirectUrl) {
+          window.location.href = res.redirectUrl;
+        } else {
+          alert("Không nhận được link thanh toán VNPAY từ server!");
+        }
       } else {
+        alert("Đặt hàng thành công");
         navigate("/order-confirmation", { state: { order: res.data } });
       }
     } catch (error: any) {

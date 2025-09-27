@@ -14,7 +14,7 @@ export const paymentService = {
     addressId,
     cartId,
     paymentMethod,
-    voucherCode: voucherCode ?? null, // luôn gửi, null nếu không có
+    voucherCode: voucherCode ?? null, 
   };
 
   const res = await axiosClient.post(url, payload);
