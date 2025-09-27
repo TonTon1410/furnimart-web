@@ -655,6 +655,9 @@ class AddressService {
     };
   }
 
+  getAddressesByUserId(userId: string) {
+  return axiosClient.get(`${this.ENDPOINTS.ADDRESSES}/user/${userId}`);
+}
   // Get service information
   getServiceInfo() {
     return {
