@@ -317,7 +317,6 @@ export default function UserProfile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -350,24 +349,10 @@ export default function UserProfile() {
             </button>
           </div>
         </motion.div>
-      </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      <div className="absolute inset-0 opacity-5">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, hsl(var(--primary)) 0%, transparent 50%), 
-                           radial-gradient(circle at 75% 75%, hsl(var(--secondary)) 0%, transparent 50%)`,
-          }}
-        ></div>
-      </div>
-
-      <div className="relative">
-        <div className="container mx-auto px-4 py-6">
           <motion.div initial="hidden" animate="show" variants={staggerContainer} className="space-y-6">
             {error && (
               <motion.div
@@ -725,8 +710,6 @@ export default function UserProfile() {
               </div>
             </motion.div>
           </motion.div>
-        </div>
-      </div>
-    </div>
+        
   )
 }
