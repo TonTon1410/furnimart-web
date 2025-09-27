@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { cartService } from "@/service/cartService";
 import { addressService } from "@/service/addressService";
 import { paymentService } from "@/service/paymentService";
+import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
 import LoadingPage from "./LoadingPage";
 
@@ -18,9 +19,16 @@ const CheckoutPage: React.FC = () => {
     const fetchData = async () => {
       const c = await cartService.getMyCart();
       setCart(c);
-      const addrRes = await addressService.getAllAddresses();
-      setAddresses(addrRes.data);
-      if (addrRes.data?.length > 0) setSelectedAddress(addrRes.data[0].id);
+      // Lấy userId từ profile
+      const userProfileRes = await userService.getProfile();
+      const userId = userProfileRes.data?.id;
+      if (userId) {
+        const addrRes = await addressService.getAddressesByUserId(userId);
+        // Lấy danh sách địa chỉ từ addrRes.data.data
+        const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
+        setAddresses(addressList);
+        if (addressList.length > 0) setSelectedAddress(addressList[0].id);
+      }
     };
     fetchData();
   }, []);
@@ -54,19 +62,27 @@ const CheckoutPage: React.FC = () => {
       {/* Địa chỉ */}
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold text-gray-700">Chọn địa chỉ giao hàng</h3>
-        {addresses.map((a) => (
-          <label key={a.id} className="mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
-            <input
-              type="radio"
-              name="address"
-              value={a.id}
-              checked={selectedAddress === a.id}
-              onChange={() => setSelectedAddress(a.id)}
-              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
-            />
-            <span className="text-gray-700">{a.name} - {a.phone}, {a.addressLine}</span>
-          </label>
-        ))}
+        {Array.isArray(addresses) && addresses.length === 0 ? (
+          <div className="text-gray-500">Không có địa chỉ nào, vui lòng thêm địa chỉ giao hàng.</div>
+        ) : (
+          Array.isArray(addresses) && addresses.map((a) => (
+            <label key={a.id} className={`mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 ${a.isDefault ? 'border-emerald-500 bg-emerald-50' : ''}`}>
+              <input
+                type="radio"
+                name="address"
+                value={a.id}
+                checked={selectedAddress === a.id}
+                onChange={() => setSelectedAddress(a.id)}
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+              />
+              <div className="flex flex-col">
+                <span className="font-semibold text-gray-800">{a.name} {a.isDefault && <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Mặc định</span>}</span>
+                <span className="text-gray-700">SĐT: {a.phone}</span>
+                <span className="text-gray-700">{a.fullAddress || a.addressLine}</span>
+              </div>
+            </label>
+          ))
+        )}
       </div>
 
       {/* Phương thức thanh toán */}

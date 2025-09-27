@@ -1,6 +1,6 @@
 import axiosClient from './axiosClient';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://152.53.169.79:8086';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://152.53.169.79:8080/api';
 
 export const addressService = {
   createAddress: async (data: {
@@ -14,18 +14,18 @@ export const addressService = {
     isDefault: boolean;
     userId: string;
   }) => {
-    return axiosClient.post(`${API_BASE_URL}/api/addresses`, data);
+    return axiosClient.post(`${API_BASE_URL}/addresses`, data);
   },
 
   getAddressById: async (id: string) => {
-    return axiosClient.get(`${API_BASE_URL}/api/addresses/${id}`);
+    return axiosClient.get(`${API_BASE_URL}/addresses/${id}`);
   },
 
   getAllAddresses: async () => {
-    return axiosClient.get(`${API_BASE_URL}/api/addresses`);
+    return axiosClient.get(`${API_BASE_URL}/addresses`);
   },
 
   getAddressesByUserId: async (userId: string) => {
-    return axiosClient.get(`${API_BASE_URL}/api/addresses/user/${userId}`);
+    return axiosClient.get(`${API_BASE_URL}/addresses/user/${userId}`);
   },
 };
