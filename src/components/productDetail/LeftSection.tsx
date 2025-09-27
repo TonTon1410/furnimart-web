@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+import { CheckCircle } from "lucide-react";
+import { authService } from "@/service/authService";
+import { useCartStore } from "@/store/cart";
+import { useNavigate } from "react-router-dom";
 
 interface Color {
   id: string;
   colorName: string;
   hexCode: string;
 }
-
 interface Product {
   id: string;
   name: string;
@@ -19,105 +22,165 @@ interface Product {
   materialName: string;
   color: Color[];
 }
+interface LeftSectionProps {
+  product: Product;
+  selectedColorId: string | null;
+  onColorChange: (id: string) => void;
+}
 
 const forest = "#095544";
 const pistachio = "oklch(85.2% 0.199 91.936)";
+const fmtVND = (n: number) =>
+  new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
-const LeftSection: React.FC<{ product: Product }> = ({ product }) => {
+const LeftSection: React.FC<LeftSectionProps> = ({
+  product,
+  selectedColorId,
+  onColorChange,
+}) => {
   const [quantity, setQuantity] = useState(1);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [hoverBtn, setHoverBtn] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
 
-  // Thêm vào giỏ hàng
+  const add = useCartStore((s) => s.add);
+  const navigate = useNavigate();
+
   const handleAddToCart = async () => {
     setActiveBtn("cart");
-    try {
-      const { cartService } = await import("@/service/cartService");
-      await cartService.add(product.id, quantity);
-      // Có thể thêm thông báo thành công ở đây nếu muốn
-    } catch (e) {
-      // Có thể thêm thông báo lỗi ở đây nếu muốn
-      console.error(e);
+
+    if (!authService.isAuthenticated()) {
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      navigate("/login");
+      return;
     }
-    setTimeout(() => setActiveBtn(null), 180);
+
+    try {
+      const colorId =
+        selectedColorId ||
+        (product.color.length === 1 ? product.color[0].id : null);
+      if (!colorId) {
+        alert("Vui lòng chọn màu trước khi thêm vào giỏ hàng!");
+        return;
+      }
+      await add(product.id, quantity, colorId);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1800);
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+    } finally {
+      setTimeout(() => setActiveBtn(null), 180);
+    }
   };
 
   return (
-    <div className="bg-white">
-    {/* Tên sản phẩm */}
-    <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-
-    {/* Giá */}
-    <p className="text-2xl font-semibold mb-4 text-amber-500">{product.price.toLocaleString()} ₫</p>
+    <div className="relative p-4">
+      {/* Tên + giá */}
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold text-gray-900">
+          {product.name}
+        </h1>
+        <p className="mt-2 text-2xl font-semibold text-amber-600">
+          {fmtVND(product.price)}
+        </p>
+      </div>
 
       {/* Màu sắc */}
-      <div className="flex space-x-4 mb-4">
-        {product.color.map((c) => (
-          <span
-            key={c.id}
-            className="w-10 h-10 rounded-full border-2 border-gray-300"
-            title={c.colorName}
-            style={{ backgroundColor: c.hexCode }}
-          />
-        ))}
+      <div className="mb-6">
+        <div className="mb-3 text-2xl font-bold text-gray-900">
+          Màu sắc
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {product.color.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onColorChange(c.id)}
+              aria-label={`Chọn màu ${c.colorName}`}
+              title={c.colorName}
+              className={`h-10 w-10 rounded-full border-2 ring-0 transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-500 ${selectedColorId === c.id
+                  ? "border-emerald-600"
+                  : "border-gray-300"
+                }`}
+              style={{ backgroundColor: c.hexCode }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Nút AR / 3D */}
-      <div className="flex space-x-4 mt-6">
+      <div className="mt-4 flex w-4/5 items-center justify-between space-x-1">
         <button
-          className="px-4 py-2 text-white rounded text-lg transition-colors"
-          style={{ backgroundColor: activeBtn === "3d" || hoverBtn === "3d" ? pistachio : forest }}
+          type="button"
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === '3d' ? 'ring-4 ring-amber-400' : ''}`}
+          style={{ backgroundColor: activeBtn === '3d' ? '#FFC107' : forest }}
           onClick={() => {
             setActiveBtn("3d");
             setTimeout(() => setActiveBtn(null), 180);
           }}
-          onMouseEnter={() => setHoverBtn("3d")}
-          onMouseLeave={() => setHoverBtn(null)}
         >
           Xem 3D
         </button>
         <button
-          className="px-4 py-2 text-white rounded text-lg transition-colors"
-          style={{ backgroundColor: activeBtn === "ar" || hoverBtn === "ar" ? pistachio : forest }}
+          type="button"
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === 'ar' ? 'ring-4 ring-amber-400' : ''}`}
+          style={{ backgroundColor: activeBtn === 'ar' ? '#FFC107' : forest }}
           onClick={() => {
             setActiveBtn("ar");
             setTimeout(() => setActiveBtn(null), 180);
           }}
-          onMouseEnter={() => setHoverBtn("ar")}
-          onMouseLeave={() => setHoverBtn(null)}
         >
           Xem AR
         </button>
       </div>
 
-      {/* Số lượng và nút giỏ hàng */}
-      <div className="flex items-center mb-4 mt-4">
-        <div className="flex items-center px-3 py-2 text-white rounded" style={{ backgroundColor: forest }}>
+      {/* Số lượng + Thêm giỏ */}
+      <div className="mt-6 flex w-4/5 items-center justify-between space-x-1">
+        <div
+          className="flex items-center border border-emerald-200 rounded-md"
+          style={{ backgroundColor: forest, color: 'white' }}
+          role="group"
+        >
           <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="px-2 text-lg"
+            type="button"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            className="px-4 py-2 text-base font-semibold hover:bg-emerald-700/80 rounded-l-md"
+            style={{ backgroundColor: forest, color: 'white' }}
           >
-            -
+            −
           </button>
-          <span className="mx-2 text-lg font-semibold">{quantity}</span>
+          <span className="px-5 text-base font-semibold" style={{ backgroundColor: forest, color: 'white' }}>{quantity}</span>
           <button
-            onClick={() => setQuantity(quantity + 1)}
-            className="px-2 text-lg"
+            type="button"
+            onClick={() => setQuantity((q) => q + 1)}
+            className="px-4 py-2 text-base font-semibold hover:bg-emerald-700/80 rounded-r-md"
+            style={{ backgroundColor: forest, color: 'white' }}
           >
             +
           </button>
         </div>
-        <div className="w-1" />
+
         <button
-          className="px-4 py-2 text-white text-lg font-medium rounded transition-colors"
-          style={{ minWidth: 120, backgroundColor: activeBtn === "cart" || hoverBtn === "cart" ? pistachio : forest }}
+          type="button"
           onClick={handleAddToCart}
-          onMouseEnter={() => setHoverBtn("cart")}
-          onMouseLeave={() => setHoverBtn(null)}
+          className={`flex-1 px-5 py-2 text-base font-semibold text-white transition-colors rounded-md ${activeBtn === 'cart' ? 'ring-4 ring-amber-400' : ''}`}
+          style={{
+            backgroundColor: activeBtn === 'cart' ? '#FFC107' : forest,
+            minWidth: 160,
+          }}
         >
           Thêm vào giỏ hàng
         </button>
       </div>
+
+
+      {/* Toast */}
+      {added && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-emerald-600 px-5 py-3 text-white shadow-lg">
+          <CheckCircle className="h-5 w-5 text-white" />
+          <span>Thêm sản phẩm vào giỏ hàng thành công</span>
+        </div>
+      )}
     </div>
   );
 };

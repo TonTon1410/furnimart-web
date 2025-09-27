@@ -15,24 +15,8 @@ import {
   Calendar,
   MapPin,
 } from "lucide-react"
-
-interface OrderItem {
-  id: string
-  productName: string
-  productImage: string
-  category: string
-  shopName: string
-  quantity: number
-  price: number
-  status: "pending" | "confirmed" | "shipping" | "delivered" | "completed" | "cancelled" | "returned"
-  orderDate: string
-  deliveryDate?: string
-  material?: string
-  dimensions?: string
-  color?: string
-  brand?: string
-  warranty?: string
-}
+import { orderService } from "@/service/orderService"
+import type { OrderItem, OrderStatus, OrderFilters } from "../types/order"
 
 const mockOrders: OrderItem[] = [
   {
@@ -129,59 +113,8 @@ const orderTabs = [
   { key: "returned", label: "Trả hàng/Hoàn tiền", icon: RotateCcw },
 ]
 
-const furnitureOrderService = {
-  // Fetch orders from API
-  async fetchOrders(filters?: { status?: string; search?: string; page?: number; limit?: number }) {
-    try {
-      const params = new URLSearchParams()
-      if (filters?.status && filters.status !== "all") params.append("status", filters.status)
-      if (filters?.search) params.append("search", filters.search)
-      if (filters?.page) params.append("page", filters.page.toString())
-      if (filters?.limit) params.append("limit", filters.limit.toString())
-
-      const response = await fetch(`/api/furniture-orders?${params}`)
-      if (!response.ok) throw new Error("Failed to fetch orders")
-
-      return await response.json()
-    } catch (error) {
-      console.error("Error fetching orders:", error)
-      // Return mock data as fallback
-      return { orders: mockOrders, total: mockOrders.length }
-    }
-  },
-
-  // Update order status
-  async updateOrderStatus(orderId: string, status: string) {
-    try {
-      const response = await fetch(`/api/furniture-orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      })
-      if (!response.ok) throw new Error("Failed to update order status")
-      return await response.json()
-    } catch (error) {
-      console.error("Error updating order status:", error)
-      throw error
-    }
-  },
-
-  // Cancel order
-  async cancelOrder(orderId: string, reason?: string) {
-    try {
-      const response = await fetch(`/api/furniture-orders/${orderId}/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
-      })
-      if (!response.ok) throw new Error("Failed to cancel order")
-      return await response.json()
-    } catch (error) {
-      console.error("Error cancelling order:", error)
-      throw error
-    }
-  },
-}
+// Keep mock data as fallback
+const mockOrdersBackup = mockOrders
 
 const getStatusColor = (status: string) => {
   const statusColors = {
@@ -218,34 +151,50 @@ export default function OrderHistory() {
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const ordersPerPage = 10
 
   useEffect(() => {
     console.log("OrderHistory component loaded") // Debug log
     const loadOrders = async () => {
       setLoading(true)
+      setError(null)
       try {
-        const result = await furnitureOrderService.fetchOrders({
+        console.log('🔄 Loading orders with params:', { activeTab, searchQuery, currentPage })
+        
+        const filters: OrderFilters = {
           status: activeTab,
-          search: searchQuery,
+          search: searchQuery.trim(),
           page: currentPage,
           limit: ordersPerPage,
-        })
-        setFilteredOrders(result.orders || mockOrders)
-        setTotalOrders(result.total || mockOrders.length)
-      } catch (error) {
+        }
+
+        const result = await orderService.fetchOrders(filters)
+        console.log('✅ Orders loaded successfully:', result)
+        
+        setFilteredOrders(result.orders || [])
+        setTotalOrders(result.total || 0)
+        
+        if (result.orders.length === 0 && !searchQuery && activeTab === 'all') {
+          setError("Chưa có đơn hàng nào. Dữ liệu có thể đang được tải từ server...")
+        }
+      } catch (error: any) {
+        console.error("❌ Error loading orders:", error)
+        setError(error.message || "Không thể tải danh sách đơn hàng. Đang sử dụng dữ liệu mẫu.")
+        
         // Fallback to mock data filtering
-        let filtered = mockOrders
+        let filtered = mockOrdersBackup
         if (activeTab !== "all") {
           filtered = filtered.filter((order) => order.status === activeTab)
         }
         if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase()
           filtered = filtered.filter(
             (order) =>
-              order.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.category.toLowerCase().includes(searchQuery.toLowerCase()),
+              order.productName.toLowerCase().includes(query) ||
+              order.shopName.toLowerCase().includes(query) ||
+              order.id.toLowerCase().includes(query) ||
+              order.category.toLowerCase().includes(query),
           )
         }
         setFilteredOrders(filtered)
@@ -255,7 +204,12 @@ export default function OrderHistory() {
       }
     }
 
-    loadOrders()
+    // Add debounce for search
+    const timeoutId = setTimeout(() => {
+      loadOrders()
+    }, searchQuery ? 500 : 0)
+
+    return () => clearTimeout(timeoutId)
   }, [activeTab, searchQuery, currentPage])
 
   const formatPrice = (price: number) => {
@@ -273,26 +227,46 @@ export default function OrderHistory() {
   const handleOrderAction = async (orderId: string, action: string) => {
     try {
       setLoading(true)
+      setError(null)
+      
+      const orderIdNum = parseInt(orderId.replace(/[^0-9]/g, '')) // Extract number from ID
+      console.log(`🎯 Performing action "${action}" on order ${orderIdNum}`)
+      
       switch (action) {
         case "cancel":
-          await furnitureOrderService.cancelOrder(orderId)
+          await orderService.cancelOrder(orderIdNum, "Khách hàng yêu cầu hủy")
+          console.log(`✅ Order ${orderIdNum} cancelled successfully`)
           break
         case "confirm":
-          await furnitureOrderService.updateOrderStatus(orderId, "confirmed")
+          await orderService.updateOrderStatus(orderIdNum, "confirmed")
+          console.log(`✅ Order ${orderIdNum} confirmed successfully`)
           break
         default:
+          console.warn(`⚠️ Unknown action: ${action}`)
           break
       }
-      // Reload orders after action
-      const result = await furnitureOrderService.fetchOrders({
-        status: activeTab,
-        search: searchQuery,
-        page: currentPage,
-        limit: ordersPerPage,
-      })
-      setFilteredOrders(result.orders || mockOrders)
-    } catch (error) {
-      console.error("Error handling order action:", error)
+      
+      // Reload orders after action with a small delay to ensure server state is updated
+      setTimeout(async () => {
+        try {
+          const result = await orderService.fetchOrders({
+            status: activeTab,
+            search: searchQuery,
+            page: currentPage,
+            limit: ordersPerPage,
+          })
+          setFilteredOrders(result.orders || [])
+          setTotalOrders(result.total || 0)
+          console.log(`🔄 Orders reloaded after ${action}`)
+        } catch (reloadError: any) {
+          console.error("❌ Error reloading orders:", reloadError)
+          setError("Thao tác thành công nhưng không thể tải lại danh sách. Vui lòng refresh trang.")
+        }
+      }, 1000)
+      
+    } catch (error: any) {
+      console.error(`❌ Error handling order action ${action}:`, error)
+      setError(error.message || "Không thể thực hiện thao tác. Vui lòng thử lại.")
     } finally {
       setLoading(false)
     }
@@ -351,10 +325,28 @@ export default function OrderHistory() {
 
       {/* Orders List */}
       <div className="p-6">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">{error}</p>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-auto text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+            <p className="text-xs text-muted-foreground mt-2">Kết nối tới server...</p>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-12">
@@ -458,11 +450,26 @@ export default function OrderHistory() {
                     </button>
                   )}
                   {order.status === "pending" && (
-                    <button
-                      onClick={() => handleOrderAction(order.id, "cancel")}
-                      className="px-4 py-2 text-sm font-medium text-destructive border border-destructive rounded-lg hover:bg-destructive/10 transition-colors"
-                    >
-                      Hủy đơn hàng
+                    <>
+                      <button
+                        onClick={() => handleOrderAction(order.id, "cancel")}
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-destructive border border-destructive rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? "Đang hủy..." : "Hủy đơn hàng"}
+                      </button>
+                      <button
+                        onClick={() => handleOrderAction(order.id, "confirm")}
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? "Đang xác nhận..." : "Xác nhận"}
+                      </button>
+                    </>
+                  )}
+                  {order.status === "confirmed" && (
+                    <button className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                      Theo dõi đơn hàng
                     </button>
                   )}
                   {order.warranty && order.status === "completed" && (
@@ -476,21 +483,22 @@ export default function OrderHistory() {
           </div>
         )}
 
+        {/* Pagination */}
         {totalOrders > ordersPerPage && (
           <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t border-border/30">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || loading}
               className="px-3 py-2 text-sm border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             >
               Trước
             </button>
             <span className="px-4 py-2 text-sm text-muted-foreground">
-              Trang {currentPage} / {Math.ceil(totalOrders / ordersPerPage)}
+              Trang {currentPage} / {Math.ceil(totalOrders / ordersPerPage)} ({totalOrders} đơn hàng)
             </span>
             <button
               onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalOrders / ordersPerPage), prev + 1))}
-              disabled={currentPage >= Math.ceil(totalOrders / ordersPerPage)}
+              disabled={currentPage >= Math.ceil(totalOrders / ordersPerPage) || loading}
               className="px-3 py-2 text-sm border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             >
               Sau

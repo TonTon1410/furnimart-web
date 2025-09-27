@@ -1,45 +1,50 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/store/cart.ts
 import { create } from "zustand"
 import { cartService, type CartDTO } from "@/service/cartService"
 
 /* ===== Types ===== */
 export type CartItem = {
-  id: string
-  title: string
-  price: number
-  qty: number
-  image?: string
+  id: string;        // productId:colorId (phân biệt biến thể)
+  productId: string;
+  colorId: string;
+  title: string;
+  price: number;
+  qty: number;
+  image?: string;
+  cartItemId?: number;
 }
 
 type CartState = {
-  items: CartItem[]
-  count: number
-  total: number
-  loading: boolean
-  error?: string
+  items: CartItem[];
+  count: number;
+  total: number;
+  loading: boolean;
+  error?: string;
 
-  // API actions
-  fetch: () => Promise<void>
-  add: (productId: string, qty?: number) => Promise<void>
-  updateQty: (productId: string, qty: number) => Promise<void>
-  remove: (productId: string) => Promise<void>
-  clear: () => Promise<void>
+  fetch: () => Promise<void>;
+  add: (productId: string, qty?: number, colorId?: string) => Promise<void>;
+  updateQty: (productId: string, colorId: string, qty: number) => Promise<void>;
+  remove: (productId: string) => Promise<void>;   // ⚠️ xóa theo productId (API hiện có)
+  clear: () => Promise<void>;
 
-  // Optional: local add cho guest
-  addLocal: (item: Omit<CartItem, "qty">, qty?: number) => void
+  addLocal: (item: Omit<CartItem, "qty" | "id">, qty?: number) => void;
 }
 
 /* ===== Helpers ===== */
 const mapFromDTO = (data: CartDTO): { items: CartItem[]; total: number; count: number } => {
   const items: CartItem[] = data.items.map((i) => ({
-    id: i.productId,
+    id: `${i.productId}:${i.colorId}`,
+    productId: i.productId,
+    colorId: i.colorId,
     title: i.productName,
-    image: i.thumbnail,
+    image: i.image,           // ảnh theo màu từ backend
     price: i.price,
     qty: i.quantity,
+    cartItemId: i.cartItemId,
   }))
   const total = data.totalPrice
-  const count = items.reduce((s, i) => s + i.qty, 0)
+  const count = items.reduce((s, it) => s + it.qty, 0)
   return { items, total, count }
 }
 
@@ -70,18 +75,43 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  add: async (productId, qty = 1) => {
+  // Giữ fetch() để đồng bộ chính xác sau khi thêm (server có thể gộp item)
+  add: async (productId, qty = 1, colorId) => {
+    if (!colorId) throw new Error("colorId là bắt buộc khi thêm vào giỏ hàng")
     set({ error: undefined })
-    await cartService.add(productId, qty)
+    await cartService.add(productId, qty, colorId)
     await get().fetch()
   },
 
-  updateQty: async (productId, qty) => {
+  // ✅ Optimistic update cho số lượng (KHÔNG fetch lại)
+  updateQty: async (productId, colorId, qty) => {
     set({ error: undefined })
-    await cartService.update(productId, qty)
-    await get().fetch()
+    const minQty = Math.max(1, qty)
+    const key = `${productId}:${colorId}`
+
+    // 1) Snapshot để rollback nếu API lỗi
+    const prevItems = get().items
+
+    // 2) Cập nhật local ngay
+    const nextItems = prevItems.map((it) =>
+      it.id === key ? { ...it, qty: minQty } : it
+    )
+    set(recompute(nextItems))
+
+    try {
+      // 3) Gọi API nền
+      await cartService.update(productId, minQty, colorId)
+      // 4) Thành công: không cần làm gì thêm (đã cập nhật local)
+    } catch (e: any) {
+      // 5) Lỗi: rollback
+      set({
+        ...recompute(prevItems),
+        error: e?.response?.data?.message || "Cập nhật số lượng thất bại",
+      })
+    }
   },
 
+  // ⚠️ API remove theo productId → có thể xóa hết biến thể của sản phẩm
   remove: async (productId) => {
     set({ error: undefined })
     await cartService.removeOne(productId)
@@ -89,7 +119,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clear: async () => {
-    const ids = get().items.map((i) => i.id)
+    const ids = [...new Set(get().items.map((i) => i.productId))]
     if (ids.length === 0) return
     set({ error: undefined })
     await cartService.removeMany(ids)
@@ -99,17 +129,16 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Local mode (guest)
   addLocal: (item, qty = 1) => {
     const items = [...get().items]
-    const idx = items.findIndex((i) => i.id === item.id)
+    const key = `${item.productId}:${item.colorId}`
+    const idx = items.findIndex((i) => i.id === key)
     if (idx >= 0) items[idx] = { ...items[idx], qty: items[idx].qty + qty }
-    else items.push({ ...item, qty })
+    else items.push({ ...item, id: key, qty })
     set(recompute(items))
   },
 }))
 
-// Optional: selectors cho import gọn
-export const selectCartItems = (s: CartState) => s.items
-export const selectCartTotal = (s: CartState) => s.total
+export const selectCartItems  = (s: CartState) => s.items
+export const selectCartTotal  = (s: CartState) => s.total
 export const selectCartCount  = (s: CartState) => s.count
 
-// Export default để ai đang import default vẫn dùng được
 export default useCartStore

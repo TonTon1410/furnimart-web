@@ -17,6 +17,8 @@ import { authService } from "@/service/authService";
 import { DP } from "./paths";
 import RoleRoutes from "./RoleRoutes";
 import type { PropsWithChildren } from "react";
+import CheckoutPage from "@/pages/CheckoutPage";
+import OrderConfirmationPage from "@/pages/OrderConfirmationPage";
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
@@ -33,6 +35,8 @@ export default function AppRouter() {
       <Route path="/product/*" element={<ProductDetail />} />
       <Route path="*" element={<NotFound />} />
       <Route path="/about" element={<AboutPage/>}/>
+      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
 
       {/* Layout dành cho User */}
       <Route

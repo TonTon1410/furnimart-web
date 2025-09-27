@@ -1,27 +1,33 @@
 // src/components/CartDrawer.tsx
-import React, { useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X, LogIn } from "lucide-react"
-import { useCartStore } from "@/store/cart"
-import { authService } from "@/service/authService"
-import { Link } from "react-router-dom"
+import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, LogIn } from "lucide-react";
+import { useCartStore } from "@/store/cart";
+import { authService } from "@/service/authService";
+import { Link, useNavigate } from "react-router-dom";
 
 type Props = {
-  open: boolean
-  onClose: () => void
-}
+  open: boolean;
+  onClose: () => void;
+};
 
-const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫"
+const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
-  const { items, remove, updateQty, total, fetch, loading, error } = useCartStore()
-  const isAuthed = authService.isAuthenticated()
+  const { items, remove, updateQty, total, fetch, loading, error } = useCartStore();
+  const isAuthed = authService.isAuthenticated();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open && isAuthed) {
-      fetch()
+      fetch();
     }
-  }, [open, isAuthed, fetch])
+  }, [open, isAuthed, fetch]);
+
+  const handleCheckout = () => {
+    onClose();
+    navigate("/checkout");
+  };
 
   return (
     <AnimatePresence>
@@ -38,7 +44,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
           {/* panel */}
           <motion.div
-            className="fixed right-0 top-0 z-50 h-full w-80 max-w-full bg-white shadow-xl flex flex-col"
+            className="fixed right-0 top-0 z-50 flex h-full w-80 max-w-full flex-col bg-white shadow-xl"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -76,9 +82,22 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                 <ul className="space-y-4">
                   {items.map((i) => (
                     <li key={i.id} className="flex items-center gap-3">
-                      <img src={i.image} alt={i.title} className="h-16 w-16 rounded-lg object-cover" />
+                      <img
+                        src={i.image}
+                        alt={i.title}
+                        className="h-16 w-16 rounded-lg object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                        }}
+                      />
                       <div className="flex-1">
                         <p className="font-medium">{i.title}</p>
+
+                        {/* Màu đã chọn */}
+                        <div className="mt-0.5 text-xs text-gray-600">
+                          Màu: <span className="font-medium">{i.colorId}</span>
+                        </div>
+
                         <p className="text-sm text-gray-500">
                           {fmtVND(i.price)} × {i.qty}
                         </p>
@@ -86,8 +105,9 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                         {/* qty control */}
                         <div className="mt-2 inline-flex items-center rounded-lg border">
                           <button
+                            type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.id, Math.max(1, i.qty - 1))}
+                            onClick={() => updateQty(i.productId, i.colorId, Math.max(1, i.qty - 1))}
                             aria-label="Giảm"
                             disabled={loading}
                           >
@@ -95,8 +115,9 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                           </button>
                           <span className="px-3 text-sm">{i.qty}</span>
                           <button
+                            type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
-                            onClick={() => updateQty(i.id, i.qty + 1)}
+                            onClick={() => updateQty(i.productId, i.colorId, i.qty + 1)}
                             aria-label="Tăng"
                             disabled={loading}
                           >
@@ -106,7 +127,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                       </div>
 
                       <button
-                        onClick={() => remove(i.id)}
+                        type="button"
+                        onClick={() => remove(i.productId)}
                         className="text-xs text-red-500 hover:underline disabled:opacity-50"
                         disabled={loading}
                       >
@@ -125,6 +147,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                 <span className="text-base font-bold">{fmtVND(total)}</span>
               </div>
               <button
+                type="button"
+                onClick={handleCheckout}
                 className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
                 disabled={!isAuthed || loading || items.length === 0}
               >
@@ -135,7 +159,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
         </>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default CartDrawer
+export default CartDrawer;

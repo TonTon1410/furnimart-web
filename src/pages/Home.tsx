@@ -174,7 +174,7 @@ const Home: React.FC = () => {
               </p>
             </div>
             <Link
-              to="/shop"
+              to="/shop?catId=${c.id}"
               className="text-sm font-semibold text-emerald-700 hover:underline"
             >
               Xem tất cả →
@@ -296,7 +296,15 @@ const Home: React.FC = () => {
                       price: p.price,
                       thumbnailImage: img,
                     }}
-                    
+                    onAdd={async () => {
+                      try {
+                        await add(p.id, 1); // ✅ dùng API store
+                        setAddedProduct(p.name);
+                        setTimeout(() => setAddedProduct(null), 2000);
+                      } catch (err) {
+                        console.error("Add to cart error:", err);
+                      }
+                    }}
                   />
                 </motion.div>
               );
