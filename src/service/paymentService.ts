@@ -1,31 +1,40 @@
+// src/service/paymentService.ts
 import axiosClient from "@/service/axiosClient";
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
 export const paymentService = {
   // Đặt hàng (checkout)
-  async checkout(addressId: string, cartId: string, paymentMethod: "COD" | "VNPAY") {
-    const url = `${BASE_URL}/orders/checkout`;
-    const res = await axiosClient.post(url, null, {
-      params: { addressId, cartId, paymentMethod },
-    });
-    return res.data;
-  },
+  async checkout(
+  addressId: string,
+  cartId: string,
+  paymentMethod: "COD" | "VNPAY",
+  voucherCode?: string | null
+) {
+  const url = "/orders/checkout";
+  const payload = {
+    addressId,
+    cartId,
+    paymentMethod,
+    voucherCode: voucherCode ?? null, // luôn gửi, null nếu không có
+  };
+
+  const res = await axiosClient.post(url, payload);
+  return res.data;
+},
 
   // Tạo thanh toán VNPAY
   async createVnpay(amount: number, orderId: string) {
-    const url = `${BASE_URL}/v1/payment/vnpay`;
-    const res = await axiosClient.post(url, null, {
-      params: { amount, orderId },
-    });
+    const url = "/v1/payment/vnpay";
+    const res = await axiosClient.post(url, { amount, orderId });
     return res.data;
   },
 
   // Xử lý trả về từ VNPAY
   async vnpayReturn(additionalProp1: string, additionalProp2: string, additionalProp3: string) {
-    const url = `${BASE_URL}/v1/payment/vnpay-return`;
-    const res = await axiosClient.post(url, null, {
-      params: { additionalProp1, additionalProp2, additionalProp3 },
+    const url = "/v1/payment/vnpay-return";
+    const res = await axiosClient.post(url, {
+      additionalProp1,
+      additionalProp2,
+      additionalProp3,
     });
     return res.data;
   },
