@@ -2,16 +2,19 @@
 import Cart from "@/pages/Cart";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
-import UserProfile from "@/pages/UserProfile";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword"
 import NotFound from "@/pages/NotFound";
 import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
 import AboutPage from "@/pages/AboutPage"
-import OrderHistory from "@/pages/OrderHistory";
-import ScrollToTop from "@/components/ScrollToTop";
 import UserAppLayout from "@/pages/UserAppLayout";
+import UserProfile from "@/pages/UserProfile";
+import OrderHistory from "@/pages/OrderHistory";
+import AddressPage from "@/pages/AddressPage";
+import ScrollToTop from "@/components/ScrollToTop";
 import { authService } from "@/service/authService";
 import { DP } from "./paths";
 import RoleRoutes from "./RoleRoutes";
@@ -36,12 +39,23 @@ export default function AppRouter() {
       <Route path="/about" element={<AboutPage/>}/>
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+  
 
-        {/* Layout dành cho User */}
-        <Route path="/user" element={<UserAppLayout />}>
-         <Route path="profile" element={<UserProfile />} />
-         <Route path="orders" element={<OrderHistory />} />
-        </Route>
+      {/* Layout dành cho User */}
+      <Route
+        path="/user"
+        element={
+          <RequireAuth>
+            <UserAppLayout />
+          </RequireAuth>
+        }
+      >
+        <Route path="orders" element={<OrderHistory />} />
+        <Route path="profile" element={<UserProfile />} />
+        <Route path="addresses" element={<AddressPage />} />
+      </Route>
 
       {/* Dashboard root */}
       <Route
@@ -54,8 +68,6 @@ export default function AppRouter() {
           </RequireAuth>
         }
       >
-        {/* Trang dùng chung cho mọi role */}
-        <Route path="profile" element={<UserProfile />} />
         {/* Các trang còn lại render theo role */}
         <Route path="*" element={<RoleRoutes />} />
       </Route>

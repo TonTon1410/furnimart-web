@@ -73,7 +73,7 @@ const bubbleVariants5: Variants = {
   animate: {
     x: [110, -110],
     y: [0, -35, 0, 35, 0],
-    scale: [1, 1.2, 0.9, 1],
+    scale: [1, 1.2, 0.9, 1.3, 0.8, 1.2, 0.6, 1.4, 1],
     rotate: [0, 270, 360],
     transition: {
       duration: 11,
@@ -182,7 +182,7 @@ export default function Login() {
     setSuccess("")
 
     try {
-      const {  ...registerPayload } = registerData
+      const { ...registerPayload } = registerData
       console.log("Payload gửi đăng ký:", registerPayload)
       const response = await authService.register(registerPayload)
 
@@ -271,11 +271,7 @@ export default function Login() {
   return (
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img
-          src="src/assets/noithat.jpg"
-          alt="Nội thất hiện đại"
-          className="w-full h-full object-cover"
-        />
+        <img src="src/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"
@@ -288,7 +284,10 @@ export default function Login() {
         <div className="absolute bottom-8 left-8 text-white">
           <h1 className="text-7xl font-bold mb-2">FurniMart</h1>
           <p className=" text-white/90 font-bold text-lg">Ứng dụng công nghệ tiên tiến vào từng sản phẩm.</p>
-          <p className=" text-white/90 font-bold text-lg"> Tối ưu hóa không gian sống và tận hưởng sự tiện nghi mỗi ngày.</p>
+          <p className=" text-white/90 font-bold text-lg">
+            {" "}
+            Tối ưu hóa không gian sống và tận hưởng sự tiện nghi mỗi ngày.
+          </p>
         </div>
       </div>
 
@@ -441,7 +440,10 @@ export default function Login() {
                     </div>
 
                     <div className="text-right">
-                      <Link to="/forgot-password" className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline">
+                      <Link
+                        to="/forgot-password"
+                        className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline"
+                      >
                         Quên mật khẩu?
                       </Link>
                     </div>

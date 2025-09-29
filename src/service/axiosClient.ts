@@ -4,7 +4,7 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 // ───────────────────────────────────────────────
 // Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
 // ───────────────────────────────────────────────
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8086/api";
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
