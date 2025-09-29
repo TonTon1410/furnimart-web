@@ -212,35 +212,48 @@ export default function AddressPage() {
   }, [memoizedFilteredAddresses])
 
   // Fetch functions
-  const fetchAddresses = useCallback(async () => {
-    try {
-      setLoadingState('fetch', true)
-      
-      const response = await addressService.getAddresses()
-      
-      if (response?.data && Array.isArray(response.data)) {
-        setAddresses(response.data)
-        showToast('success', `Đã tải ${response.data.length} địa chỉ`, 2000)
-      } else {
-        setAddresses([])
-        showToast('warning', 'Không có dữ liệu địa chỉ')
-      }
-    } catch (error: any) {
-      console.error("Fetch addresses error:", error)
-      
-      if (error.message?.includes('đăng nhập')) {
-        authService.logout()
-        window.location.href = "/login"
-        return
-      }
-      
-      showToast('error', error.message || "Không thể tải danh sách địa chỉ")
-      setAddresses([])
-    } finally {
-      setLoadingState('fetch', false)
-    }
-  }, [setLoadingState, showToast])
+ const fetchAddresses = useCallback(async () => {
+  try {
+    setLoadingState('fetch', true);
 
+    // Try to obtain userId from profile endpoint first (more reliable)
+    let userId: string | null = null;
+
+    // Using async getProfile from authService
+    const profile = await authService.getProfile();
+    if (profile && profile.id) {
+      userId = profile.id as string;
+    } else {
+      // fallback: try decode token (existing function)
+      userId = authService.getUserId();
+    }
+
+    if (!userId) {
+      throw new Error("Không tìm thấy userId. Hãy kiểm tra token hoặc gọi /users/profile để lấy id.");
+    }
+
+    const response = await addressService.getAddressesByUserId(userId);
+
+    if (response?.data && Array.isArray(response.data)) {
+      setAddresses(response.data);
+      showToast('success', `Đã tải ${response.data.length} địa chỉ`, 2000);
+    } else {
+      setAddresses([]);
+      showToast('warning', 'Không có dữ liệu địa chỉ');
+    }
+  } catch (error: any) {
+    console.error("Fetch addresses error:", error);
+    if (error.message?.includes('đăng nhập')) {
+      authService.logout();
+      window.location.href = "/login";
+      return;
+    }
+    showToast('error', error.message || "Không thể tải danh sách địa chỉ");
+    setAddresses([]);
+  } finally {
+    setLoadingState('fetch', false);
+  }
+}, [setLoadingState, showToast]);
  
 
   // Initialize component

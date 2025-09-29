@@ -163,9 +163,41 @@ export const authService = {
     return !!token;
   },
 
-  getToken: () => {
+   getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
   },
+
+  // New: call server to get current user profile (async)
+  async getProfile(): Promise<{ id?: string; email?: string; [k: string]: any } | null> {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) return null;
+
+      // assuming backend exposes /users/profile (adjust path if different)
+      const res = await axiosClient.get("/users/profile");
+      // res.data?.data hoặc res.data tùy format backend
+      const payload = res.data?.data ?? res.data ?? null;
+      if (!payload) return null;
+      // try to return normalized profile object
+      return {
+        id: payload.id ?? payload.userId ?? payload.sub ?? null,
+        email: payload.email ?? payload.username ?? null,
+        ...payload
+      };
+    } catch (error: any) {
+      console.error("authService.getProfile error:", error?.response?.data ?? error?.message ?? error);
+      return null;
+    }
+  },
+
+  // giữ nguyên getUserId() cũ cho backward compatibility
+  getUserId(): string | null {
+    const token = localStorage.getItem("access_token");
+    if (!token) return null;
+    const payload = safeDecodeJwt(token);
+    return payload?.sub || payload?.userId || null; // tuỳ backend
+  },
+
 
   /** ✅ Lấy role đồng bộ:
    *  1) Nếu DEV_FORCE_ROLE khác null → dùng role test

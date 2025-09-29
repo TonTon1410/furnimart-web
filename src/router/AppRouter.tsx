@@ -2,6 +2,8 @@
 import Cart from "@/pages/Cart";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword"
 import NotFound from "@/pages/NotFound";
 import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -11,7 +13,6 @@ import AboutPage from "@/pages/AboutPage"
 import UserAppLayout from "@/pages/UserAppLayout";
 import UserProfile from "@/pages/UserProfile";
 import OrderHistory from "@/pages/OrderHistory";
-// import PaymentSuccess from "@/pages/PaymentSuccess";
 import AddressPage from "@/pages/AddressPage";
 import ScrollToTop from "@/components/ScrollToTop";
 import { authService } from "@/service/authService";
@@ -38,7 +39,7 @@ export default function AppRouter() {
       <Route path="/about" element={<AboutPage/>}/>
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-      {/* <Route path="/payment-success" element={<PaymentSuccess />} /> */}
+      <Route path="/payment-success" element={<PaymentSuccess />} />
 
       {/* Layout dành cho User */}
       <Route
