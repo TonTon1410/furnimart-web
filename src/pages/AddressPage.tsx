@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { userService } from "@/service/userService" 
 import {
   MapPin,
   Plus,
@@ -156,15 +157,16 @@ export default function AddressPage() {
 
   // Toast management
   const showToast = useCallback((type: Toast['type'], message: string, duration = TOAST_DURATION) => {
-    const id = Date.now().toString()
-    const toast: Toast = { id, type, message, duration }
-    
-    setToasts(prev => [...prev, toast])
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, duration)
-  }, [])
+  // Thêm random để tránh trùng ID
+  const id = `${Date.now()}-${Math.random()}`
+  const toast: Toast = { id, type, message, duration }
+  
+  setToasts(prev => [...prev, toast])
+  
+  setTimeout(() => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, duration)
+}, [])
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -389,23 +391,40 @@ export default function AddressPage() {
   }, [setLoadingState, showToast, fetchAddresses])
 
   const handleSetDefault = useCallback(async (id: number) => {
-    if (!id) {
-      showToast('error', "ID địa chỉ không hợp lệ")
-      return
-    }
+  if (!id) {
+    showToast('error', "ID địa chỉ không hợp lệ")
+    return
+  }
 
-    try {
-      setLoadingState('update', true)
+  try {
+    setLoadingState('update', true)
+    
+    const response = await addressService.setDefaultAddress(id)
+    
+    if (response?.data) {
+      const defaultAddress = response.data
+      const formattedAddress = addressService.formatAddress(defaultAddress)
       
-      await addressService.setDefaultAddress(id)
-      await fetchAddresses()
-      showToast('success', "Đã đặt làm địa chỉ mặc định!")
-    } catch (error: any) {
-      showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
-    } finally {
-      setLoadingState('update', false)
+      try {
+        const profile = await authService.getProfile()
+        await userService.updateProfile({ 
+          fullName: profile?.fullName || "",
+          address: formattedAddress 
+        })
+        showToast('success', "Đã đặt làm địa chỉ mặc định và cập nhật profile!")
+      } catch (error) {
+        console.error("Failed to update profile address:", error)
+        showToast('warning', "Đã đặt mặc định nhưng chưa cập nhật profile")
+      }
     }
-  }, [setLoadingState, showToast, fetchAddresses])
+    
+    await fetchAddresses()
+  } catch (error: any) {
+    showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
+  } finally {
+    setLoadingState('update', false)
+  }
+}, [setLoadingState, showToast, fetchAddresses])
 
   const handleDuplicate = useCallback(async (address: Address) => {
     const newName = prompt("Nhập tên mới cho địa chỉ sao chép:", `${address.name} (Sao chép)`)
