@@ -47,8 +47,6 @@ export interface ApiResponse<T> {
   timestamp?: string;
 }
 
-
-
 export interface BulkOperationResult {
   successCount: number;
   failureCount: number;
@@ -75,9 +73,9 @@ class AddressService {
     BULK_DELETE: '/addresses/bulk',
     EXPORT: '/addresses/export',
     IMPORT: '/addresses/import',
+    USER_ADDRESSES: (userId: string) => `/addresses/user/${userId}`,
   } as const;
 
-  // Validation utilities
   private validateRequired(value: any, fieldName: string): string[] {
     const errors: string[] = [];
     if (!value || (typeof value === 'string' && !value.trim())) {
@@ -117,12 +115,10 @@ class AddressService {
     return errors;
   }
 
-  // Comprehensive validation for address data
   validateAddressData(data: CreateAddressRequest | UpdateAddressRequest): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Required field validation for create
     if ('name' in data) {
       errors.push(...this.validateRequired(data.name, 'Họ và tên'));
       errors.push(...this.validateLength(data.name || '', 'Họ và tên', 2, 100));
@@ -138,7 +134,6 @@ class AddressService {
       errors.push(...this.validateLength(data.addressLine || '', 'Địa chỉ chi tiết', 5, 500));
     }
 
-    // Optional field validation
     if (data.city) {
       errors.push(...this.validateLength(data.city, 'Tỉnh/Thành phố', 2, 50));
     }
@@ -155,7 +150,6 @@ class AddressService {
       errors.push(...this.validateLength(data.street, 'Đường/Phố', 2, 100));
     }
 
-    // Warnings for better data quality
     if (!data.city) {
       warnings.push('Nên điền Tỉnh/Thành phố để dễ tìm kiếm');
     }
@@ -171,11 +165,9 @@ class AddressService {
     };
   }
 
-  // Clean and prepare data before sending
   private cleanAddressData<T extends CreateAddressRequest | UpdateAddressRequest>(data: T): T {
     const cleaned = { ...data };
 
-    // Trim strings and handle undefined
     Object.keys(cleaned).forEach(key => {
       const value = (cleaned as any)[key];
       if (typeof value === 'string') {
@@ -183,7 +175,6 @@ class AddressService {
       }
     });
 
-    // Special handling for phone
     if (cleaned.phone) {
       cleaned.phone = cleaned.phone.replace(/\s/g, "");
     }
@@ -191,34 +182,14 @@ class AddressService {
     return cleaned;
   }
 
-  // Extract data from various response structures
-  private extractResponseData<T>(response: any): T {
-    if (!response) return response;
-
-    // Direct array or object
-    if (Array.isArray(response) || (response && typeof response === 'object' && !response.data)) {
-      return response;
-    }
-
-    // Common nested structures
-    const possiblePaths = ['data', 'result', 'addresses', 'items'];
-    
-    for (const path of possiblePaths) {
-      if (response[path] !== undefined) {
-        return response[path];
-      }
-    }
-
-    return response;
-  }
-
-  // Core API methods
   async getAddresses(): Promise<ApiResponse<Address[]>> {
     try {
       const token = authService.getToken();
       if (!token) {
         throw new Error("Chưa đăng nhập. Vui lòng đăng nhập lại.");
       }
+
+      console.log("Fetching all addresses...");
 
       const response = await axiosClient.get(this.ENDPOINTS.ADDRESSES, {
         headers: {
@@ -227,16 +198,71 @@ class AddressService {
         },
       });
 
-      const addressData = this.extractResponseData<Address[]>(response.data) || [];
+      console.log("Get all addresses response:", response.data);
+
+      let addressData: Address[] = [];
+      
+      if (response.data?.data) {
+        addressData = Array.isArray(response.data.data) ? response.data.data : [];
+      } else if (Array.isArray(response.data)) {
+        addressData = response.data;
+      }
 
       return {
         status: response.status || 200,
         message: response.data?.message || "Lấy danh sách địa chỉ thành công",
-        data: Array.isArray(addressData) ? addressData : [],
+        data: addressData,
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể lấy danh sách địa chỉ");
+      console.error("Get addresses error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể lấy danh sách địa chỉ");
+    }
+  }
+
+  async getAddressesByUserId(userId: string): Promise<ApiResponse<Address[]>> {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        throw new Error("Chưa đăng nhập. Vui lòng đăng nhập lại.");
+      }
+
+      if (!userId?.trim()) {
+        throw new Error("User ID không hợp lệ");
+      }
+
+      console.log("Fetching addresses for userId:", userId);
+      console.log("Using endpoint:", this.ENDPOINTS.USER_ADDRESSES(userId));
+
+      const response = await axiosClient.get(this.ENDPOINTS.USER_ADDRESSES(userId), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Raw response:", response.data);
+
+      let addressData: Address[] = [];
+      
+      if (response.data?.data) {
+        addressData = Array.isArray(response.data.data) ? response.data.data : [];
+      } else if (Array.isArray(response.data)) {
+        addressData = response.data;
+      }
+
+      console.log("Extracted addresses:", addressData);
+
+      return {
+        status: response.status || 200,
+        message: response.data?.message || "Lấy danh sách địa chỉ thành công",
+        data: addressData,
+      };
+
+    } catch (error: any) {
+      console.error("Get addresses by userId error:", error);
+      console.error("Error response:", error.response?.data);
+      throw new Error(error.response?.data?.message || error.message || "Không thể lấy danh sách địa chỉ theo userId");
     }
   }
 
@@ -247,14 +273,15 @@ class AddressService {
         throw new Error("Chưa đăng nhập. Vui lòng đăng nhập lại.");
       }
 
-      // Validate data
       const validation = this.validateAddressData(addressData);
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
 
-      // Clean and prepare data
       const cleanedData = this.cleanAddressData(addressData);
+
+      console.log("Creating address with data:", cleanedData);
+      console.log("Endpoint:", this.ENDPOINTS.ADDRESSES);
 
       const response = await axiosClient.post(this.ENDPOINTS.ADDRESSES, cleanedData, {
         headers: {
@@ -263,7 +290,19 @@ class AddressService {
         },
       });
 
-      const responseData = this.extractResponseData<Address>(response.data);
+      console.log("Create address response:", response);
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+
+      let responseData: Address;
+      
+      if (response.data?.data) {
+        responseData = response.data.data;
+      } else if (response.data && !response.data.status && !response.data.message) {
+        responseData = response.data;
+      } else {
+        throw new Error("Định dạng response không hợp lệ");
+      }
 
       return {
         status: response.status || 201,
@@ -272,7 +311,12 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể tạo địa chỉ");
+      console.error("Create address error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      const errorMessage = error.response?.data?.message || error.message || "Không thể tạo địa chỉ";
+      throw new Error(errorMessage);
     }
   }
 
@@ -287,16 +331,13 @@ class AddressService {
         throw new Error("ID địa chỉ không hợp lệ");
       }
 
-      // Validate data
       const validation = this.validateAddressData(addressData);
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
 
-      // Clean data (only include defined fields)
       const cleanedData = this.cleanAddressData(addressData);
       
-      // Remove undefined values
       const filteredData: UpdateAddressRequest = {};
       Object.keys(cleanedData).forEach(key => {
         const value = (cleanedData as any)[key];
@@ -305,6 +346,8 @@ class AddressService {
         }
       });
 
+      console.log("Updating address:", id, filteredData);
+
       const response = await axiosClient.put(this.ENDPOINTS.ADDRESS_BY_ID(id), filteredData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -312,7 +355,15 @@ class AddressService {
         },
       });
 
-      const responseData = this.extractResponseData<Address>(response.data);
+      let responseData: Address;
+      
+      if (response.data?.data) {
+        responseData = response.data.data;
+      } else if (response.data && !response.data.status && !response.data.message) {
+        responseData = response.data;
+      } else {
+        throw new Error("Định dạng response không hợp lệ");
+      }
 
       return {
         status: response.status || 200,
@@ -321,7 +372,8 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể cập nhật địa chỉ");
+      console.error("Update address error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể cập nhật địa chỉ");
     }
   }
 
@@ -349,7 +401,8 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể xóa địa chỉ");
+      console.error("Delete address error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể xóa địa chỉ");
     }
   }
 
@@ -371,7 +424,15 @@ class AddressService {
         },
       });
 
-      const responseData = this.extractResponseData<Address>(response.data);
+      let responseData: Address;
+      
+      if (response.data?.data) {
+        responseData = response.data.data;
+      } else if (response.data && !response.data.status && !response.data.message) {
+        responseData = response.data;
+      } else {
+        throw new Error("Định dạng response không hợp lệ");
+      }
 
       return {
         status: response.status || 200,
@@ -380,12 +441,10 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể đặt địa chỉ mặc định");
+      console.error("Set default address error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể đặt địa chỉ mặc định");
     }
   }
-
-  
-  
 
   async duplicateAddress(id: string, newName?: string): Promise<ApiResponse<Address>> {
     try {
@@ -407,7 +466,15 @@ class AddressService {
         },
       });
 
-      const responseData = this.extractResponseData<Address>(response.data);
+      let responseData: Address;
+      
+      if (response.data?.data) {
+        responseData = response.data.data;
+      } else if (response.data && !response.data.status && !response.data.message) {
+        responseData = response.data;
+      } else {
+        throw new Error("Định dạng response không hợp lệ");
+      }
 
       return {
         status: response.status || 201,
@@ -416,11 +483,11 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể sao chép địa chỉ");
+      console.error("Duplicate address error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể sao chép địa chỉ");
     }
   }
 
-  // Bulk operations
   async deleteBulkAddresses(addressIds: string[]): Promise<ApiResponse<{
     successCount: number;
     failureCount: number;
@@ -445,7 +512,7 @@ class AddressService {
         data: { ids: addressIds },
       });
 
-      const responseData = this.extractResponseData<any>(response.data) || {
+      const responseData = response.data?.data || response.data || {
         successCount: 0,
         failureCount: addressIds.length,
         deletedIds: [],
@@ -459,11 +526,11 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể xóa địa chỉ hàng loạt");
+      console.error("Bulk delete error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể xóa địa chỉ hàng loạt");
     }
   }
 
-  // Export/Import
   async exportAddresses(format: 'json' | 'csv' | 'xlsx' = 'json'): Promise<ApiResponse<Blob | any>> {
     try {
       const token = authService.getToken();
@@ -486,7 +553,8 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể export địa chỉ");
+      console.error("Export error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể export địa chỉ");
     }
   }
 
@@ -514,10 +582,10 @@ class AddressService {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
-        timeout: 60000, // 1 minute for import
+        timeout: 60000,
       });
 
-      const responseData = this.extractResponseData<BulkOperationResult>(response.data);
+      const responseData = response.data?.data || response.data;
 
       return {
         status: response.status || 200,
@@ -526,11 +594,11 @@ class AddressService {
       };
 
     } catch (error: any) {
-      throw new Error(error.message || "Không thể import địa chỉ");
+      console.error("Import error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Không thể import địa chỉ");
     }
   }
 
-  // Utility methods
   formatAddress(address: Address): string {
     if (!address) return "";
     
@@ -572,7 +640,6 @@ class AddressService {
     }, {} as Record<string, Address[]>);
   }
 
-  // Helper methods for components
   async getAddressById(id: string): Promise<ApiResponse<Address | null>> {
     try {
       const response = await this.getAddresses();
@@ -584,6 +651,7 @@ class AddressService {
         data: address || null,
       };
     } catch (error: any) {
+      console.error("Get address by id error:", error);
       throw new Error(error.message || "Không thể lấy địa chỉ");
     }
   }
@@ -599,11 +667,11 @@ class AddressService {
         data: defaultAddress || null,
       };
     } catch (error: any) {
+      console.error("Get default address error:", error);
       throw new Error(error.message || "Không thể lấy địa chỉ mặc định");
     }
   }
 
-  // Debug and testing utilities
   async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
       const token = authService.getToken();
@@ -641,7 +709,6 @@ class AddressService {
     }
   }
 
-  // Generate sample data for testing
   generateSampleAddress(): CreateAddressRequest {
     return {
       name: "Nguyen Van A",
@@ -655,21 +722,17 @@ class AddressService {
     };
   }
 
-  getAddressesByUserId(userId: string) {
-  return axiosClient.get(`${this.ENDPOINTS.ADDRESSES}/user/${userId}`);
-}
-  // Get service information
   getServiceInfo() {
     return {
-      version: "2.0.0",
+      version: "2.1.0",
       endpoints: Object.values(this.ENDPOINTS),
       features: [
         'CRUD operations',
         'Bulk operations',
         'Data validation',
         'Import/Export',
-        
-        'Search & Filter'
+        'Search & Filter',
+        'User-specific addresses'
       ],
       supportedFormats: ['json', 'csv', 'xlsx'],
       validationRules: {
@@ -681,5 +744,4 @@ class AddressService {
   }
 }
 
-// Export singleton instance
 export const addressService = new AddressService();
