@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { cartService } from "@/service/cartService";
-import { addressService } from "@/service/addressService";
+// import { addressService } from "@/service/addressService";
 import { paymentService } from "@/service/paymentService";
 import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +28,7 @@ const CheckoutPage: React.FC = () => {
         const userId = userProfileRes.data?.id;
         if (userId) {
           // 👉 đổi sang API trả về danh sách thay vì chỉ 1 địa chỉ
-          const addrRes = await addressService.getAddressesByUserId(userId);
+          const addrRes = await paymentService.getAddressesByUserId(userId);
           const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
           setAddresses(addressList);
 
