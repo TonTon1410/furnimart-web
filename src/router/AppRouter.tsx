@@ -41,6 +41,8 @@ export default function AppRouter() {
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+  
+
       {/* Layout dành cho User */}
       <Route
         path="/user"

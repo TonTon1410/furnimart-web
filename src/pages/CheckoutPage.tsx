@@ -18,18 +18,33 @@ const CheckoutPage: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const c = await cartService.getMyCart();
-      setCart(c);
+      try {
+        // Lấy giỏ hàng
+        const c = await cartService.getMyCart();
+        setCart(c);
 
-      const userProfileRes = await userService.getProfile();
-      const userId = userProfileRes.data?.id;
-      if (userId) {
-        const addrRes = await addressService.getAddressesByUserId(userId);
-        const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
-        setAddresses(addressList);
-        if (addressList.length > 0) setSelectedAddress(addressList[0].id);
+        // Lấy profile và danh sách địa chỉ
+        const userProfileRes = await userService.getProfile();
+        const userId = userProfileRes.data?.id;
+        if (userId) {
+          // 👉 đổi sang API trả về danh sách thay vì chỉ 1 địa chỉ
+          const addrRes = await addressService.getAddressesByUserId(userId);
+          const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
+          setAddresses(addressList);
+
+          // Ưu tiên địa chỉ mặc định
+          const defaultAddr = addressList.find((a) => a.isDefault);
+          if (defaultAddr) {
+            setSelectedAddress(defaultAddr.id);
+          } else if (addressList.length > 0) {
+            setSelectedAddress(addressList[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch data:", err);
       }
     };
+
     fetchData();
   }, []);
 
@@ -48,7 +63,6 @@ const CheckoutPage: React.FC = () => {
       );
 
       if (paymentMethod === "VNPAY") {
-        // Backend trả redirectUrl thì chuyển hướng
         window.location.href = res.redirectUrl;
       } else {
         navigate("/order-confirmation", { state: { order: res.data } });
@@ -75,8 +89,8 @@ const CheckoutPage: React.FC = () => {
           addresses.map((a) => (
             <label
               key={a.id}
-              className={`mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 ${
-                a.isDefault ? "border-emerald-500 bg-emerald-50" : ""
+              className={`mb-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition hover:bg-gray-50 ${
+                selectedAddress === a.id ? "border-emerald-500 bg-emerald-50" : "border-gray-200"
               }`}
             >
               <input
@@ -89,7 +103,7 @@ const CheckoutPage: React.FC = () => {
               />
               <div className="flex flex-col">
                 <span className="font-semibold text-gray-800">
-                  {a.name}{" "}
+                  {a.name}
                   {a.isDefault && (
                     <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                       Mặc định

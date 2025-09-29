@@ -10,16 +10,17 @@ export const paymentService = {
   voucherCode?: string | null
 ) {
   const url = "/orders/checkout";
-  const payload = {
+  const params = {
     addressId,
     cartId,
     paymentMethod,
-    voucherCode: voucherCode ?? null, // luôn gửi, null nếu không có
+    voucherCode: voucherCode ?? "",
   };
 
-  const res = await axiosClient.post(url, payload);
+  const res = await axiosClient.post(url, null, { params });
   return res.data;
 },
+
 
   // Tạo thanh toán VNPAY
   async createVnpay(amount: number, orderId: string) {
