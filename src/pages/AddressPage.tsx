@@ -101,7 +101,7 @@ export default function AddressPage() {
   
   // UI state
   const [isCreating, setIsCreating] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode['type']>('list')
   const [toasts, setToasts] = useState<Toast[]>([])
   
@@ -126,7 +126,7 @@ export default function AddressPage() {
   })
 
   // Bulk operations state
-  const [selectedAddresses, setSelectedAddresses] = useState<string[]>([])
+  const [selectedAddresses, setSelectedAddresses] = useState<number[]>([])
   const [showBulkActions, setShowBulkActions] = useState(false)
 
   // Form state
@@ -292,8 +292,12 @@ export default function AddressPage() {
 
     try {
       setLoadingState('create', true)
-      
-      const response = await addressService.createAddress(createForm)
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
+      const response = await addressService.createAddress({
+      ...createForm,
+      userId: userId || undefined  // Thêm userId vào payload
+    })
       
       if (response?.data) {
         await fetchAddresses()
@@ -330,34 +334,41 @@ export default function AddressPage() {
   }, [])
 
   const handleUpdate = useCallback(async () => {
-    if (!editingId) return
+  if (!editingId) return
 
-    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
-      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
-      return
+  if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
+    showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
+    return
+  }
+
+  try {
+    setLoadingState('update', true)
+    
+    // ✅ Thêm userId vào payload
+    const profile = await authService.getProfile();
+    const userId = profile?.id || authService.getUserId();
+    
+    const response = await addressService.updateAddress(editingId, {
+      ...editForm,
+      userId: userId || undefined  // Thêm dòng này
+    })
+    
+    if (response?.data) {
+      await fetchAddresses()
+      setEditingId(null)
+      showToast('success', "Cập nhật địa chỉ thành công!")
+    } else {
+      throw new Error("Không nhận được dữ liệu cập nhật từ server")
     }
+  } catch (error: any) {
+    showToast('error', error.message || "Cập nhật địa chỉ thất bại")
+  } finally {
+    setLoadingState('update', false)
+  }
+}, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
 
-    try {
-      setLoadingState('update', true)
-      
-      const response = await addressService.updateAddress(editingId, editForm)
-      
-      if (response?.data) {
-        await fetchAddresses()
-        setEditingId(null)
-        showToast('success', "Cập nhật địa chỉ thành công!")
-      } else {
-        throw new Error("Không nhận được dữ liệu cập nhật từ server")
-      }
-    } catch (error: any) {
-      showToast('error', error.message || "Cập nhật địa chỉ thất bại")
-    } finally {
-      setLoadingState('update', false)
-    }
-  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!id?.trim()) {
+  const handleDelete = useCallback(async (id: number) => {
+    if (!id) {
       showToast('error', "ID địa chỉ không hợp lệ")
       return
     }
@@ -377,8 +388,8 @@ export default function AddressPage() {
     }
   }, [setLoadingState, showToast, fetchAddresses])
 
-  const handleSetDefault = useCallback(async (id: string) => {
-    if (!id?.trim()) {
+  const handleSetDefault = useCallback(async (id: number) => {
+    if (!id) {
       showToast('error', "ID địa chỉ không hợp lệ")
       return
     }
@@ -509,7 +520,7 @@ export default function AddressPage() {
   }, [setLoadingState, showToast, fetchAddresses])
 
   // Selection handlers
-  const toggleAddressSelection = useCallback((addressId: string) => {
+  const toggleAddressSelection = useCallback((addressId: number) => {
     setSelectedAddresses(prev => 
       prev.includes(addressId) 
         ? prev.filter(id => id !== addressId)
