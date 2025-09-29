@@ -317,399 +317,395 @@ export default function UserProfile() {
 
   if (!user) {
     return (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center bg-card p-12 rounded-2xl elegant-shadow max-w-2xl w-full"
-        >
-          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-foreground mb-4">Không tìm thấy thông tin</h2>
-          <p className="text-muted-foreground text-lg mb-8">Vui lòng đăng nhập lại để tiếp tục</p>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center bg-card p-12 rounded-2xl elegant-shadow max-w-2xl w-full"
+      >
+        <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-6" />
+        <h2 className="text-3xl font-bold text-foreground mb-4">Không tìm thấy thông tin</h2>
+        <p className="text-muted-foreground text-lg mb-8">Vui lòng đăng nhập lại để tiếp tục</p>
 
-          {error && (
-            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-left">
-              <p className="font-semibold mb-2">Chi tiết lỗi:</p>
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={fetchUserProfile}
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium"
-            >
-              <RefreshCw className="h-5 w-5" />
-              Thử lại
-            </button>
-            <button
-              onClick={() => (window.location.href = "/login")}
-              className="flex items-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/90 transition-all duration-200 font-medium"
-            >
-              Đăng nhập lại
-            </button>
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-left">
+            <p className="font-semibold mb-2">Chi tiết lỗi:</p>
+            <p className="text-sm">{error}</p>
           </div>
-        </motion.div>
+        )}
+
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={fetchUserProfile}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Thử lại
+          </button>
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="flex items-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/90 transition-all duration-200 font-medium"
+          >
+            Đăng nhập lại
+          </button>
+        </div>
+      </motion.div>
     )
   }
 
   return (
-          <motion.div initial="hidden" animate="show" variants={staggerContainer} className="space-y-6">
-            {error && (
-              <motion.div
-                variants={fadeUp}
-                className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-start justify-between"
+    <motion.div initial="hidden" animate="show" variants={staggerContainer} className="space-y-6">
+      {error && (
+        <motion.div
+          variants={fadeUp}
+          className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-start justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="font-semibold mb-1">Có lỗi xảy ra</div>
+              <div className="text-sm opacity-90">{error}</div>
+            </div>
+          </div>
+          <button onClick={() => setError("")} className="text-destructive/60 hover:text-destructive p-1">
+            <X className="h-4 w-4" />
+          </button>
+        </motion.div>
+      )}
+
+      {success && (
+        <motion.div
+          variants={fadeUp}
+          className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-green-100 rounded-full">
+              <Award className="h-4 w-4" />
+            </div>
+            <span className="font-medium">{success}</span>
+          </div>
+          <button onClick={() => setSuccess("")} className="text-green-600 hover:text-green-800 p-1">
+            <X className="h-4 w-4" />
+          </button>
+        </motion.div>
+      )}
+
+      <motion.div variants={fadeUp} className="bg-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
+        <div className="relative h-48">
+          <div className="absolute inset-0">
+            <img src="src/assets/noithat.jpg" alt="Cover" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-secondary/30 to-accent/40"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute top-4 left-4 w-16 h-16 border-2 border-white/20 rounded-full"></div>
+            <div className="absolute bottom-4 right-4 w-8 h-8 bg-white/10 rounded-full"></div>
+            <div className="absolute top-1/2 right-8 w-4 h-4 bg-white/20 rotate-45"></div>
+          </div>
+
+          <div className="absolute top-4 right-4">
+            <label className="bg-black/30 backdrop-blur-sm hover:bg-black/40 text-white p-2.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              <span className="text-sm font-medium">Đổi ảnh bìa</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  console.log("Cover upload:", e.target.files?.[0])
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="absolute bottom-0 left-6 translate-y-1/3">
+            <div className="relative">
+              <div className="w-28 h-28 rounded-2xl bg-card p-2 shadow-xl ring-4 ring-card">
+                <img
+                  src={getAvatarUrl(user) || "/placeholder.svg"}
+                  alt={user.fullName}
+                  className="w-full h-full rounded-xl object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      user.fullName,
+                    )}&background=d97706&color=fff&size=112`
+                  }}
+                />
+                {isUploadingAvatar && (
+                  <div className="absolute inset-2 bg-black/50 rounded-xl flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/20 border-t-white"></div>
+                  </div>
+                )}
+              </div>
+              <label
+                className={`absolute -bottom-1 -right-1 bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-xl cursor-pointer transition-all duration-200 shadow-lg ${
+                  isUploadingAvatar ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold mb-1">Có lỗi xảy ra</div>
-                    <div className="text-sm opacity-90">{error}</div>
-                  </div>
-                </div>
-                <button onClick={() => setError("")} className="text-destructive/60 hover:text-destructive p-1">
-                  <X className="h-4 w-4" />
-                </button>
-              </motion.div>
-            )}
+                <Camera className="h-4 w-4" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={isUploadingAvatar}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
 
-            {success && (
-              <motion.div
-                variants={fadeUp}
-                className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 bg-green-100 rounded-full">
-                    <Award className="h-4 w-4" />
-                  </div>
-                  <span className="font-medium">{success}</span>
-                </div>
-                <button onClick={() => setSuccess("")} className="text-green-600 hover:text-green-800 p-1">
-                  <X className="h-4 w-4" />
-                </button>
-              </motion.div>
-            )}
+          <div className="absolute bottom-4 right-6 text-right">
+            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 text-white">
+              <h2 className="text-xl font-bold mb-1">{user.fullName}</h2>
+              <div className="flex items-center justify-end gap-2 mb-1">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white`}
+                >
+                  {getRoleDisplay(user.role).icon}
+                  {getRoleDisplay(user.role).label}
+                </span>
+              </div>
+              <p className="text-white/80 text-sm">{user.email}</p>
+            </div>
+          </div>
+        </div>
 
-            <motion.div
-              variants={fadeUp}
-              className="bg-card rounded-2xl shadow-xl border border-border/50 overflow-hidden"
-            >
-              <div className="relative h-48">
-                <div className="absolute inset-0">
-                  <img src="src/assets/noithat.jpg" alt="Cover" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-secondary/30 to-accent/40"></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute top-4 left-4 w-16 h-16 border-2 border-white/20 rounded-full"></div>
-                  <div className="absolute bottom-4 right-4 w-8 h-8 bg-white/10 rounded-full"></div>
-                  <div className="absolute top-1/2 right-8 w-4 h-4 bg-white/20 rotate-45"></div>
-                </div>
-
-                <div className="absolute top-4 right-4">
-                  <label className="bg-black/30 backdrop-blur-sm hover:bg-black/40 text-white p-2.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2">
-                    <Camera className="h-4 w-4" />
-                    <span className="text-sm font-medium">Đổi ảnh bìa</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        console.log("Cover upload:", e.target.files?.[0])
-                      }}
-                    />
-                  </label>
-                </div>
-
-                <div className="absolute bottom-0 left-6 translate-y-1/3">
-                  <div className="relative">
-                    <div className="w-28 h-28 rounded-2xl bg-card p-2 shadow-xl ring-4 ring-card">
-                      <img
-                        src={getAvatarUrl(user) || "/placeholder.svg"}
-                        alt={user.fullName}
-                        className="w-full h-full rounded-xl object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            user.fullName,
-                          )}&background=d97706&color=fff&size=112`
-                        }}
-                      />
-                      {isUploadingAvatar && (
-                        <div className="absolute inset-2 bg-black/50 rounded-xl flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/20 border-t-white"></div>
-                        </div>
-                      )}
-                    </div>
-                    <label
-                      className={`absolute -bottom-1 -right-1 bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-xl cursor-pointer transition-all duration-200 shadow-lg ${
-                        isUploadingAvatar ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
-                    >
-                      <Camera className="h-4 w-4" />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        disabled={isUploadingAvatar}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-4 right-6 text-right">
-                  <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 text-white">
-                    <h2 className="text-xl font-bold mb-1">{user.fullName}</h2>
-                    <div className="flex items-center justify-end gap-2 mb-1">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white`}
-                      >
-                        {getRoleDisplay(user.role).icon}
-                        {getRoleDisplay(user.role).label}
-                      </span>
-                    </div>
-                    <p className="text-white/80 text-sm">{user.email}</p>
-                  </div>
+        <div className="pt-16 p-6">
+          <div className="flex items-start justify-between mb-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex gap-2">
+                  <span
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusDisplay(user.status).color} shadow-sm`}
+                  >
+                    {getStatusDisplay(user.status).label}
+                  </span>
                 </div>
               </div>
 
-              <div className="pt-16 p-6">
-                <div className="flex items-start justify-between mb-8">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex gap-2">
-                        <span
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusDisplay(user.status).color} shadow-sm`}
-                        >
-                          {getStatusDisplay(user.status).label}
-                        </span>
-                      </div>
-                    </div>
+              <div className="space-y-1">
+                {user.point !== null && user.point !== undefined && (
+                  <p className="text-primary flex items-center gap-2 text-base font-medium">
+                    <Star className="h-4 w-4" />
+                    {user.point} điểm thưởng
+                  </p>
+                )}
+              </div>
+            </div>
 
-                    <div className="space-y-1">
-                      {user.point !== null && user.point !== undefined && (
-                        <p className="text-primary flex items-center gap-2 text-base font-medium">
-                          <Star className="h-4 w-4" />
-                          {user.point} điểm thưởng
-                        </p>
-                      )}
-                    </div>
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? "Đang lưu..." : "Lưu"}
+                  </button>
+                  <button
+                    onClick={handleEditToggle}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 font-medium"
+                  >
+                    <X className="h-4 w-4" />
+                    Hủy
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEditToggle}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium shadow-lg"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Chỉnh sửa
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Personal Information */}
+            <motion.div variants={fadeUp} className="space-y-4">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-primary/10 rounded-xl">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">Thông tin cá nhân</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
+                    Họ và tên *
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
+                      placeholder="Nhập họ và tên"
+                      required
+                    />
+                  ) : (
+                    <p className="font-medium text-foreground">{user.fullName || "Chưa cập nhật"}</p>
+                  )}
+                </div>
+
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <Phone className="h-3 w-3" />
+                    Số điện thoại
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
+                      placeholder="Nhập số điện thoại"
+                    />
+                  ) : (
+                    <p className="font-medium text-foreground">{user.phone || "Chưa cập nhật"}</p>
+                  )}
+                </div>
+
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    Ngày sinh
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editForm.birthday}
+                      onChange={(e) => setEditForm({ ...editForm, birthday: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
+                    />
+                  ) : (
+                    <p className="font-medium text-foreground">{formatDate(user.birthday)}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                    <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
+                      Giới tính
+                    </label>
+                    {isEditing ? (
+                      <select
+                        value={editForm.gender ? "true" : "false"}
+                        onChange={(e) => setEditForm({ ...editForm, gender: e.target.value === "true" })}
+                        className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
+                      >
+                        <option value="false">Nữ</option>
+                        <option value="true">Nam</option>
+                      </select>
+                    ) : (
+                      <p className="font-medium text-foreground">{user.gender ? "Nam" : "Nữ"}</p>
+                    )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                    <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
+                      <CreditCard className="h-3 w-3" />
+                      CCCD
+                    </label>
                     {isEditing ? (
-                      <>
-                        <button
-                          onClick={handleSave}
-                          disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
-                        >
-                          <Save className="h-4 w-4" />
-                          {isSaving ? "Đang lưu..." : "Lưu"}
-                        </button>
-                        <button
-                          onClick={handleEditToggle}
-                          disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 font-medium"
-                        >
-                          <X className="h-4 w-4" />
-                          Hủy
-                        </button>
-                      </>
+                      <input
+                        type="text"
+                        value={editForm.cccd}
+                        onChange={(e) => setEditForm({ ...editForm, cccd: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
+                        placeholder="12 số"
+                        maxLength={12}
+                      />
                     ) : (
-                      <button
-                        onClick={handleEditToggle}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 font-medium shadow-lg"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        Chỉnh sửa
-                      </button>
+                      <p className="font-medium text-foreground">{user.cccd || "Chưa cập nhật"}</p>
                     )}
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Personal Information */}
-                  <motion.div variants={fadeUp} className="space-y-4">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2.5 bg-primary/10 rounded-xl">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="text-xl font-bold text-foreground">Thông tin cá nhân</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                        <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
-                          Họ và tên *
-                        </label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.fullName}
-                            onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                            className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
-                            placeholder="Nhập họ và tên"
-                            required
-                          />
-                        ) : (
-                          <p className="font-medium text-foreground">{user.fullName || "Chưa cập nhật"}</p>
-                        )}
-                      </div>
-
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                        <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-                          <Phone className="h-3 w-3" />
-                          Số điện thoại
-                        </label>
-                        {isEditing ? (
-                          <input
-                            type="tel"
-                            value={editForm.phone}
-                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                            className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
-                            placeholder="Nhập số điện thoại"
-                          />
-                        ) : (
-                          <p className="font-medium text-foreground">{user.phone || "Chưa cập nhật"}</p>
-                        )}
-                      </div>
-
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                        <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-                          <Calendar className="h-3 w-3" />
-                          Ngày sinh
-                        </label>
-                        {isEditing ? (
-                          <input
-                            type="date"
-                            value={editForm.birthday}
-                            onChange={(e) => setEditForm({ ...editForm, birthday: e.target.value })}
-                            className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
-                          />
-                        ) : (
-                          <p className="font-medium text-foreground">{formatDate(user.birthday)}</p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                          <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
-                            Giới tính
-                          </label>
-                          {isEditing ? (
-                            <select
-                              value={editForm.gender ? "true" : "false"}
-                              onChange={(e) => setEditForm({ ...editForm, gender: e.target.value === "true" })}
-                              className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
-                            >
-                              <option value="false">Nữ</option>
-                              <option value="true">Nam</option>
-                            </select>
-                          ) : (
-                            <p className="font-medium text-foreground">{user.gender ? "Nam" : "Nữ"}</p>
-                          )}
-                        </div>
-
-                        <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                          <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-                            <CreditCard className="h-3 w-3" />
-                            CCCD
-                          </label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editForm.cccd}
-                              onChange={(e) => setEditForm({ ...editForm, cccd: e.target.value })}
-                              className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground"
-                              placeholder="12 số"
-                              maxLength={12}
-                            />
-                          ) : (
-                            <p className="font-medium text-foreground">{user.cccd || "Chưa cập nhật"}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Contact Information */}
-                  <motion.div variants={fadeUp} className="space-y-4">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2.5 bg-secondary/10 rounded-xl">
-                        <Mail className="h-5 w-5 text-secondary" />
-                      </div>
-                      <h3 className="text-xl font-bold text-foreground">Thông tin liên hệ</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                        <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
-                          Email
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-foreground">{user.email}</span>
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Không thể thay đổi
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                        <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-                          <MapPin className="h-3 w-3" />
-                          Địa chỉ
-                        </label>
-                        {isEditing ? (
-                          <textarea
-                            value={editForm.address}
-                            onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground resize-none"
-                            placeholder="Nhập địa chỉ"
-                          />
-                        ) : (
-                          <p className="font-medium text-foreground whitespace-pre-wrap min-h-[60px] leading-relaxed">
-                            {user.address || "Chưa cập nhật"}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl">
-                        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-primary" />
-                          Thông tin tài khoản
-                        </h4>
-                        <div className="space-y-1 text-sm">
-                          <p className="text-muted-foreground">
-                            <span className="font-medium">Cập nhật lần cuối:</span> {formatDate(user.updatedAt)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-
-                <motion.div variants={fadeUp} className="mt-12 pt-6 border-t border-border">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2.5 bg-accent/10 rounded-xl">
-                      <Settings className="h-5 w-5 text-accent" />
-                    </div>
-                    <h3 className="text-xl font-bold text-foreground">Cài đặt tài khoản</h3>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => (window.location.href = "/change-password")}
-                      className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl hover:bg-muted/50 transition-all duration-200 font-medium shadow-sm"
-                    >
-                      <Lock className="h-4 w-4 text-primary" />
-                      <span>Đổi mật khẩu</span>
-                    </button>
-                  </div>
-                </motion.div>
               </div>
             </motion.div>
+
+            {/* Contact Information */}
+            <motion.div variants={fadeUp} className="space-y-4">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-secondary/10 rounded-xl">
+                  <Mail className="h-5 w-5 text-secondary" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">Thông tin liên hệ</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
+                    Email
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-foreground">{user.email}</span>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      Không thể thay đổi
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <MapPin className="h-3 w-3" />
+                    Địa chỉ
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-foreground resize-none"
+                      placeholder="Nhập địa chỉ"
+                    />
+                  ) : (
+                    <p className="font-medium text-foreground whitespace-pre-wrap min-h-[60px] leading-relaxed">
+                      {user.address || "Chưa cập nhật"}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl">
+                  <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    Thông tin tài khoản
+                  </h4>
+                  <div className="space-y-1 text-sm">
+                    <p className="text-muted-foreground">
+                      <span className="font-medium">Cập nhật lần cuối:</span> {formatDate(user.updatedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div variants={fadeUp} className="mt-12 pt-6 border-t border-border">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 bg-accent/10 rounded-xl">
+                <Settings className="h-5 w-5 text-accent" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground">Cài đặt tài khoản</h3>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => (window.location.href = "/forgot-password")}
+                className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl hover:bg-muted/50 transition-all duration-200 font-medium shadow-sm"
+              >
+                <Lock className="h-4 w-4 text-primary" />
+                <span>Đổi mật khẩu</span>
+              </button>
+            </div>
           </motion.div>
-        
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }

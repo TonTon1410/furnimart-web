@@ -2,6 +2,8 @@
 import Cart from "@/pages/Cart";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword"
 import NotFound from "@/pages/NotFound";
 import AppLayout from "@/dashboard/AppLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -37,7 +39,8 @@ export default function AppRouter() {
       <Route path="/about" element={<AboutPage/>}/>
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {/* Layout dành cho User */}
       <Route
         path="/user"
