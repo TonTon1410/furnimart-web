@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { cartService } from "@/service/cartService";
-import { addressService } from "@/service/addressService";
+// import { addressService } from "@/service/addressService";
 import { paymentService } from "@/service/paymentService";
 import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +28,7 @@ const CheckoutPage: React.FC = () => {
         const userId = userProfileRes.data?.id;
         if (userId) {
           // 👉 đổi sang API trả về danh sách thay vì chỉ 1 địa chỉ
-          const addrRes = await addressService.getAddressesByUserId(userId);
+          const addrRes = await paymentService.getAddressesByUserId(userId);
           const addressList = Array.isArray(addrRes.data?.data) ? addrRes.data.data : [];
           setAddresses(addressList);
 
@@ -55,16 +55,18 @@ const CheckoutPage: React.FC = () => {
     }
     setLoading(true);
     try {
+      // paymentService.checkout expects voucherCode to be null if not provided
       const res = await paymentService.checkout(
         selectedAddress,
         cart.cartId,
         paymentMethod,
-        voucherCode || undefined
+        voucherCode ? voucherCode : null
       );
 
       if (paymentMethod === "VNPAY") {
         window.location.href = res.redirectUrl;
       } else {
+        alert("Đặt hàng thành công");
         navigate("/order-confirmation", { state: { order: res.data } });
       }
     } catch (error: any) {

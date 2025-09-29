@@ -1,25 +1,26 @@
 // src/service/paymentService.ts
 import axiosClient from "@/service/axiosClient";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const paymentService = {
   // Đặt hàng (checkout)
   async checkout(
-  addressId: string,
-  cartId: string,
-  paymentMethod: "COD" | "VNPAY",
-  voucherCode?: string | null
-) {
-  const url = "/orders/checkout";
-  const params = {
-    addressId,
-    cartId,
-    paymentMethod,
-    voucherCode: voucherCode ?? "",
-  };
+    addressId: string,
+    cartId: string,
+    paymentMethod: "COD" | "VNPAY",
+    voucherCode?: string | null
+  ) {
+    const url = "/orders/checkout";
+    const params = {
+      addressId,
+      cartId,
+      paymentMethod,
+      voucherCode: voucherCode ?? "",
+    };
 
-  const res = await axiosClient.post(url, null, { params });
-  return res.data;
-},
+    const res = await axiosClient.post(url, null, { params });
+    return res.data;
+  },
 
 
   // Tạo thanh toán VNPAY
@@ -38,5 +39,10 @@ export const paymentService = {
       additionalProp3,
     });
     return res.data;
+  },
+
+  //Lấy địa chỉ của user
+  getAddressesByUserId: async (userId: string) => {
+    return axiosClient.get(`${API_BASE_URL}/addresses/user/${userId}`);
   },
 };
