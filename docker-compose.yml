@@ -4,5 +4,8 @@ services:
   react-app:
     build: .
     ports:
-      - "80:5173"
+      - "8000:5173"  
+    volumes:
+      - .:/app        
+      - /app/node_modules
     restart: always
