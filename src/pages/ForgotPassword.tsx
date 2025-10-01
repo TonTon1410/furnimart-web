@@ -83,7 +83,7 @@ const bubbleVariants5: Variants = {
   },
 }
 
-export default function ForgotPassword() {
+export default function ForgotPassword()  {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)

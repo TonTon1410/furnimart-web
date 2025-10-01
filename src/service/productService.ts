@@ -17,7 +17,7 @@ export interface Product {
   status: string;
   categoryName: string;
   materialName: string;
-  color: { id: string; colorName: string; hexCode: string }[];
+  color: { id: string; colorName: string; hexCode: string, }[];
   images: { image: string }[];
   images3d: {
     image3d: string;

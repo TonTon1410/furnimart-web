@@ -10,6 +10,7 @@ import LoadingPage from "./LoadingPage";
 
 type Product = ProductType;
 
+
 const ProductDetail: React.FC = () => {
   const location = useLocation();
   const slug = location.pathname.replace("/product/", "");
@@ -136,3 +137,4 @@ const ProductDetail: React.FC = () => {
 };
 
 export default ProductDetail;
+

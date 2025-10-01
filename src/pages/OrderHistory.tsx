@@ -16,7 +16,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { orderService } from "@/service/orderService"
-import type { OrderItem, OrderStatus, OrderFilters } from "../types/order"
+import type { OrderItem, OrderFilters } from "../types/order"
 
 const mockOrders: OrderItem[] = [
   {

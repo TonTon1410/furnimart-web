@@ -26,18 +26,15 @@ import {
   Map,
   Trash,
   Settings,
-  Globe,
   FileDown,
   FileUp,
-  Database,
-  Users,
   Building,
   AlertTriangle,
   Clock,
   TrendingUp
 } from "lucide-react"
 import { authService } from "@/service/authService"
-import { addressService, type Address, type BulkOperationResult } from "@/service/addressService"
+import { addressService, type Address } from "@/service/addressService"
 
 // Animation variants
 const fadeUp = { 
@@ -188,19 +185,19 @@ export default function AddressPage() {
 
     // Apply filters
     if (filterOptions.city) {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         addr.city?.toLowerCase().includes(filterOptions.city.toLowerCase())
       )
     }
 
     if (filterOptions.district) {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         addr.district?.toLowerCase().includes(filterOptions.district.toLowerCase())
       )
     }
 
     if (filterOptions.isDefault !== 'all') {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         filterOptions.isDefault === 'default' ? addr.isDefault : !addr.isDefault
       )
     }
