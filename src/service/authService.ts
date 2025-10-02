@@ -192,11 +192,26 @@ export const authService = {
 
   // giữ nguyên getUserId() cũ cho backward compatibility
   getUserId(): string | null {
-    const token = localStorage.getItem("access_token");
-    if (!token) return null;
-    const payload = safeDecodeJwt(token);
-    return payload?.sub || payload?.userId || null; // tuỳ backend
-  },
+  const token = this.getToken();
+  if (!token) return null;
+
+  try {
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
+
+    // Chuẩn hóa base64 để tránh lỗi padding
+    const padded = payloadBase64.padEnd(payloadBase64.length + (4 - (payloadBase64.length % 4)) % 4, "=");
+
+    const decoded = atob(padded);
+    const payload = JSON.parse(decoded);
+
+    // Tùy backend, có thể là id, userId hoặc sub
+    return payload?.id || payload?.userId || payload?.sub || null;
+  } catch (err) {
+    console.error("Decode token error:", err);
+    return null;
+  }
+},
 
 
   /** ✅ Lấy role đồng bộ:

@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { userService } from "@/service/userService" 
 import {
   MapPin,
   Plus,
@@ -25,18 +26,15 @@ import {
   Map,
   Trash,
   Settings,
-  Globe,
   FileDown,
   FileUp,
-  Database,
-  Users,
   Building,
   AlertTriangle,
   Clock,
   TrendingUp
 } from "lucide-react"
 import { authService } from "@/service/authService"
-import { addressService, type Address, type BulkOperationResult } from "@/service/addressService"
+import { addressService, type Address } from "@/service/addressService"
 
 // Animation variants
 const fadeUp = { 
@@ -101,7 +99,7 @@ export default function AddressPage() {
   
   // UI state
   const [isCreating, setIsCreating] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode['type']>('list')
   const [toasts, setToasts] = useState<Toast[]>([])
   
@@ -126,7 +124,7 @@ export default function AddressPage() {
   })
 
   // Bulk operations state
-  const [selectedAddresses, setSelectedAddresses] = useState<string[]>([])
+  const [selectedAddresses, setSelectedAddresses] = useState<number[]>([])
   const [showBulkActions, setShowBulkActions] = useState(false)
 
   // Form state
@@ -156,15 +154,16 @@ export default function AddressPage() {
 
   // Toast management
   const showToast = useCallback((type: Toast['type'], message: string, duration = TOAST_DURATION) => {
-    const id = Date.now().toString()
-    const toast: Toast = { id, type, message, duration }
-    
-    setToasts(prev => [...prev, toast])
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, duration)
-  }, [])
+  // Thêm random để tránh trùng ID
+  const id = `${Date.now()}-${Math.random()}`
+  const toast: Toast = { id, type, message, duration }
+  
+  setToasts(prev => [...prev, toast])
+  
+  setTimeout(() => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, duration)
+}, [])
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -186,19 +185,19 @@ export default function AddressPage() {
 
     // Apply filters
     if (filterOptions.city) {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         addr.city?.toLowerCase().includes(filterOptions.city.toLowerCase())
       )
     }
 
     if (filterOptions.district) {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         addr.district?.toLowerCase().includes(filterOptions.district.toLowerCase())
       )
     }
 
     if (filterOptions.isDefault !== 'all') {
-      filtered = filtered.filter(addr => 
+      filtered = filtered.filter(addr =>
         filterOptions.isDefault === 'default' ? addr.isDefault : !addr.isDefault
       )
     }
@@ -292,8 +291,12 @@ export default function AddressPage() {
 
     try {
       setLoadingState('create', true)
-      
-      const response = await addressService.createAddress(createForm)
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
+      const response = await addressService.createAddress({
+      ...createForm,
+      userId: userId || undefined  // Thêm userId vào payload
+    })
       
       if (response?.data) {
         await fetchAddresses()
@@ -330,34 +333,41 @@ export default function AddressPage() {
   }, [])
 
   const handleUpdate = useCallback(async () => {
-    if (!editingId) return
+  if (!editingId) return
 
-    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
-      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
-      return
+  if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
+    showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
+    return
+  }
+
+  try {
+    setLoadingState('update', true)
+    
+    // ✅ Thêm userId vào payload
+    const profile = await authService.getProfile();
+    const userId = profile?.id || authService.getUserId();
+    
+    const response = await addressService.updateAddress(editingId, {
+      ...editForm,
+      userId: userId || undefined  // Thêm dòng này
+    })
+    
+    if (response?.data) {
+      await fetchAddresses()
+      setEditingId(null)
+      showToast('success', "Cập nhật địa chỉ thành công!")
+    } else {
+      throw new Error("Không nhận được dữ liệu cập nhật từ server")
     }
+  } catch (error: any) {
+    showToast('error', error.message || "Cập nhật địa chỉ thất bại")
+  } finally {
+    setLoadingState('update', false)
+  }
+}, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
 
-    try {
-      setLoadingState('update', true)
-      
-      const response = await addressService.updateAddress(editingId, editForm)
-      
-      if (response?.data) {
-        await fetchAddresses()
-        setEditingId(null)
-        showToast('success', "Cập nhật địa chỉ thành công!")
-      } else {
-        throw new Error("Không nhận được dữ liệu cập nhật từ server")
-      }
-    } catch (error: any) {
-      showToast('error', error.message || "Cập nhật địa chỉ thất bại")
-    } finally {
-      setLoadingState('update', false)
-    }
-  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!id?.trim()) {
+  const handleDelete = useCallback(async (id: number) => {
+    if (!id) {
       showToast('error', "ID địa chỉ không hợp lệ")
       return
     }
@@ -377,24 +387,41 @@ export default function AddressPage() {
     }
   }, [setLoadingState, showToast, fetchAddresses])
 
-  const handleSetDefault = useCallback(async (id: string) => {
-    if (!id?.trim()) {
-      showToast('error', "ID địa chỉ không hợp lệ")
-      return
-    }
+  const handleSetDefault = useCallback(async (id: number) => {
+  if (!id) {
+    showToast('error', "ID địa chỉ không hợp lệ")
+    return
+  }
 
-    try {
-      setLoadingState('update', true)
+  try {
+    setLoadingState('update', true)
+    
+    const response = await addressService.setDefaultAddress(id)
+    
+    if (response?.data) {
+      const defaultAddress = response.data
+      const formattedAddress = addressService.formatAddress(defaultAddress)
       
-      await addressService.setDefaultAddress(id)
-      await fetchAddresses()
-      showToast('success', "Đã đặt làm địa chỉ mặc định!")
-    } catch (error: any) {
-      showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
-    } finally {
-      setLoadingState('update', false)
+      try {
+        const profile = await authService.getProfile()
+        await userService.updateProfile({ 
+          fullName: profile?.fullName || "",
+          address: formattedAddress 
+        })
+        showToast('success', "Đã đặt làm địa chỉ mặc định và cập nhật profile!")
+      } catch (error) {
+        console.error("Failed to update profile address:", error)
+        showToast('warning', "Đã đặt mặc định nhưng chưa cập nhật profile")
+      }
     }
-  }, [setLoadingState, showToast, fetchAddresses])
+    
+    await fetchAddresses()
+  } catch (error: any) {
+    showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
+  } finally {
+    setLoadingState('update', false)
+  }
+}, [setLoadingState, showToast, fetchAddresses])
 
   const handleDuplicate = useCallback(async (address: Address) => {
     const newName = prompt("Nhập tên mới cho địa chỉ sao chép:", `${address.name} (Sao chép)`)
@@ -509,7 +536,7 @@ export default function AddressPage() {
   }, [setLoadingState, showToast, fetchAddresses])
 
   // Selection handlers
-  const toggleAddressSelection = useCallback((addressId: string) => {
+  const toggleAddressSelection = useCallback((addressId: number) => {
     setSelectedAddresses(prev => 
       prev.includes(addressId) 
         ? prev.filter(id => id !== addressId)

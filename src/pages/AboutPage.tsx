@@ -1,7 +1,6 @@
 "use client"
 import { motion } from "framer-motion"
 import { Users, Award, Heart, Truck, Shield, Clock } from "lucide-react"
-import Footer from "@/components/Footer"
 
 const AboutPage = () => {
   const fadeInUp = {
