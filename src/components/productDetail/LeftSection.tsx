@@ -1,10 +1,10 @@
 // src/components/productDetail/LeftSection.tsx
 import React, { useMemo, useState } from "react";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ShoppingCart } from "lucide-react";
 import { authService } from "@/service/authService";
 import { useCartStore } from "@/store/cart";
 import { useNavigate } from "react-router-dom";
-import ConfirmAddToCartModal, {type Color as ModalColor } from "../ConfirmAddToCartModal";
+import ConfirmAddToCartModal, { type Color as ModalColor } from "../ConfirmAddToCartModal";
 
 interface Color {
   id: string;
@@ -31,8 +31,8 @@ interface LeftSectionProps {
   onColorChange: (id: string) => void;
 }
 
-const forest = "#095544";
-const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
+const fmtVND = (n: number) =>
+  new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const LeftSection: React.FC<LeftSectionProps> = ({
   product,
@@ -46,7 +46,6 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   const add = useCartStore((s) => s.add);
   const navigate = useNavigate();
 
-  // Chuẩn hoá danh sách màu + ảnh string[] để modal dùng trực tiếp
   const modalColors: ModalColor[] = useMemo(
     () =>
       product.color.map((c) => ({
@@ -86,13 +85,12 @@ const LeftSection: React.FC<LeftSectionProps> = ({
 
       await add(product.id, confirmQty, finalColorId);
 
-      // đồng bộ UI
       setQuantity(confirmQty);
       if (selectedColorId !== finalColorId) onColorChange(finalColorId);
 
       setOpenConfirm(false);
       setAdded(true);
-      setTimeout(() => setAdded(false), 1800);
+      setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       console.error("Add to cart error:", err);
       alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
@@ -102,16 +100,16 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   return (
     <div className="relative p-4">
       {/* Tên + giá */}
-      <div className="mb-4">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-        <p className="mt-2 text-2xl font-semibold text-amber-600">
+        <p className="mt-3 text-3xl font-extrabold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
           {fmtVND(product.price)}
         </p>
       </div>
 
-      {/* Màu sắc (chọn nhanh ngoài trang) */}
-      <div className="mb-6">
-        <div className="mb-3 text-2xl font-bold text-gray-900">Màu sắc</div>
+      {/* Màu sắc */}
+      <div className="mb-8">
+        <div className="mb-3 text-xl font-semibold text-gray-900">Màu sắc</div>
         <div className="flex flex-wrap gap-3">
           {product.color.map((c) => (
             <button
@@ -119,8 +117,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
               onClick={() => onColorChange(c.id)}
               aria-label={`Chọn màu ${c.colorName}`}
               title={c.colorName}
-              className={`h-10 w-10 rounded-full border-2 ring-0 transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                selectedColorId === c.id ? "border-emerald-600" : "border-gray-300"
+              className={`h-12 w-12 rounded-full border-2 shadow-sm transition hover:scale-110 ${
+                selectedColorId === c.id
+                  ? "border-emerald-600 ring-2 ring-emerald-400"
+                  : "border-gray-300 hover:border-emerald-300"
               }`}
               style={{ backgroundColor: c.hexCode }}
             />
@@ -128,59 +128,38 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         </div>
       </div>
 
-      {/* AR / 3D (giữ nguyên nếu bạn xử lý riêng) */}
-      <div className="mt-4 flex w-4/5 items-center justify-between space-x-1">
-        <button
-          type="button"
-          className="flex-1 rounded-md px-5 py-2 text-base font-semibold text-white transition-colors hover:opacity-95"
-          style={{ backgroundColor: forest }}
-        >
-          Xem 3D
-        </button>
-        <button
-          type="button"
-          className="flex-1 rounded-md px-5 py-2 text-base font-semibold text-white transition-colors hover:opacity-95"
-          style={{ backgroundColor: forest }}
-        >
-          Xem AR
-        </button>
-      </div>
-
-      {/* Số lượng + Thêm giỏ */}
-      <div className="mt-6 flex w-4/5 items-center justify-between space-x-1">
-        <div
-          className="flex items-center rounded-md border border-emerald-200"
-          style={{ backgroundColor: forest, color: "white" }}
-          role="group"
-        >
+      {/* Số lượng + Giỏ hàng */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Bộ chọn số lượng */}
+        <div className="flex items-center border border-gray-300 rounded-md h-10 w-[140px] sm:w-auto">
           <button
-            type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="rounded-l-md px-4 py-2 text-base font-semibold hover:bg-emerald-700/80"
+            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold"
           >
             −
           </button>
-          <span className="px-5 text-base font-semibold">{quantity}</span>
+          <span className="min-w-[60px] text-center text-base font-semibold">
+            {quantity}
+          </span>
           <button
-            type="button"
             onClick={() => setQuantity((q) => q + 1)}
-            className="rounded-r-md px-4 py-2 text-base font-semibold hover:bg-emerald-700/80"
+            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold"
           >
             +
           </button>
         </div>
 
+        {/* Nút Thêm giỏ hàng */}
         <button
-          type="button"
           onClick={handleOpenConfirm}
-          className="flex-1 rounded-md px-5 py-2 text-base font-semibold text-white transition-colors hover:opacity-95"
-          style={{ backgroundColor: forest, minWidth: 160 }}
+          className="rounded-md py-3 px-5 text-lg font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 w-full sm:w-auto flex items-center justify-center gap-2"
         >
-          Thêm vào giỏ hàng
+          <ShoppingCart className="h-5 w-5" />
+          <span>Thêm vào giỏ hàng</span>
         </button>
       </div>
 
-      {/* Modal nhỏ gọn + có thể đổi màu trong modal */}
+      {/* Modal */}
       <ConfirmAddToCartModal
         open={openConfirm}
         onClose={() => setOpenConfirm(false)}
@@ -188,15 +167,17 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         productName={product.name}
         price={product.price}
         colors={modalColors}
-        initialColorId={selectedColorId || (product.color.length === 1 ? product.color[0].id : null)}
+        initialColorId={
+          selectedColorId || (product.color.length === 1 ? product.color[0].id : null)
+        }
         initialQty={quantity}
       />
 
       {/* Toast */}
       {added && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-md bg-emerald-600 px-5 py-3 text-white shadow-lg">
-          <CheckCircle className="h-5 w-5 text-white" />
-          <span>Thêm sản phẩm vào giỏ hàng thành công</span>
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-white shadow-lg animate-bounce">
+          <CheckCircle className="h-5 w-5" />
+          <span>Đã thêm vào giỏ hàng</span>
         </div>
       )}
     </div>
