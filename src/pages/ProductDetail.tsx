@@ -1,3 +1,4 @@
+// src/pages/ProductDetail.tsx
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import RightSection from "../components/productDetail/RightSection";
@@ -10,6 +11,9 @@ import LoadingPage from "./LoadingPage";
 
 type Product = ProductType;
 
+// ✅ helper để kiểm tra URL hợp lệ
+const isValidUrl = (url?: string) =>
+  !!url && (url.startsWith("http://") || url.startsWith("https://"));
 
 const ProductDetail: React.FC = () => {
   const location = useLocation();
@@ -32,7 +36,7 @@ const ProductDetail: React.FC = () => {
     try {
       const res = await productService.getByCategory(categoryId);
       if (Array.isArray(res?.data?.data)) {
-        // Loại bỏ sản phẩm đang hiển thị
+        // loại bỏ sản phẩm đang hiển thị
         return res.data.data.filter((p: Product) => p.id !== productId);
       }
     } catch (e) {
@@ -40,7 +44,6 @@ const ProductDetail: React.FC = () => {
     }
     return [];
   };
-
 
   useEffect(() => {
     if (!slug) return;
@@ -70,33 +73,42 @@ const ProductDetail: React.FC = () => {
   if (!product) return <LoadingPage />;
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-white">
-      <div className="h-15" />
-      <div className="w-full max-w-6xl mx-auto">
+    <div className="flex flex-col items-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8">
         {/* Khung chung cho Right + Left */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 border border-gray-300 bg-white shadow-sm p-6">
-          {/* Hình ảnh lớn hơn */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 rounded-2xl bg-white shadow-lg p-8">
+          {/* Hình ảnh */}
           <div className="md:col-span-7">
             <RightSection
-              thumbnailImage={product.thumbnailImage || "/default-image.png"}
+              thumbnailImage={
+                isValidUrl(product.thumbnailImage)
+                  ? product.thumbnailImage
+                  : "/default-image.png"
+              }
               images={
                 product.color?.flatMap(
-                  (c) => c.images?.map((img) => img.image) || []
+                  (c) =>
+                    c.images
+                      ?.map((img) => img.image)
+                      .filter((img) => isValidUrl(img)) || []
                 ) || []
               }
               images3d={
                 product.color?.flatMap(
                   (c) =>
-                    c.models3D?.map((m) => ({
-                      previewImage: m.previewImage,
-                    })) || []
+                    c.models3D
+                      ?.map((m) => ({
+                        previewImage: m.previewImage,
+                      }))
+                      .filter((m) => isValidUrl(m.previewImage)) || []
                 ) || []
               }
               selectedColorImages={
                 selectedColorId
                   ? product.color
-                    .find((c) => c.id === selectedColorId)
-                    ?.images?.map((img) => img.image) || []
+                      .find((c) => c.id === selectedColorId)
+                      ?.images?.map((img) => img.image)
+                      .filter((img) => isValidUrl(img)) || []
                   : []
               }
             />
@@ -112,29 +124,31 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Khoảng cách */}
-        <div className="h-8" />
-
         {/* Khung mô tả + chi tiết + liên quan */}
-        <BottomSection
-          related={related.map((item) => ({
-            id: item.id,
-            slug: item.slug,
-            name: item.name,
-            price: item.price,
-            description: item.description,
-            thumbnailImage: item.thumbnailImage || "/default-image.png",
-          }))}
-          product={{
-            ...product!,
-            images:
-              product!.images?.map((img) => img.image) || ["/default-image.png"],
-          }}
-        />
+        <div className="mt-12">
+          <BottomSection
+            related={related.map((item) => ({
+              id: item.id,
+              slug: item.slug,
+              name: item.name,
+              price: item.price,
+              description: item.description,
+              thumbnailImage: isValidUrl(item.thumbnailImage)
+                ? item.thumbnailImage
+                : "/default-image.png",
+            }))}
+            product={{
+              ...product!,
+              images:
+                product!.images
+                  ?.map((img) => img.image)
+                  .filter((img) => isValidUrl(img)) || ["/default-image.png"],
+            }}
+          />
+        </div>
       </div>
     </div>
   );
 };
 
 export default ProductDetail;
-
