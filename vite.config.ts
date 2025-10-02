@@ -13,4 +13,13 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    host: true, // cho phép truy cập từ ngoài
+    port: 5173, // bạn đang map ra 8000 ở docker-compose
+    allowedHosts: [
+      "furnimart.click", // 👈 thêm domain của bạn
+      "localhost",
+      "127.0.0.1"
+    ]
+  }
 });
