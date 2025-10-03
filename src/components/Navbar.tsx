@@ -225,7 +225,7 @@ export default function Navbar() {
                 <ChevronDown className="h-4 w-4 opacity-80" />
               </button>
 
-              {userMenuOpen && (
+             {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg bg-white text-gray-700 shadow-lg overflow-hidden">
                   <Link
                     to="/user"
@@ -239,7 +239,14 @@ export default function Navbar() {
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    Đơn hàng
+                    Lịch sử đơn hàng
+                  </Link>
+                  <Link
+                    to="addresses"
+                    className="block px-4 py-2 text-sm hover:bg-gray-50"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    Địa chỉ giao hàng
                   </Link>
                   <button
                     onClick={handleLogout}
