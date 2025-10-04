@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppRouter from "@/router/AppRouter";
 import ScrollToTop from "@/components/ScrollToTop";
+import * as Toast from "@radix-ui/react-toast";
 
 export default function App() {
   const location = useLocation();
@@ -14,14 +15,17 @@ export default function App() {
   const shouldPadTop = !hideLayout && !overlapNavbar;
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {!hideLayout && <Navbar />}
-      <ScrollToTop>
-        <div className={shouldPadTop ? "pt-20" : ""}>
-          <AppRouter />
-        </div>
-      </ScrollToTop>
-      {!hideLayout && <Footer />}
-    </div>
+    <Toast.Provider swipeDirection="right">
+      <div className="min-h-screen bg-white text-gray-900">
+        {!hideLayout && <Navbar />}
+        <ScrollToTop>
+          <div className={shouldPadTop ? "pt-20" : ""}>
+            <AppRouter />
+          </div>
+        </ScrollToTop>
+        {!hideLayout && <Footer />}
+      </div>
+      <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 outline-none" />
+    </Toast.Provider>
   );
 }
