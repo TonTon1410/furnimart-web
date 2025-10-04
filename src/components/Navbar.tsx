@@ -242,7 +242,7 @@ export default function Navbar() {
                     Lịch sử đơn hàng
                   </Link>
                   <Link
-                    to="addresses"
+                    to="/addresses"
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
                   >
