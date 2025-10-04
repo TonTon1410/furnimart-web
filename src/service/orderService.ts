@@ -145,7 +145,7 @@ class OrderService {
       'FINISHED': 'completed',
       'CANCELLED': 'cancelled'
     }
-    return statusMap[apiStatus] || 'pending'
+    return statusMap[apiStatus.toUpperCase()] || 'pending'
   }
 
   private mapToApiStatus(localStatus: OrderStatus): string {

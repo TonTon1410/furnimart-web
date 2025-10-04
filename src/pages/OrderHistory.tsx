@@ -17,13 +17,13 @@ import {
   FileText,
 } from "lucide-react"
 import { orderService } from "@/service/orderService"
-import type { OrderItem, OrderFilters } from "@/types/order"
+import type { OrderItem, OrderFilters } from "../types/order"
 
 const orderTabs = [
   { key: "all", label: "Tất cả", icon: ShoppingBag },
   { key: "pending", label: "Chờ xác nhận", icon: Clock },
   { key: "confirmed", label: "Đã xác nhận", icon: CheckCircle },
-  { key: "shipping", label: "Đang giao hàng", icon: Truck },
+  { key: "delivered", label: "Đã giao hàng", icon: Truck },
   { key: "completed", label: "Hoàn thành", icon: CheckCircle },
   { key: "cancelled", label: "Đã hủy", icon: XCircle },
 ]
@@ -68,43 +68,67 @@ export default function OrderHistory() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredOrders, setFilteredOrders] = useState<OrderItem[]>([])
+  const [allOrders, setAllOrders] = useState<OrderItem[]>([]) // Cache tất cả orders
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const ordersPerPage = 10
 
+  // Load tất cả orders một lần khi component mount
   useEffect(() => {
-    const loadOrders = async () => {
+    const loadAllOrders = async () => {
       setLoading(true)
       setError(null)
       try {
-        const filters: OrderFilters = {
-          status: activeTab === 'all' ? undefined : activeTab,
-          search: searchQuery.trim() || undefined,
-          page: currentPage,
-          limit: ordersPerPage,
-        }
-
-        const result = await orderService.fetchOrders(filters)
-        setFilteredOrders(result.orders || [])
-        setTotalOrders(result.total || 0)
+        // Lấy TẤT CẢ orders không filter
+        const result = await orderService.fetchOrders({
+          page: 1,
+          limit: 100, // Lấy nhiều để cache
+        })
+        
+        setAllOrders(result.orders || [])
       } catch (error: any) {
         console.error("Error loading orders:", error)
         setError(error.message || "Không thể tải danh sách đơn hàng")
-        setFilteredOrders([])
-        setTotalOrders(0)
+        setAllOrders([])
       } finally {
         setLoading(false)
       }
     }
 
-    const timeoutId = setTimeout(() => {
-      loadOrders()
-    }, searchQuery ? 500 : 0)
+    loadAllOrders()
+  }, []) // Chỉ chạy 1 lần khi mount
 
-    return () => clearTimeout(timeoutId)
-  }, [activeTab, searchQuery, currentPage])
+  // Filter và pagination ở frontend
+  useEffect(() => {
+    let filtered = [...allOrders]
+    
+    // Filter theo status
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(order => order.status === activeTab)
+    }
+    
+    // Filter theo search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(order => 
+        order.id.toLowerCase().includes(query) ||
+        order.productName.toLowerCase().includes(query) ||
+        order.shopName.toLowerCase().includes(query)
+      )
+    }
+    
+    // Pagination
+    const totalFiltered = filtered.length
+    const startIndex = (currentPage - 1) * ordersPerPage
+    const endIndex = startIndex + ordersPerPage
+    const paginatedOrders = filtered.slice(startIndex, endIndex)
+    
+    setFilteredOrders(paginatedOrders)
+    setTotalOrders(totalFiltered)
+    
+  }, [allOrders, activeTab, searchQuery, currentPage])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + "đ"
@@ -134,16 +158,14 @@ export default function OrderHistory() {
           break
       }
       
+      // Reload tất cả orders sau khi action
       setTimeout(async () => {
         try {
           const result = await orderService.fetchOrders({
-            status: activeTab === 'all' ? undefined : activeTab,
-            search: searchQuery || undefined,
-            page: currentPage,
-            limit: ordersPerPage,
+            page: 1,
+            limit: 100,
           })
-          setFilteredOrders(result.orders || [])
-          setTotalOrders(result.total || 0)
+          setAllOrders(result.orders || [])
         } catch (reloadError: any) {
           setError("Thao tác thành công nhưng không thể tải lại danh sách")
         }
@@ -191,7 +213,7 @@ export default function OrderHistory() {
                 key={tab.key}
                 onClick={() => {
                   setActiveTab(tab.key)
-                  setCurrentPage(1)
+                  setCurrentPage(1) // Reset về trang 1 khi đổi tab
                 }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
