@@ -4,6 +4,7 @@ import { cartService } from "@/service/cartService";
 import { paymentService } from "@/service/paymentService";
 import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
+import { useToastRadix } from "@/context/useToastRadix";
 import LoadingPage from "./LoadingPage";
 
 const CheckoutPage: React.FC = () => {
@@ -14,6 +15,7 @@ const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("COD");
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const { showToast, ToastComponent } = useToastRadix();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,7 +51,12 @@ const CheckoutPage: React.FC = () => {
 
   const handleCheckout = async () => {
     if (!selectedAddress) {
-      alert("Vui lòng chọn địa chỉ giao hàng");
+      showToast({
+        type: "warning",
+        title: "Nhắc nhở!",
+        description: "Vui lòng chọn địa chỉ giao hàng",
+      });
+      // alert("Vui lòng chọn địa chỉ giao hàng");
       return;
     }
     setLoading(true);
@@ -65,11 +72,16 @@ const CheckoutPage: React.FC = () => {
       if (paymentMethod === "VNPAY") {
         window.location.href = res.redirectUrl;
       } else {
-        alert("Đặt hàng thành công");
+        // alert("Đặt hàng thành công");
         navigate("/order-confirmation", { state: { order: res.data } });
       }
     } catch (error: any) {
-      alert("Thanh toán thất bại: " + (error.response?.data?.message || error.message));
+      showToast({
+        type: "error",
+        title: "Lỗi! Thanh toán thất bại",
+        description: error.response?.data?.message || error.message,
+      });
+      // alert("Thanh toán thất bại: " + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -187,6 +199,8 @@ const CheckoutPage: React.FC = () => {
       >
         {loading ? "Đang xử lý..." : "Xác nhận đặt hàng"}
       </button>
+
+      <ToastComponent />
     </div>
   );
 };
