@@ -32,7 +32,7 @@ const CheckoutPage: React.FC = () => {
 
           // Ưu tiên địa chỉ mặc định
           const defaultAddr = addressList.find((a: { isDefault: any; }) => a.isDefault);
-<!--           const defaultAddr = addressList.find((a : any) => a.isDefault); -->
+//        const defaultAddr = addressList.find((a : any) => a.isDefault);
           if (defaultAddr) {
             setSelectedAddress(defaultAddr.id);
           } else if (addressList.length > 0) {

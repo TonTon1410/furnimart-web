@@ -10,7 +10,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
 import AboutPage from "@/pages/AboutPage"
-import UserAppLayout from "@/pages/UserAppLayout";
 import UserProfile from "@/pages/UserProfile";
 import OrderHistory from "@/pages/OrderHistory";
 import AddressPage from "@/pages/AddressPage";
@@ -39,21 +38,14 @@ export default function AppRouter() {
       <Route path="/about" element={<AboutPage/>}/>
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/user" element={<UserProfile />} />
+      <Route path="/addresses" element={<AddressPage />} />
+      <Route path="/orders" element={<OrderHistory />} />
       {/* <Route path="/payment-success" element={<PaymentSuccess />} /> */}
 
       {/* Layout dành cho User */}
-      <Route
-        path="/user"
-        element={
-          <RequireAuth>
-            <UserAppLayout />
-          </RequireAuth>
-        }
-      >
-        <Route path="orders" element={<OrderHistory />} />
-        <Route path="profile" element={<UserProfile />} />
-        <Route path="addresses" element={<AddressPage />} />
-      </Route>
+    
 
       {/* Dashboard root */}
       <Route

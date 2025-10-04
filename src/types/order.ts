@@ -1,5 +1,20 @@
 // types/order.ts
-export type OrderStatus = "pending" | "confirmed" | "shipping" | "delivered" | "completed" | "cancelled" | "returned"
+
+export type OrderStatus = 
+  | 'pending' 
+  | 'confirmed' 
+  | 'shipping' 
+  | 'delivered' 
+  | 'completed' 
+  | 'cancelled' 
+  | 'returned'
+
+export interface OrderDetail {
+  id: number
+  productId: string
+  quantity: number
+  price: number
+}
 
 export interface OrderItem {
   id: string
@@ -17,6 +32,14 @@ export interface OrderItem {
   color?: string
   brand?: string
   warranty?: string
+  
+  // Thêm các field từ API
+  address?: string
+  paymentMethod?: string
+  paymentStatus?: string
+  transactionCode?: string
+  note?: string | null
+  orderDetails?: OrderDetail[]
 }
 
 export interface OrderFilters {
@@ -25,5 +48,4 @@ export interface OrderFilters {
   page?: number
   limit?: number
   customerId?: number
-  storeId?: number
 }
