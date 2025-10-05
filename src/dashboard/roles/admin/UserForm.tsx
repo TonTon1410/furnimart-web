@@ -1,29 +1,19 @@
-import React, { useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  ImageIcon,
-  Loader2,
-  Tags,
-  AtSign,
-  Phone as PhoneIcon,
-  KeySquare,
-  Calendar,
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 
 export type Status = "ACTIVE" | "INACTIVE";
 export type Role = "STAFF" | "MANAGER" | "DELIVERY" | "ADMIN";
 
 export interface UserFormValues {
   fullName: string;
-  username?: string; // chỉ dùng khi create
-  password?: string; // chỉ dùng khi create
+  username?: string;
+  password?: string;
   email?: string;
   phone?: string;
   avatar?: string;
-  gender: boolean;      // true = Nam, false = Nữ
-  birthday?: string;    // 'YYYY-MM-DD' hoặc ''
-  role: Role;           // STAFF | MANAGER | DELIVERY | ADMIN
-  status: Status;       // ACTIVE | INACTIVE
+  gender: boolean;
+  birthday?: string;
+  role: Role;
+  status: Status;
   cccd?: string;
   point?: number;
 }
@@ -36,16 +26,6 @@ type Props = {
   serverErr?: string | null;
   onSubmit: (values: UserFormValues) => Promise<void> | void;
   onCancel?: () => void;
-};
-
-const fallbackImg =
-  "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80";
-
-const onImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  const t = e.currentTarget as HTMLImageElement & { _fb?: number };
-  if (t._fb) return;
-  t._fb = 1;
-  t.src = fallbackImg;
 };
 
 const UserForm: React.FC<Props> = ({
@@ -64,13 +44,34 @@ const UserForm: React.FC<Props> = ({
     email: initial?.email ?? "",
     phone: initial?.phone ?? "",
     avatar: initial?.avatar ?? "",
-    gender: initial?.gender ?? true, // default Nam
+    gender: initial?.gender ?? true,
     birthday: initial?.birthday ?? "",
     role: initial?.role ?? "STAFF",
     status: initial?.status ?? "ACTIVE",
     cccd: initial?.cccd ?? "",
     point: initial?.point ?? 0,
   });
+
+  // preview avatar
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewBroken, setPreviewBroken] = useState(false);
+
+  // Đồng bộ khi mở chế độ sửa
+  useEffect(() => {
+    if (initial) setForm({ ...initial });
+  }, [initial, mode]);
+
+  // cập nhật preview khi avatar thay đổi
+  useEffect(() => {
+    const url = (form.avatar || "").trim();
+    if (url) {
+      setPreviewUrl(url);
+      setPreviewBroken(false);
+    } else {
+      setPreviewUrl("");
+      setPreviewBroken(false);
+    }
+  }, [form.avatar]);
 
   const canSubmit = useMemo(() => {
     if (mode === "create") {
@@ -108,7 +109,8 @@ const UserForm: React.FC<Props> = ({
     if (!canSubmit || submitting) return;
     await onSubmit({
       fullName: form.fullName.trim(),
-      username: mode === "create" ? form.username?.trim() || undefined : undefined,
+      username:
+        mode === "create" ? form.username?.trim() || undefined : undefined,
       password: mode === "create" ? form.password || undefined : undefined,
       email: form.email?.trim() || undefined,
       phone: form.phone?.trim() || undefined,
@@ -122,66 +124,97 @@ const UserForm: React.FC<Props> = ({
     });
   };
 
-  const titleText = form.fullName || "Nhân viên";
+  // Style thống nhất (light/dark)
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+  const selectClassRound =
+    "mt-1 w-full appearance-none rounded-full border border-gray-300 bg-white px-4 py-3 pr-10 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+  const labelClass =
+    "block text-sm font-medium text-gray-700 dark:text-gray-200";
+
+  // Khối Avatar URL + Preview (tái dùng cho 2 cột)
+  const AvatarBlock = (
+    <div>
+      <label htmlFor="avatar" className={labelClass}>
+        Ảnh đại diện (URL)
+      </label>
+      <input
+        id="avatar"
+        name="avatar"
+        value={form.avatar}
+        onChange={handleChange}
+        placeholder="https://..."
+        className={inputClass}
+      />
+      {/* preview ảnh nếu có URL */}
+      {previewUrl && (
+        <div className="mt-2">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Xem trước
+          </div>
+          <div className="overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-950">
+            {!previewBroken ? (
+              <img
+                src={previewUrl}
+                alt="Avatar preview"
+                className="h-28 w-full object-contain bg-white dark:bg-gray-950"
+                onError={() => setPreviewBroken(true)}
+              />
+            ) : (
+              <div className="h-28 w-full flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                Không tải được ảnh xem trước
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Form */}
-      <form
-        onSubmit={submit}
-        className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-      >
+    <form
+      onSubmit={submit}
+      className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+    >
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* ===== Cột 1 ===== */}
         <div className="grid gap-5">
-          {/* Full name */}
+          {/* Khi EDIT: AvatarBlock nằm ở cột 1 (bên trái) */}
+          {mode === "edit" && AvatarBlock}
+
           <div>
-            <label
-              htmlFor="fullName"
-              className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
-              <Tags className="h-4 w-4 text-emerald-600" /> Họ và tên{" "}
-              <span className="text-red-500">*</span>
+            <label htmlFor="fullName" className={labelClass}>
+              Họ và tên <span className="text-red-500">*</span>
             </label>
             <input
               id="fullName"
               name="fullName"
               value={form.fullName}
               onChange={handleChange}
-              placeholder="Ví dụ: Nguyễn Văn A"
-              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              placeholder="Nguyễn Văn A"
+              className={inputClass}
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Tối thiểu 2 ký tự.
-            </p>
           </div>
 
-          {/* Username & Password (tạo mới) */}
           {mode === "create" && (
             <>
               <div>
-                <label
-                  htmlFor="username"
-                  className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-                >
-                  <AtSign className="h-4 w-4 text-emerald-600" /> Tên đăng nhập{" "}
-                  <span className="text-red-500">*</span>
+                <label htmlFor="username" className={labelClass}>
+                  Tên đăng nhập <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="username"
                   name="username"
                   value={form.username}
                   onChange={handleChange}
-                  placeholder="ví dụ: nvdung"
-                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  placeholder="vd: nvduy"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-                >
-                  <KeySquare className="h-4 w-4 text-emerald-600" /> Mật khẩu{" "}
-                  <span className="text-red-500">*</span>
+                <label htmlFor="password" className={labelClass}>
+                  Mật khẩu <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="password"
@@ -190,19 +223,15 @@ const UserForm: React.FC<Props> = ({
                   value={form.password}
                   onChange={handleChange}
                   placeholder="Tối thiểu 6 ký tự"
-                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  className={inputClass}
                 />
               </div>
             </>
           )}
 
-          {/* Email */}
           <div>
-            <label
-              htmlFor="email"
-              className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
-              <AtSign className="h-4 w-4 text-emerald-600" /> Email
+            <label htmlFor="email" className={labelClass}>
+              Email
             </label>
             <input
               id="email"
@@ -211,77 +240,63 @@ const UserForm: React.FC<Props> = ({
               value={form.email}
               onChange={handleChange}
               placeholder="name@company.com"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              className={inputClass}
             />
           </div>
 
-          {/* Phone */}
           <div>
-            <label
-              htmlFor="phone"
-              className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
-              <PhoneIcon className="h-4 w-4 text-emerald-600" /> Điện thoại
+            <label htmlFor="phone" className={labelClass}>
+              Điện thoại
             </label>
             <input
               id="phone"
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              placeholder="VD: 09xx xxx xxx"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              placeholder="09xx xxx xxx"
+              className={inputClass}
             />
           </div>
+        </div>
 
-          {/* Avatar */}
-          <div>
-            <label
-              htmlFor="avatar"
-              className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
-              <ImageIcon className="h-4 w-4 text-emerald-600" /> Ảnh đại diện
-              (URL)
-            </label>
-            <input
-              id="avatar"
-              name="avatar"
-              value={form.avatar}
-              onChange={handleChange}
-              placeholder="https://...jpg"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Để trống sẽ dùng ảnh mặc định.
-            </p>
-          </div>
+        {/* ===== Cột 2 ===== */}
+        <div className="grid gap-5">
+          {/* Khi CREATE: AvatarBlock nằm ở cột 2 (bên phải) */}
+          {mode === "create" && AvatarBlock}
 
-          {/* Gender + Birthday */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="gender"
-                className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
+              <label htmlFor="gender" className={labelClass}>
                 Giới tính
               </label>
-              <select
-                id="gender"
-                name="gender"
-                value={String(form.gender)}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              >
-                <option value="true">Nam</option>
-                <option value="false">Nữ</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="gender"
+                  name="gender"
+                  value={String(form.gender)}
+                  onChange={handleChange}
+                  className={selectClassRound}
+                >
+                  <option value="true">Nam</option>
+                  <option value="false">Nữ</option>
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
-
             <div>
-              <label
-                htmlFor="birthday"
-                className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                <Calendar className="h-4 w-4 text-emerald-600" /> Ngày sinh
+              <label htmlFor="birthday" className={labelClass}>
+                Ngày sinh
               </label>
               <input
                 id="birthday"
@@ -289,158 +304,159 @@ const UserForm: React.FC<Props> = ({
                 type="date"
                 value={form.birthday || ""}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className={inputClass}
               />
             </div>
           </div>
 
-          {/* Role + Status */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="role"
-                className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                Vai trò
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                disabled={mode === "edit"} // PUT không nhận role → khoá khi edit
-              >
-                <option value="STAFF">STAFF (Người bán hàng)</option>
-                <option value="MANAGER">MANAGER (Người quản lý)</option>
-                <option value="DELIVERY">DELIVERY (Người giao hàng)</option>
-                <option value="ADMIN" disabled>
-                  ADMIN
-                </option>
-              </select>
-            </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Vai trò */}
+<div>
+  <label htmlFor="role" className={labelClass}>
+    Vai trò
+  </label>
+
+  {mode === "edit" ? (
+    // ✅ EDIT: chỉ hiển thị, không cho chỉnh
+    <div
+      aria-readonly="true"
+      className="mt-1 inline-flex items-center rounded-full px-4 py-2 text-sm font-medium
+                 bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200
+                 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700"
+      title="Vai trò không thể chỉnh sửa"
+    >
+      {form.role}
+    </div>
+  ) : (
+    // ✅ CREATE: dropdown bo tròn như cũ
+    <div className="relative">
+      <select
+        id="role"
+        name="role"
+        value={form.role}
+        onChange={handleChange}
+        className={selectClassRound} // rounded-full
+      >
+        <option value="STAFF">STAFF</option>
+        <option value="MANAGER">MANAGER</option>
+        <option value="DELIVERY">DELIVERY</option>
+        <option value="ADMIN">ADMIN</option>
+      </select>
+      <svg
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
+          clipRule="evenodd"
+        />
+      </svg>
+    </div>
+  )}
+</div>
 
             <div>
-              <label
-                htmlFor="status"
-                className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
+              <label htmlFor="status" className={labelClass}>
                 Trạng thái
               </label>
-              <select
-                id="status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="status"
+                  name="status"
+                  value={form.status}
+                  onChange={handleChange}
+                  className={selectClassRound}
+                >
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
 
-          {/* CCCD & Point */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <label htmlFor="cccd" className={labelClass}>
                 CCCD
               </label>
               <input
+                id="cccd"
                 name="cccd"
                 value={form.cccd || ""}
                 onChange={handleChange}
                 placeholder="Số CCCD"
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <label htmlFor="point" className={labelClass}>
                 Điểm tích luỹ
               </label>
               <input
+                id="point"
                 name="point"
                 type="number"
                 min={0}
                 value={form.point ?? 0}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                placeholder="0"
+                className={inputClass}
               />
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={!canSubmit || submitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow enabled:hover:bg-emerald-700 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              {submitting
-                ? mode === "edit"
-                  ? "Đang lưu..."
-                  : "Đang tạo..."
-                : mode === "edit"
-                ? "Lưu thay đổi"
-                : "Tạo tài khoản"}
-            </button>
-            {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Huỷ
-              </button>
-            )}
-          </div>
-
-          {serverMsg && (
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              {serverMsg}
-            </p>
-          )}
-          {serverErr && (
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">
-              {serverErr}
-            </p>
-          )}
         </div>
-      </form>
+      </div>
 
-      {/* Preview */}
-      <aside className="space-y-4">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Xem trước
-          </h3>
+      {/* Buttons */}
+      <div className="mt-6 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={!canSubmit || submitting}
+          className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 dark:hover:bg-emerald-500 disabled:opacity-60"
+        >
+          {submitting
+            ? "Đang lưu..."
+            : mode === "edit"
+            ? "Lưu thay đổi"
+            : "Tạo tài khoản"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Huỷ
+          </button>
+        )}
+      </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-900/10">
-            <div className="aspect-[16/9] w-full">
-              <img
-                src={form.avatar || fallbackImg}
-                alt={titleText}
-                className="h-full w-full object-contain"
-                onError={onImgError}
-              />
-            </div>
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-            <div className="absolute bottom-4 left-4 text-white drop-shadow">
-              <div className="text-sm opacity-90">
-                {form.status || "ACTIVE"} · {form.role || "STAFF"} ·{" "}
-                {form.gender ? "Nam" : "Nữ"}
-              </div>
-              <div className="text-xl font-bold">{titleText}</div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
+      {serverMsg && (
+        <p className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          {serverMsg}
+        </p>
+      )}
+      {serverErr && (
+        <p className="mt-1 text-sm font-medium text-red-600 dark:text-red-400">
+          {serverErr}
+        </p>
+      )}
+    </form>
   );
 };
 

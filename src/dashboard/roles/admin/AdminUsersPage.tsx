@@ -1,20 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Plus,
-  Users,
-  Loader2,
-  Trash2,
-  Edit3,
-  Mail,
-  Phone as PhoneIcon,
-  CalendarDays,
-} from "lucide-react";
+import { Plus, Users, Loader2, Trash2, Edit3 } from "lucide-react";
 import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
-import UserForm, { type UserFormValues, type Status, type Role } from "./UserForm";
+import UserForm, { type UserFormValues, type Status } from "./UserForm";
 
 // -------- Types ----------
 interface User {
@@ -23,173 +14,43 @@ interface User {
   email: string;
   phone: string;
   gender: boolean; // true: Nam, false: Nữ
-  birthday?: string;
-  avatar?: string;
-  role: Role;      // "STAFF" | "MANAGER" | "DELIVERY" | "ADMIN"
-  status: Status;  // "ACTIVE" | "INACTIVE"
-  cccd?: string;
+  birthday?: string | null; // ISO datetime hoặc null
+  avatar?: string | null;
+  role: string; // nhận mọi role từ API (kể cả CUSTOMER)
+  status: Status; // "ACTIVE" | "INACTIVE"
+  cccd?: string | null;
   point?: number;
-  createdAt?: string;
+  createdAt?: string; // ISO
   updatedAt?: string;
 }
 
 // -------- Helpers ----------
-const fallbackImg =
-  "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80";
+const fmtDate = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 
-const onImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  const t = e.currentTarget as HTMLImageElement & { _fb?: number };
-  if (t._fb) return;
-  t._fb = 1;
-  t.src = fallbackImg;
-};
-
-const genderText = (g: boolean) => (g ? "Nam" : "Nữ");
-
-// -------- Badges ----------
-const RoleBadge: React.FC<{ role: Role }> = ({ role }) => {
-  const map: Record<Role, string> = {
-    STAFF:
-      "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:ring-sky-800",
-    MANAGER:
-      "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-800",
-    DELIVERY:
-      "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800",
-    ADMIN:
-      "bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:ring-rose-800",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ring-1 ${map[role]}`}
-    >
-      {role}
-    </span>
-  );
-};
-
-const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
-  const active = status === "ACTIVE";
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ring-1 ${
-        active
-          ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
-          : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          active ? "bg-emerald-500" : "bg-gray-400"
-        }`}
-      />
-      {active ? "Active" : "Inactive"}
-    </span>
-  );
-};
-
-// -------- Tile (card) hiện đại ----------
-const UserTile: React.FC<{
-  u: User;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
-  deleting: boolean;
-}> = ({ u, onEdit, onDelete, deleting }) => {
-  const img = u.avatar || fallbackImg;
-
-  return (
-    <div
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onEdit(u.id);
-      }}
-    >
-      {/* Header với avatar + badges */}
-      <div className="flex items-start gap-4 p-4">
-        <img
-          src={img}
-          alt={u.fullName}
-          className="h-16 w-16 rounded-xl object-cover ring-1 ring-gray-200 dark:ring-gray-700"
-          onError={onImgError}
-        />
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
-              {u.fullName}
-            </h3>
-            <RoleBadge role={u.role} />
-            <StatusBadge status={u.status} />
-          </div>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            {genderText(u.gender)}
-            {u.birthday
-              ? ` • ${new Date(u.birthday).toLocaleDateString("vi-VN")}`
-              : ""}
-          </p>
-        </div>
-      </div>
-
-      {/* Info hàng 2 */}
-      <div className="grid grid-cols-3 gap-2 px-4 pb-3 text-sm">
-        <div className="flex items-center gap-2 truncate text-gray-700 dark:text-gray-300">
-          <Mail className="h-4 w-4 text-gray-400" />
-          <span className="truncate">{u.email || "—"}</span>
-        </div>
-        <div className="flex items-center gap-2 truncate text-gray-700 dark:text-gray-300">
-          <PhoneIcon className="h-4 w-4 text-gray-400" />
-          <span className="truncate">{u.phone || "—"}</span>
-        </div>
-        <div className="flex items-center gap-2 truncate text-gray-700 dark:text-gray-300">
-          <CalendarDays className="h-4 w-4 text-gray-400" />
-          <span className="truncate">
-            {u.createdAt
-              ? new Date(u.createdAt).toLocaleDateString("vi-VN")
-              : "—"}
-          </span>
-        </div>
-      </div>
-
-      {/* Footer actions */}
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 px-4 py-2 dark:border-gray-800">
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {u.cccd ? `CCCD: ${u.cccd}` : ""}
-          {u.cccd && (u.point ?? 0) > 0 ? " • " : ""}
-          {(u.point ?? 0) > 0 ? `Điểm: ${u.point}` : ""}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onEdit(u.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-            title="Sửa"
-          >
-            <Edit3 className="h-4 w-4" />
-            Sửa
-          </button>
-          <button
-            onClick={() => onDelete(u.id)}
-            disabled={deleting}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 active:scale-95 disabled:opacity-60 dark:border-red-800 dark:bg-gray-900 dark:text-red-300"
-            title="Xoá (soft delete)"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Xoá
-          </button>
-        </div>
-      </div>
-
-      {/* Glow hover */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition group-hover:opacity-100">
-        <div className="absolute inset-0 -z-10 blur-2xl [background:radial-gradient(50%_40%_at_50%_0%,rgba(16,185,129,.10),transparent)]" />
-      </div>
-    </div>
-  );
+// YYYY-MM-DD -> ISO 'YYYY-MM-DDT00:00:00.000Z'
+const toISODateOrUndefined = (d?: string | null) => {
+  const s = (d || "").trim();
+  if (!s) return undefined;
+  try {
+    return new Date(`${s}T00:00:00.000Z`).toISOString();
+  } catch {
+    return undefined;
+  }
 };
 
 // -------- Page ----------
+type SortKey =
+  | "createdAt"
+  | "fullName"
+  | "role"
+  | "status"
+  | "email"
+  | "phone"
+  | "birthday"
+  | "point";
+type SortDir = "asc" | "desc";
+
 const AdminUsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<User[]>([]);
@@ -211,8 +72,20 @@ const AdminUsersPage: React.FC = () => {
 
   // filters
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
+  const [roleFilter, setRoleFilter] = useState<
+    | "ALL"
+    | "STAFF_GROUP"
+    | "STAFF"
+    | "MANAGER"
+    | "DELIVERY"
+    | "ADMIN"
+    | "CUSTOMER"
+  >("STAFF_GROUP");
   const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
+
+  // sort mặc định
+  const [sortKey] = useState<SortKey>("createdAt");
+  const [sortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
     (async () => {
@@ -221,7 +94,9 @@ const AdminUsersPage: React.FC = () => {
         setList(res.data?.data ?? []);
       } catch (e: any) {
         setError(
-          e?.response?.data?.message || e?.message || "Không tải được danh sách tài khoản"
+          e?.response?.data?.message ||
+            e?.message ||
+            "Không tải được danh sách tài khoản"
         );
       } finally {
         setLoading(false);
@@ -231,6 +106,20 @@ const AdminUsersPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     let arr = [...list];
+
+    // 1) Lọc vai trò
+    if (roleFilter === "STAFF_GROUP") {
+      arr = arr.filter((u) => (u.role || "").toUpperCase() !== "CUSTOMER");
+    } else if (roleFilter !== "ALL") {
+      arr = arr.filter((u) => (u.role || "").toUpperCase() === roleFilter);
+    }
+
+    // 2) Lọc trạng thái
+    if (statusFilter !== "ALL") {
+      arr = arr.filter((u) => u.status === statusFilter);
+    }
+
+    // 3) Tìm kiếm
     if (q.trim()) {
       const s = q.toLowerCase();
       arr = arr.filter((u) =>
@@ -239,11 +128,29 @@ const AdminUsersPage: React.FC = () => {
           .some((v) => String(v).toLowerCase().includes(s))
       );
     }
-    if (roleFilter !== "ALL") arr = arr.filter((u) => u.role === roleFilter);
-    if (statusFilter !== "ALL")
-      arr = arr.filter((u) => u.status === statusFilter);
+
+    // 4) Sắp xếp
+    const getVal = (u: User, key: SortKey) => {
+      switch (key) {
+        case "point":
+          return Number(u.point ?? 0);
+        case "birthday":
+        case "createdAt":
+          return u[key] ? new Date(u[key] as string).getTime() : -Infinity;
+        default:
+          return String((u as any)[key] ?? "").toLowerCase();
+      }
+    };
+    arr.sort((a, b) => {
+      const va = getVal(a, sortKey);
+      const vb = getVal(b, sortKey);
+      if (va === vb) return 0;
+      const res = va > vb ? 1 : -1;
+      return sortDir === "asc" ? res : -res;
+    });
+
     return arr;
-  }, [list, q, roleFilter, statusFilter]);
+  }, [list, q, roleFilter, statusFilter, sortKey, sortDir]);
 
   // open create
   const openCreate = () => {
@@ -271,12 +178,53 @@ const AdminUsersPage: React.FC = () => {
       phone: u.phone || "",
       avatar: u.avatar || "",
       gender: !!u.gender,
-      birthday: u.birthday ? u.birthday.substring(0, 10) : "",
-      role: u.role, // PUT không nhận role → khoá ở form khi edit
+      // convert ISO -> YYYY-MM-DD cho input date
+      birthday: u.birthday ? new Date(u.birthday).toISOString().slice(0, 10) : "",
+      role: (u.role as any) || "STAFF",
       status: u.status,
       cccd: u.cccd || "",
       point: u.point ?? 0,
     });
+  };
+
+  // --- Avatar fallback bằng initials ---
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(/\s+/);
+    const [a, b] = [parts[0], parts[parts.length - 1]];
+    return ((a?.[0] || "") + (b?.[0] || "")).toUpperCase() || "U";
+  };
+
+  const Avatar: React.FC<{ name?: string; src?: string; size?: number }> = ({
+    name,
+    src,
+    size = 40,
+  }) => {
+    const [broken, setBroken] = React.useState(false);
+    const showImg = !!src && !broken;
+
+    if (showImg) {
+      return (
+        <img
+          src={src}
+          alt={name || "User"}
+          onError={() => setBroken(true)}
+          className="rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+          style={{ width: size, height: size }}
+        />
+      );
+    }
+
+    return (
+      <div
+        className="flex items-center justify-center rounded-lg bg-gray-200 text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
+        style={{ width: size, height: size }}
+        aria-label={name ? `Avatar của ${name}` : "Avatar mặc định"}
+        title={name || "User"}
+      >
+        <span className="text-xs font-semibold">{getInitials(name)}</span>
+      </div>
+    );
   };
 
   // submit (POST | PUT)
@@ -285,19 +233,26 @@ const AdminUsersPage: React.FC = () => {
     setServerMsg(null);
     setServerErr(null);
 
+    // helper: string rỗng -> null (dùng cho POST)
+    const orNull = (v?: string) => (v && v.trim() ? v.trim() : null);
+
     try {
       if (mode === "create") {
+        // Giữ nguyên yêu cầu: rỗng -> null
         const res = await axiosClient.post("/users", {
           fullName: values.fullName.trim(),
-          username: values.username?.trim(),
-          password: values.password,
-          email: values.email?.trim() || undefined,
-          phone: values.phone?.trim() || undefined,
-          avatar: values.avatar?.trim() || undefined,
+          username: orNull(values.username || ""),
+          password: values.password, // bắt buộc khi tạo
+          email: orNull(values.email || ""),
+          phone: orNull(values.phone || ""),
+          avatar: orNull(values.avatar || ""),
           gender: values.gender,
-          birthday: values.birthday || undefined,
-          role: values.role, // STAFF/MANAGER/DELIVERY
+          // với POST, backend của bạn trước đó chấp nhận null cho birthday
+          birthday: orNull(values.birthday || ""),
+          role: values.role,
           status: values.status,
+          cccd: orNull(values.cccd || ""),
+          point: Number(values.point ?? 0),
         });
         const created: User = res.data.data;
         setList((prev) => [created, ...prev]);
@@ -305,18 +260,30 @@ const AdminUsersPage: React.FC = () => {
         setTimeout(() => setOpen(false), 600);
       } else {
         if (!selectedId) throw new Error("Thiếu ID người dùng để cập nhật");
-        const payload = {
+
+        // Theo schema PUT: không gửi null, chỉ gửi khi có; birthday phải là ISO datetime
+        const payload: Record<string, any> = {
           fullName: values.fullName.trim(),
-          phone: values.phone?.trim() || "",
-          avatar: values.avatar?.trim() || "",
           gender: !!values.gender,
-          birthday: values.birthday ? values.birthday : undefined,
           status: values.status,
-          cccd: values.cccd || "",
           point: Number(values.point ?? 0),
         };
+
+        const phone = values.phone?.trim();
+        if (phone) payload.phone = phone;
+
+        const avatar = values.avatar?.trim();
+        if (avatar) payload.avatar = avatar;
+
+        const cccd = values.cccd?.trim();
+        if (cccd) payload.cccd = cccd;
+
+        const birthdayISO = toISODateOrUndefined(values.birthday);
+        if (birthdayISO) payload.birthday = birthdayISO;
+
         const res = await axiosClient.put(`/users/${selectedId}`, payload);
         const updated: User = res.data.data;
+
         setList((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
         setServerMsg("Lưu thay đổi thành công!");
         setTimeout(() => setOpen(false), 600);
@@ -372,52 +339,78 @@ const AdminUsersPage: React.FC = () => {
               </Link>
             </li>
             <li className="opacity-60">/</li>
-            <li className="font-semibold">Tài khoản nhân viên</li>
+            <li className="font-semibold">Tất cả tài khoản</li>
           </ol>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 active:scale-95"
-          >
-            <Plus className="h-4 w-4" />
-            Thêm tài khoản
-          </button>
-        </div>
+        <button
+          onClick={openCreate}
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 active:scale-95"
+        >
+          <Plus className="h-4 w-4" />
+          Thêm tài khoản
+        </button>
       </div>
 
       {/* toolbar: search + filter */}
       <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+        <label htmlFor="q" className="sr-only">
+          Tìm kiếm
+        </label>
         <input
+          id="q"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Tìm theo tên, email, SĐT…"
           className="min-w-[220px] grow rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
         />
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as any)}
-          className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-        >
-          <option value="ALL">Tất cả vai trò</option>
-          <option value="STAFF">STAFF</option>
-          <option value="MANAGER">MANAGER</option>
-          <option value="DELIVERY">DELIVERY</option>
-          <option value="ADMIN">ADMIN</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-        >
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="INACTIVE">INACTIVE</option>
-        </select>
+
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="roleFilter"
+            className="text-sm text-gray-600 dark:text-gray-300"
+          >
+            Vai trò
+          </label>
+          <select
+            id="roleFilter"
+            aria-label="Lọc theo vai trò"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as any)}
+            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+          >
+            <option value="STAFF_GROUP">Tất cả nhân viên</option>
+            <option value="ALL">Tất cả tài khoản</option>
+            <option value="STAFF">STAFF (Nhân viên bán hàng)</option>
+            <option value="MANAGER">MANAGER (Quản lí cửa hàng)</option>
+            <option value="DELIVERY">DELIVERY (Nhân viên giao hàng)</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="CUSTOMER">CUSTOMER (Khách hàng)</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="statusFilter"
+            className="text-sm text-gray-600 dark:text-gray-300"
+          >
+            Trạng thái
+          </label>
+          <select
+            id="statusFilter"
+            aria-label="Lọc theo trạng thái"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+          >
+            <option value="ALL">Tất cả</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
+        </div>
       </div>
 
-      {/* danh sách */}
+      {/* Danh sách dạng bảng */}
       <section className="mt-6">
         <div className="mb-4 flex items-center gap-2 text-gray-700 dark:text-gray-200">
           <Users className="h-4 w-4 text-emerald-600" />
@@ -440,21 +433,96 @@ const AdminUsersPage: React.FC = () => {
             Không có kết quả phù hợp.
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {filtered.map((u) => (
-              <UserTile
-                key={u.id}
-                u={u}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-                deleting={deletingIds.has(u.id)}
-              />
-            ))}
+          <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
+              <thead className="bg-gray-100 dark:bg-gray-800">
+                <tr>
+                  <th className="px-3 py-3 text-left font-semibold">Avatar</th>
+                  <th className="px-3 py-3 text-left font-semibold">Họ tên</th>
+                  <th className="px-3 py-3 text-left font-semibold">Vai trò</th>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    Trạng thái
+                  </th>
+                  <th className="px-3 py-3 text-left font-semibold">Email</th>
+                  <th className="px-3 py-3 text-left font-semibold">SĐT</th>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    Ngày sinh
+                  </th>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    Ngày tạo
+                  </th>
+                  <th className="px-3 py-3 text-left font-semibold">Điểm</th>
+                  <th className="px-3 py-3 text-center font-semibold">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtered.map((u) => (
+                  <tr
+                    key={u.id}
+                    className="border-t border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/40"
+                  >
+                    <td className="px-3 py-3">
+                      <Avatar
+                        name={u.fullName}
+                        src={u.avatar && u.avatar.trim() ? u.avatar : undefined}
+                        size={40}
+                      />
+                    </td>
+                    <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100">
+                      {u.fullName}
+                    </td>
+                    <td className="px-3 py-3">{u.role}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ring-1 ${
+                          u.status === "ACTIVE"
+                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
+                            : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
+                        }`}
+                      >
+                        {u.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">{u.email || "—"}</td>
+                    <td className="px-3 py-3">{u.phone || "—"}</td>
+                    <td className="px-3 py-3">{fmtDate(u.birthday)}</td>
+                    <td className="px-3 py-3">{fmtDate(u.createdAt)}</td>
+                    <td className="px-3 py-3">{u.point ?? 0}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => openEdit(u.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u.id)}
+                          disabled={deletingIds.has(u.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 active:scale-95 disabled:opacity-60 dark:border-red-800 dark:bg-gray-900 dark:text-red-300"
+                        >
+                          {deletingIds.has(u.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          Xoá
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
 
-      {/* Drawer: create/edit */}
+      {/* Drawer */}
       <SlideOver
         open={open}
         onClose={() => setOpen(false)}
