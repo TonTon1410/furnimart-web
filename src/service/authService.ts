@@ -54,8 +54,8 @@ const ROLE_KEY = "app:role";
  *  - Khi cần test: bỏ comment 1 dòng dưới để ép role mong muốn rồi refresh trang.
  */
 let DEV_FORCE_ROLE: RoleKey | null = null;
-DEV_FORCE_ROLE = "seller";
-// DEV_FORCE_ROLE = "admin";
+// DEV_FORCE_ROLE = "seller";
+DEV_FORCE_ROLE = "admin";
 // DEV_FORCE_ROLE = "manager";
 // DEV_FORCE_ROLE = "delivery";
 

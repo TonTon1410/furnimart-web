@@ -6,6 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 import Dropdown from "./Dropdown";
 import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
+import { DP } from "@/router/paths";
 
 type UserProfile = {
   id: string;
@@ -70,7 +71,9 @@ const AppHeader: React.FC = () => {
     const run = async () => {
       if (!authService.isAuthenticated()) return;
       try {
-        const res = await axiosClient.get<{ data: UserProfile }>("/users/profile");
+        const res = await axiosClient.get<{ data: UserProfile }>(
+          "/users/profile"
+        );
         setUser(res.data.data);
       } catch {
         authService.logout();
@@ -90,12 +93,13 @@ const AppHeader: React.FC = () => {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  const avatarUrl =
-    user?.avatar?.startsWith("http")
-      ? user.avatar!
-      : user?.avatar
-      ? `http://localhost:8086${user.avatar}`
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || "User")}&background=0ea5e9&color=fff&size=128`;
+  const avatarUrl = user?.avatar?.startsWith("http")
+    ? user.avatar!
+    : user?.avatar
+    ? `http://localhost:8086${user.avatar}`
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user?.fullName || "User"
+      )}&background=0ea5e9&color=fff&size=128`;
 
   const logout = () => {
     authService.logout();
@@ -110,6 +114,8 @@ const AppHeader: React.FC = () => {
     <header className="sticky top-0 z-50 w-full bg-white lg:border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
       <div className="flex items-center justify-between px-3 py-3 lg:px-6 lg:py-4">
         {/* Left: sidebar toggle + logo (mobile) */}
+
+        {/* Left: sidebar toggle + logo (mobile) */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleToggleSidebar}
@@ -120,17 +126,26 @@ const AppHeader: React.FC = () => {
           >
             {isMobileOpen ? (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M6.22 7.28a.75.75 0 1 1 1.06-1.06L12 10.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L13.06 12l4.72 4.72a.75.75 0 0 1-1.06 1.06L12 13.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10.94 12 6.22 7.28Z" fill="currentColor"/>
+                <path
+                  d="M6.22 7.28a.75.75 0 1 1 1.06-1.06L12 10.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L13.06 12l4.72 4.72a.75.75 0 0 1-1.06 1.06L12 13.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10.94 12 6.22 7.28Z"
+                  fill="currentColor"
+                />
               </svg>
             ) : (
               <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-                <path d="M.583 1c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333A.75.75 0 0 1 .583 1Zm0 10c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333a.75.75 0 0 1-.75-.75ZM1.333 5.25a.75.75 0 0 0 0 1.5H8a.75.75 0 0 0 0-1.5H1.333Z" fill="currentColor"/>
+                <path
+                  d="M.583 1c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333A.75.75 0 0 1 .583 1Zm0 10c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333a.75.75 0 0 1-.75-.75ZM1.333 5.25a.75.75 0 0 0 0 1.5H8a.75.75 0 0 0 0-1.5H1.333Z"
+                  fill="currentColor"
+                />
               </svg>
             )}
           </button>
-          <Link to="/" className="lg:hidden">
-            <img className="dark:hidden" src="./images/logo/logo.svg" alt="Logo" />
-            <img className="hidden dark:block" src="./images/logo/logo-dark.svg" alt="Logo" />
+
+          {/* Logo kiểu chữ giống Sidebar */}
+          <Link to={DP()} className="lg:hidden" aria-label="Dashboard">
+            <span className="text-xl font-extrabold text-gray-900 dark:text-white">
+              Furni<span className="text-yellow-400">.</span>
+            </span>
           </Link>
         </div>
 
@@ -148,7 +163,11 @@ const AppHeader: React.FC = () => {
                 onClick={() => setOpenUser((v) => !v)}
                 className="flex items-center gap-2 rounded-full border border-gray-300 dark:border-gray-700 pl-1 pr-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-100"
               >
-                <img src={avatarUrl} alt="User" className="h-8 w-8 rounded-full object-cover" />
+                <img
+                  src={avatarUrl}
+                  alt="User"
+                  className="h-8 w-8 rounded-full object-cover"
+                />
                 <span className="max-w-[160px] truncate">{user.fullName}</span>
                 <ChevronDown className="h-4 w-4 opacity-70" />
               </button>
@@ -160,7 +179,10 @@ const AppHeader: React.FC = () => {
                 menuId={menuId}
                 className="w-60"
               >
-                <li role="none" className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                <li
+                  role="none"
+                  className="px-3 py-2 border-b border-gray-200 dark:border-gray-700"
+                >
                   <span className="block text-sm font-semibold text-gray-900 dark:text-white">
                     {user.fullName}
                   </span>
@@ -169,7 +191,10 @@ const AppHeader: React.FC = () => {
                   </span>
                 </li>
 
-                <Dropdown.Item to="/dashboard/profile" onItemClick={() => setOpenUser(false)}>
+                <Dropdown.Item
+                  to="/dashboard/profile"
+                  onItemClick={() => setOpenUser(false)}
+                >
                   Hồ sơ cá nhân
                 </Dropdown.Item>
 
@@ -177,7 +202,9 @@ const AppHeader: React.FC = () => {
                   onClick={logout}
                   baseClassName="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                 >
-                  <span className="inline-flex items-center gap-2"><LogOut className="h-4 w-4" /> Đăng xuất</span>
+                  <span className="inline-flex items-center gap-2">
+                    <LogOut className="h-4 w-4" /> Đăng xuất
+                  </span>
                 </Dropdown.Item>
               </Dropdown>
             </div>
