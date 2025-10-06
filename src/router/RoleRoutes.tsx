@@ -17,6 +17,7 @@ const AdminDisputes = Placeholder("Admin • Disputes");
 
 import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
 import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
+import AdminStoresPage from "@/dashboard/roles/admin/AdminStoresPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
@@ -49,6 +50,7 @@ export default function RoleRoutes() {
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="stores" element={<AdminStoresPage />} />
         <Route path="materials" element={<AdminMaterialsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="settings" element={<AdminSettings />} />
