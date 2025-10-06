@@ -1,7 +1,16 @@
-// src/service/paymentService.ts
 import axiosClient from "@/service/axiosClient";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
+export enum EnumProcessOrder {
+    PENDING = "PENDING",
+    PAYMENT = "PAYMENT",
+    ASSIGN_ORDER_STORE = "ASSIGN_ORDER_STORE",
+    MANAGER_ACCEPT = "MANAGER_ACCEPT",
+    MANAGER_REJECT = "MANAGER_REJECT",
+    CONFIRMED = "CONFIRMED",
+    DELIVERED = "DELIVERED",
+    FINISHED = "FINISHED",
+    CANCELLED = "CANCELLED"
+}
 export const paymentService = {
   // Đặt hàng (checkout)
   async checkout(
@@ -30,18 +39,27 @@ export const paymentService = {
     return res.data;
   },
 
-  // Xử lý trả về từ VNPAY
-  async vnpayReturn(additionalProp1: string, additionalProp2: string, additionalProp3: string) {
-    const url = "/v1/payment/vnpay-return";
-    const res = await axiosClient.post(url, {
-      additionalProp1,
-      additionalProp2,
-      additionalProp3,
-    });
-    return res.data;
-  },
+  async vnpayReturn(queryString: string) {
+  try {
+    const cleanQuery = queryString.startsWith('?') ? queryString.substring(1) : queryString;
 
-  //Lấy địa chỉ của user
+    const searchParams = new URLSearchParams(cleanQuery);
+    const params = Object.fromEntries(searchParams.entries());
+    console.log(params);
+    const res = await axiosClient.get("/v1/payment/vnpay-return", { params });
+
+    return res.data; 
+  } catch (error) {
+    console.error("VNPay return error:", error);
+    throw error;
+  }
+},
+
+  updateStatus(orderId: number, status: EnumProcessOrder) {
+    return axiosClient.put(`${API_BASE_URL}/orders/status/${orderId}?status=${status}`);
+},
+
+
   getAddressesByUserId: async (userId: string) => {
     return axiosClient.get(`${API_BASE_URL}/addresses/user/${userId}`);
   },
