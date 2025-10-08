@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { EnumProcessOrder, paymentService } from "../service/paymentService";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
-
+import {cartService} from "../service/cartService";
 const PaymentSuccess: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ const PaymentSuccess: React.FC = () => {
         .updateStatus(Number(orderId), EnumProcessOrder.PAYMENT)
         .then(() => console.log(`Order ${orderId} updated to PAYMENT`))
         .catch((err) => console.error("Error updating order status:", err));
+      cartService.clearCart();
     }
   }, [isSuccess, orderId]);
 

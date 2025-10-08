@@ -42,6 +42,11 @@ export const cartService = {
     return res.data;
   },
 
+  async clearCart() {
+    const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts`);
+    return res.data;
+  },
+
   // PATCH /api/carts/update?productId=&quantity=&colorId=
   async update(productId: string, quantity: number, colorId: string) {
     const res = await axiosClient.patch<ApiResponse>(`${BASE_URL}/carts/update`, null, {
