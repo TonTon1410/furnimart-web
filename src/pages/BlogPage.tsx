@@ -98,12 +98,18 @@ export default function BlogPage() {
 
     try {
       setCreating(true);
+      
+      // ⚠️ QUAN TRỌNG: Chỉ gửi các field mà API yêu cầu
       const payload: CreateBlogPayload = {
-        name: formData.name,
-        content: formData.content,
-        userId: user.id,
-        image: formData.image || undefined
+        name: formData.name.trim(),
+        content: formData.content.trim(),
+        userId: user.id
       };
+
+      // Chỉ thêm image nếu có giá trị
+      if (formData.image && formData.image.trim()) {
+        payload.image = formData.image.trim();
+      }
 
       console.log('📝 Payload tạo blog:', payload);
       const response = await blogService.createBlog(payload);

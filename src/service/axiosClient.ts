@@ -3,16 +3,21 @@ import axios, { type AxiosError } from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 // ───────────────────────────────────────────────
-// Tạo instance Axios chính - SỬA PORT TỪ 8080 THÀNH 8086
+// Tạo instance Axios chính
 // ───────────────────────────────────────────────
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8086/api";
+
+// 🔍 LOG BASE URL ĐỂ DEBUG
+console.log("🌐 API_BASE_URL:", API_BASE_URL);
+console.log("🌐 ENV VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
   withCredentials: true,
-  timeout: 15000, // Tăng timeout lên 15 giây
+  timeout: 15000,
 });
 
 // ───────────────────────────────────────────────
@@ -46,18 +51,17 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // ───────────────────────────────────────────────
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 🔍 LOG FULL URL
+    const fullUrl = `${config.baseURL}${config.url}`;
     console.log("🚀 API Request:", {
-      url: config.url,
+      fullUrl,
       method: config.method,
-      baseURL: config.baseURL,
+      data: config.data,
     });
 
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("✅ Token attached:", token.substring(0, 20) + "...");
-    } else {
-      console.log("⚠️ No token found in localStorage");
     }
     return config;
   },
@@ -82,15 +86,15 @@ axiosClient.interceptors.response.use(
   async (error: AxiosError<any>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig;
 
-    // Log chi tiết error để debug
+    // 🔍 LOG CHI TIẾT ERROR
     console.error("❌ API Error:", {
       status: error.response?.status,
       statusText: error.response?.statusText,
       message: error.message,
-      url: error.config?.url,
-      baseURL: error.config?.baseURL,
       fullURL: `${error.config?.baseURL}${error.config?.url}`,
+      requestData: error.config?.data,
       responseData: error.response?.data,
+      headers: error.config?.headers,
     });
 
     if (
@@ -120,7 +124,6 @@ axiosClient.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        // Sử dụng biến môi trường cho refresh instance
         const refreshInstance = axios.create({
           baseURL: API_BASE_URL,
           headers: { "Content-Type": "application/json" },
@@ -146,11 +149,9 @@ axiosClient.interceptors.response.use(
         console.error("Refresh token failed:", err);
         processQueue(err, null);
 
-        // Clear tokens
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
 
-        // Redirect to login
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }

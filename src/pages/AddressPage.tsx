@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { userService } from "@/service/userService" 
+import axios from "axios"
 import {
   MapPin,
   Plus,
@@ -18,23 +19,22 @@ import {
   RefreshCw,
   Star,
   MapIcon,
-  Search,
-  Filter,
-  Copy,
-  BarChart3,
-  FileText,
-  Map,
-  Trash,
-  Settings,
-  FileDown,
-  FileUp,
-  Building,
-  AlertTriangle,
   Clock,
   TrendingUp
 } from "lucide-react"
 import { authService } from "@/service/authService"
 import { addressService, type Address } from "@/service/addressService"
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
+import L from "leaflet"
+
+// Fix Leaflet icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+})
 
 // Animation variants
 const fadeUp = { 
@@ -59,10 +59,21 @@ const slideIn = {
 }
 
 // Interfaces
-interface ViewMode {
-  type: 'list' | 'grid' | 'map' | 'stats';
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
+interface Province {
+  code: number;
+  name: string;
+  districts: District[];
+}
+
+interface District {
+  code: number;
+  name: string;
+  wards: Ward[];
+}
+
+interface Ward {
+  code: number;
+  name: string;
 }
 
 interface Toast {
@@ -77,20 +88,33 @@ interface LoadingState {
   create: boolean;
   update: boolean;
   delete: boolean;
-  bulk: boolean;
-  export: boolean;
-  import: boolean;
 }
 
-// Constants
-const viewModes: ViewMode[] = [
-  { type: 'list', label: 'Danh sách', icon: FileText },
-  { type: 'grid', label: 'Lưới', icon: Building },
-  { type: 'stats', label: 'Thống kê', icon: BarChart3 },
-  { type: 'map', label: 'Bản đồ', icon: Map },
-];
-
 const TOAST_DURATION = 5000;
+
+// Map Components
+function LocationMarker({ onSelect, position }: { 
+  onSelect: (lat: number, lng: number) => void;
+  position: [number, number];
+}) {
+  useMapEvents({
+    click(e) {
+      onSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return <Marker position={position} />;
+}
+
+function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat && lng) {
+      map.setView([lat, lng], 15);
+    }
+  }, [lat, lng, map]);
+  return null;
+}
 
 export default function AddressPage() {
   // Core state
@@ -100,7 +124,6 @@ export default function AddressPage() {
   // UI state
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode['type']>('list')
   const [toasts, setToasts] = useState<Toast[]>([])
   
   // Loading states
@@ -108,24 +131,11 @@ export default function AddressPage() {
     fetch: true,
     create: false,
     update: false,
-    delete: false,
-    bulk: false,
-    export: false,
-    import: false
+    delete: false
   })
   
-  // Search and filter state
+  // Search state
   const [searchKeyword, setSearchKeyword] = useState("")
-  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false)
-  const [filterOptions, setFilterOptions] = useState({
-    city: '',
-    district: '',
-    isDefault: 'all' as 'all' | 'default' | 'non-default'
-  })
-
-  // Bulk operations state
-  const [selectedAddresses, setSelectedAddresses] = useState<number[]>([])
-  const [showBulkActions, setShowBulkActions] = useState(false)
 
   // Form state
   const [createForm, setCreateForm] = useState({
@@ -136,7 +146,9 @@ export default function AddressPage() {
     ward: "",
     street: "",
     addressLine: "",
-    isDefault: false
+    isDefault: false,
+    latitude: 21.0278,
+    longitude: 105.8342
   })
 
   const [editForm, setEditForm] = useState({
@@ -147,23 +159,33 @@ export default function AddressPage() {
     ward: "",
     street: "",
     addressLine: "",
-    isDefault: false
+    isDefault: false,
+    latitude: 21.0278,
+    longitude: 105.8342
   })
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Province/District/Ward data
+  const [provinces, setProvinces] = useState<Province[]>([])
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null)
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null)
+  const [selectedWard, setSelectedWard] = useState<Ward | null>(null)
+  
+  // Edit mode province/district/ward
+  const [editProvince, setEditProvince] = useState<Province | null>(null)
+  const [editDistrict, setEditDistrict] = useState<District | null>(null)
+  const [editWard, setEditWard] = useState<Ward | null>(null)
 
   // Toast management
   const showToast = useCallback((type: Toast['type'], message: string, duration = TOAST_DURATION) => {
-  // Thêm random để tránh trùng ID
-  const id = `${Date.now()}-${Math.random()}`
-  const toast: Toast = { id, type, message, duration }
-  
-  setToasts(prev => [...prev, toast])
-  
-  setTimeout(() => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, duration)
-}, [])
+    const id = `${Date.now()}-${Math.random()}`
+    const toast: Toast = { id, type, message, duration }
+    
+    setToasts(prev => [...prev, toast])
+    
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, duration)
+  }, [])
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -178,82 +200,51 @@ export default function AddressPage() {
   const memoizedFilteredAddresses = useMemo(() => {
     let filtered = [...addresses]
 
-    // Apply search keyword
     if (searchKeyword.trim()) {
       filtered = addressService.filterAddressesByKeyword(filtered, searchKeyword)
     }
 
-    // Apply filters
-    if (filterOptions.city) {
-      filtered = filtered.filter(addr =>
-        addr.city?.toLowerCase().includes(filterOptions.city.toLowerCase())
-      )
-    }
-
-    if (filterOptions.district) {
-      filtered = filtered.filter(addr =>
-        addr.district?.toLowerCase().includes(filterOptions.district.toLowerCase())
-      )
-    }
-
-    if (filterOptions.isDefault !== 'all') {
-      filtered = filtered.filter(addr =>
-        filterOptions.isDefault === 'default' ? addr.isDefault : !addr.isDefault
-      )
-    }
-
     return filtered
-  }, [addresses, searchKeyword, filterOptions])
+  }, [addresses, searchKeyword])
 
-  // Update filtered addresses when dependencies change
   useEffect(() => {
     setFilteredAddresses(memoizedFilteredAddresses)
   }, [memoizedFilteredAddresses])
 
   // Fetch functions
- const fetchAddresses = useCallback(async () => {
-  try {
-    setLoadingState('fetch', true);
+  const fetchAddresses = useCallback(async () => {
+    try {
+      setLoadingState('fetch', true);
 
-    // Try to obtain userId from profile endpoint first (more reliable)
-    let userId: string | null = null;
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
 
-    // Using async getProfile from authService
-    const profile = await authService.getProfile();
-    if (profile && profile.id) {
-      userId = profile.id as string;
-    } else {
-      // fallback: try decode token (existing function)
-      userId = authService.getUserId();
-    }
+      if (!userId) {
+        throw new Error("Không tìm thấy userId");
+      }
 
-    if (!userId) {
-      throw new Error("Không tìm thấy userId. Hãy kiểm tra token hoặc gọi /users/profile để lấy id.");
-    }
+      const response = await addressService.getAddressesByUserId(userId);
 
-    const response = await addressService.getAddressesByUserId(userId);
-
-    if (response?.data && Array.isArray(response.data)) {
-      setAddresses(response.data);
-      showToast('success', `Đã tải ${response.data.length} địa chỉ`, 2000);
-    } else {
+      if (response?.data && Array.isArray(response.data)) {
+        setAddresses(response.data);
+        showToast('success', `Đã tải ${response.data.length} địa chỉ`, 2000);
+      } else {
+        setAddresses([]);
+        showToast('warning', 'Không có dữ liệu địa chỉ');
+      }
+    } catch (error: any) {
+      console.error("Fetch addresses error:", error);
+      if (error.message?.includes('đăng nhập')) {
+        authService.logout();
+        window.location.href = "/login";
+        return;
+      }
+      showToast('error', error.message || "Không thể tải danh sách địa chỉ");
       setAddresses([]);
-      showToast('warning', 'Không có dữ liệu địa chỉ');
+    } finally {
+      setLoadingState('fetch', false);
     }
-  } catch (error: any) {
-    console.error("Fetch addresses error:", error);
-    if (error.message?.includes('đăng nhập')) {
-      authService.logout();
-      window.location.href = "/login";
-      return;
-    }
-    showToast('error', error.message || "Không thể tải danh sách địa chỉ");
-    setAddresses([]);
-  } finally {
-    setLoadingState('fetch', false);
-  }
-}, [setLoadingState, showToast]);
- 
+  }, [setLoadingState, showToast]);
 
   // Initialize component
   useEffect(() => {
@@ -262,11 +253,57 @@ export default function AddressPage() {
       window.location.href = "/login"
       return
     }
+    
+    // Load provinces data
+    axios.get("https://provinces.open-api.vn/api/?depth=3").then((res) => {
+      setProvinces(res.data)
+    }).catch(err => {
+      console.error("Failed to load provinces:", err)
+      showToast('error', "Không thể tải dữ liệu tỉnh/thành phố")
+    })
+    
     fetchAddresses()
-  }, [fetchAddresses])
+  }, [fetchAddresses, showToast])
 
- 
-  
+  // Geocode address helper
+  const geocodeAddress = useCallback(async (city?: string, district?: string, ward?: string) => {
+    if (!city) return;
+
+    const clean = (s: string) =>
+      s.replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "").trim();
+
+    let query = "";
+    if (city && district && ward) {
+      query = `${clean(ward)}, ${clean(district)}, ${clean(city)}, Việt Nam`;
+    } else if (city && district) {
+      query = `${clean(district)}, ${clean(city)}, Việt Nam`;
+    } else if (city) {
+      query = `${clean(city)}, Việt Nam`;
+    }
+
+    if (!query) return;
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&countrycodes=VN&limit=1`
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        
+        if (isCreating) {
+          setCreateForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+        } else if (editingId) {
+          setEditForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+        }
+      }
+    } catch (e) {
+      console.error("Lỗi geocode:", e);
+    }
+  }, [isCreating, editingId])
 
   // Form helpers
   const resetCreateForm = useCallback(() => {
@@ -278,14 +315,19 @@ export default function AddressPage() {
       ward: "",
       street: "",
       addressLine: "",
-      isDefault: false
+      isDefault: false,
+      latitude: 21.0278,
+      longitude: 105.8342
     })
+    setSelectedProvince(null)
+    setSelectedDistrict(null)
+    setSelectedWard(null)
   }, [])
 
   // CRUD operations
   const handleCreate = useCallback(async () => {
     if (!createForm.name.trim() || !createForm.phone.trim() || !createForm.addressLine.trim()) {
-      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc (Họ tên, Số điện thoại, Địa chỉ chi tiết)")
+      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
       return
     }
 
@@ -293,18 +335,17 @@ export default function AddressPage() {
       setLoadingState('create', true)
       const profile = await authService.getProfile();
       const userId = profile?.id || authService.getUserId();
+      
       const response = await addressService.createAddress({
-      ...createForm,
-      userId: userId || undefined  // Thêm userId vào payload
-    })
+        ...createForm,
+        userId: userId || undefined
+      })
       
       if (response?.data) {
         await fetchAddresses()
         resetCreateForm()
         setIsCreating(false)
         showToast('success', "Thêm địa chỉ thành công!")
-      } else {
-        throw new Error("Không nhận được dữ liệu địa chỉ từ server")
       }
     } catch (error: any) {
       showToast('error', error.message || "Thêm địa chỉ thất bại")
@@ -328,50 +369,58 @@ export default function AddressPage() {
       ward: address.ward || "",
       street: address.street || "",
       addressLine: address.addressLine || "",
-      isDefault: Boolean(address.isDefault)
+      isDefault: Boolean(address.isDefault),
+      latitude: 21.0278,
+      longitude: 105.8342
     })
-  }, [])
+
+    // Set edit provinces/districts/wards
+    const prov = provinces.find(p => p.name === address.city)
+    setEditProvince(prov || null)
+    
+    if (prov) {
+      const dist = prov.districts.find(d => d.name === address.district)
+      setEditDistrict(dist || null)
+      
+      if (dist) {
+        const ward = dist.wards.find(w => w.name === address.ward)
+        setEditWard(ward || null)
+      }
+    }
+  }, [provinces, showToast])
 
   const handleUpdate = useCallback(async () => {
-  if (!editingId) return
+    if (!editingId) return
 
-  if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
-    showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
-    return
-  }
-
-  try {
-    setLoadingState('update', true)
-    
-    // ✅ Thêm userId vào payload
-    const profile = await authService.getProfile();
-    const userId = profile?.id || authService.getUserId();
-    
-    const response = await addressService.updateAddress(editingId, {
-      ...editForm,
-      userId: userId || undefined  // Thêm dòng này
-    })
-    
-    if (response?.data) {
-      await fetchAddresses()
-      setEditingId(null)
-      showToast('success', "Cập nhật địa chỉ thành công!")
-    } else {
-      throw new Error("Không nhận được dữ liệu cập nhật từ server")
-    }
-  } catch (error: any) {
-    showToast('error', error.message || "Cập nhật địa chỉ thất bại")
-  } finally {
-    setLoadingState('update', false)
-  }
-}, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
-
-  const handleDelete = useCallback(async (id: number) => {
-    if (!id) {
-      showToast('error', "ID địa chỉ không hợp lệ")
+    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
+      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
       return
     }
 
+    try {
+      setLoadingState('update', true)
+      
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
+      
+      const response = await addressService.updateAddress(editingId, {
+        ...editForm,
+        userId: userId || undefined
+      })
+      
+      if (response?.data) {
+        await fetchAddresses()
+        setEditingId(null)
+        showToast('success', "Cập nhật địa chỉ thành công!")
+      }
+    } catch (error: any) {
+      showToast('error', error.message || "Cập nhật địa chỉ thất bại")
+    } finally {
+      setLoadingState('update', false)
+    }
+  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
+
+  const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return
 
     try {
@@ -388,171 +437,35 @@ export default function AddressPage() {
   }, [setLoadingState, showToast, fetchAddresses])
 
   const handleSetDefault = useCallback(async (id: number) => {
-  if (!id) {
-    showToast('error', "ID địa chỉ không hợp lệ")
-    return
-  }
-
-  try {
-    setLoadingState('update', true)
-    
-    const response = await addressService.setDefaultAddress(id)
-    
-    if (response?.data) {
-      const defaultAddress = response.data
-      const formattedAddress = addressService.formatAddress(defaultAddress)
-      
-      try {
-        const profile = await authService.getProfile()
-        await userService.updateProfile({ 
-          fullName: profile?.fullName || "",
-          address: formattedAddress 
-        })
-        showToast('success', "Đã đặt làm địa chỉ mặc định và cập nhật profile!")
-      } catch (error) {
-        console.error("Failed to update profile address:", error)
-        showToast('warning', "Đã đặt mặc định nhưng chưa cập nhật profile")
-      }
-    }
-    
-    await fetchAddresses()
-  } catch (error: any) {
-    showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
-  } finally {
-    setLoadingState('update', false)
-  }
-}, [setLoadingState, showToast, fetchAddresses])
-
-  const handleDuplicate = useCallback(async (address: Address) => {
-    const newName = prompt("Nhập tên mới cho địa chỉ sao chép:", `${address.name} (Sao chép)`)
-    if (!newName?.trim()) return
-
     try {
-      setLoadingState('create', true)
+      setLoadingState('update', true)
       
-      await addressService.duplicateAddress(address.id, newName)
+      const response = await addressService.setDefaultAddress(id)
+      
+      if (response?.data) {
+        const defaultAddress = response.data
+        const formattedAddress = addressService.formatAddress(defaultAddress)
+        
+        try {
+          const profile = await authService.getProfile()
+          await userService.updateProfile({ 
+            fullName: profile?.fullName || "",
+            address: formattedAddress 
+          })
+          showToast('success', "Đã đặt làm địa chỉ mặc định!")
+        } catch (error) {
+          showToast('warning', "Đã đặt mặc định nhưng chưa cập nhật profile")
+        }
+      }
+      
       await fetchAddresses()
-      showToast('success', "Sao chép địa chỉ thành công!")
     } catch (error: any) {
-      showToast('error', error.message || "Sao chép địa chỉ thất bại")
+      showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
     } finally {
-      setLoadingState('create', false)
+      setLoadingState('update', false)
     }
   }, [setLoadingState, showToast, fetchAddresses])
 
-  // Bulk operations
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedAddresses.length === 0) {
-      showToast('error', "Vui lòng chọn ít nhất một địa chỉ để xóa")
-      return
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedAddresses.length} địa chỉ đã chọn?`)) return
-
-    try {
-      setLoadingState('bulk', true)
-      
-      const response = await addressService.deleteBulkAddresses(selectedAddresses)
-      await fetchAddresses()
-      
-      setSelectedAddresses([])
-      setShowBulkActions(false)
-      
-      showToast('success', `Đã xóa ${response.data.successCount} địa chỉ thành công!`)
-      
-      if (response.data.failureCount > 0) {
-        showToast('warning', `${response.data.failureCount} địa chỉ không thể xóa`)
-      }
-    } catch (error: any) {
-      showToast('error', error.message || "Xóa hàng loạt thất bại")
-    } finally {
-      setLoadingState('bulk', false)
-    }
-  }, [selectedAddresses, setLoadingState, showToast, fetchAddresses])
-
-  // Import/Export
-  const handleExport = useCallback(async (format: 'json' | 'csv' | 'xlsx') => {
-    try {
-      setLoadingState('export', true)
-      
-      const response = await addressService.exportAddresses(format)
-      
-      // Create download
-      let blob: Blob
-      let filename: string
-      
-      if (format === 'json') {
-        blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
-        filename = `addresses_${new Date().toISOString().split('T')[0]}.json`
-      } else {
-        blob = response.data as Blob
-        filename = `addresses_${new Date().toISOString().split('T')[0]}.${format}`
-      }
-      
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      showToast('success', `Export ${format.toUpperCase()} thành công!`)
-    } catch (error: any) {
-      showToast('error', error.message || "Export thất bại")
-    } finally {
-      setLoadingState('export', false)
-    }
-  }, [setLoadingState, showToast])
-
-  const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    try {
-      setLoadingState('import', true)
-      
-      const response = await addressService.importAddresses(file, {
-        overwriteExisting: false,
-        skipInvalid: true
-      })
-      
-      await fetchAddresses()
-      
-      showToast('success', `Import thành công! Đã tạo ${response.data.successCount} địa chỉ mới.`)
-      
-      if (response.data.failureCount > 0) {
-        showToast('warning', `${response.data.failureCount} địa chỉ không thể import`)
-      }
-    } catch (error: any) {
-      showToast('error', error.message || "Import thất bại")
-    } finally {
-      setLoadingState('import', false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
-    }
-  }, [setLoadingState, showToast, fetchAddresses])
-
-  // Selection handlers
-  const toggleAddressSelection = useCallback((addressId: number) => {
-    setSelectedAddresses(prev => 
-      prev.includes(addressId) 
-        ? prev.filter(id => id !== addressId)
-        : [...prev, addressId]
-    )
-  }, [])
-
-  const selectAllAddresses = useCallback(() => {
-    setSelectedAddresses(filteredAddresses.map(addr => addr.id))
-  }, [filteredAddresses])
-
-  const clearSelection = useCallback(() => {
-    setSelectedAddresses([])
-  }, [])
-
-  // Utility functions
   const formatAddress = useCallback((address: Address) => {
     if (!address) return ""
     return addressService.formatAddress(address)
@@ -592,7 +505,7 @@ export default function AddressPage() {
             <div className="flex-shrink-0 mt-0.5">
               {toast.type === 'success' && <CheckCircle className="h-4 w-4" />}
               {toast.type === 'error' && <AlertCircle className="h-4 w-4" />}
-              {toast.type === 'warning' && <AlertTriangle className="h-4 w-4" />}
+              {toast.type === 'warning' && <AlertCircle className="h-4 w-4" />}
               {toast.type === 'info' && <AlertCircle className="h-4 w-4" />}
             </div>
             <div className="flex-1 text-sm font-medium">{toast.message}</div>
@@ -614,7 +527,6 @@ export default function AddressPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto mb-6"></div>
           <p className="text-foreground text-lg font-medium">Đang tải danh sách địa chỉ...</p>
-          <p className="text-muted-foreground mt-2">Vui lòng chờ trong giây lát...</p>
         </div>
       </div>
     )
@@ -634,8 +546,6 @@ export default function AddressPage() {
             <h1 className="text-4xl font-bold text-foreground">Địa chỉ giao hàng</h1>
           </div>
           <p className="text-muted-foreground text-lg">Quản lý địa chỉ giao hàng của bạn</p>
-          
-          
         </motion.div>
 
         {/* Toolbar */}
@@ -644,7 +554,7 @@ export default function AddressPage() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <MapIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchKeyword}
@@ -655,49 +565,7 @@ export default function AddressPage() {
               </div>
             </div>
 
-            {/* View Mode Selector */}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-              {viewModes.map((mode) => {
-                const Icon = mode.icon
-                return (
-                  <button
-                    key={mode.type}
-                    onClick={() => setViewMode(mode.type)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === mode.type
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{mode.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Actions */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  showAdvancedFilter || Object.values(filterOptions).some(v => v !== '' && v !== 'all')
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">Lọc</span>
-              </button>
-              
-              <button
-                onClick={() => setShowBulkActions(!showBulkActions)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Hành động</span>
-              </button>
-
               <button
                 onClick={handleRefresh}
                 disabled={loading.fetch}
@@ -708,159 +576,10 @@ export default function AddressPage() {
               </button>
             </div>
           </div>
-
-          {/* Advanced Filter */}
-          <AnimatePresence>
-            {showAdvancedFilter && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-4 pt-4 border-t border-gray-200"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Thành phố</label>
-                    <input
-                      type="text"
-                      value={filterOptions.city}
-                      onChange={(e) => setFilterOptions(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Lọc theo thành phố"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quận/Huyện</label>
-                    <input
-                      type="text"
-                      value={filterOptions.district}
-                      onChange={(e) => setFilterOptions(prev => ({ ...prev, district: e.target.value }))}
-                      placeholder="Lọc theo quận/huyện"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Loại địa chỉ</label>
-                    <select
-                      value={filterOptions.isDefault}
-                      onChange={(e) => setFilterOptions(prev => ({ ...prev, isDefault: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Tất cả</option>
-                      <option value="default">Địa chỉ mặc định</option>
-                      <option value="non-default">Địa chỉ phụ</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <button
-                    onClick={() => {
-                      setFilterOptions({
-                        city: '',
-                        district: '',
-                        isDefault: 'all'
-                      })
-                      setSearchKeyword('')
-                    }}
-                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                  >
-                    Xóa bộ lọc
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Bulk Actions Panel */}
-          <AnimatePresence>
-            {showBulkActions && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-4 pt-4 border-t border-gray-200"
-              >
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedAddresses.length === filteredAddresses.length && filteredAddresses.length > 0}
-                      onChange={(e) => e.target.checked ? selectAllAddresses() : clearSelection()}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">
-                      Đã chọn {selectedAddresses.length}/{filteredAddresses.length}
-                    </span>
-                  </div>
-                  
-                  {selectedAddresses.length > 0 && (
-                    <>
-                      <button
-                        onClick={handleBulkDelete}
-                        disabled={loading.bulk}
-                        className="flex items-center gap-2 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        {loading.bulk ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash className="h-4 w-4" />
-                        )}
-                        Xóa đã chọn
-                      </button>
-                      
-                      <button
-                        onClick={clearSelection}
-                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                        Bỏ chọn
-                      </button>
-                    </>
-                  )}
-
-                  <div className="flex items-center gap-2 ml-auto">
-                    <button
-                      onClick={() => handleExport('json')}
-                      disabled={loading.export}
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      JSON
-                    </button>
-                    
-                    <button
-                      onClick={() => handleExport('csv')}
-                      disabled={loading.export}
-                      className="flex items-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      CSV
-                    </button>
-
-                    <label className="flex items-center gap-2 px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg text-sm font-medium transition-colors cursor-pointer">
-                      <FileUp className="h-4 w-4" />
-                      Import
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".json,.csv,.xlsx"
-                        onChange={handleImport}
-                        disabled={loading.import}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
 
-        
-        
-
         {/* Add New Address Button */}
-        {!isCreating && viewMode !== 'stats' && (
+        {!isCreating && (
           <motion.div variants={fadeUp} className="text-center">
             <button
               onClick={() => setIsCreating(true)}
@@ -927,44 +646,81 @@ export default function AddressPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tỉnh/Thành phố
+                    Tỉnh/Thành phố *
                   </label>
-                  <input
-                    type="text"
-                    value={createForm.city}
-                    onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
+                  <select
+                    value={selectedProvince?.code || ""}
+                    onChange={(e) => {
+                      const prov = provinces.find((p) => p.code === Number(e.target.value));
+                      setSelectedProvince(prov || null);
+                      setSelectedDistrict(null);
+                      setSelectedWard(null);
+                      if (prov) {
+                        setCreateForm({ ...createForm, city: prov.name, district: "", ward: "" });
+                      }
+                    }}
                     disabled={loading.create}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập tỉnh/thành phố"
-                  />
+                  >
+                    <option value="">-- Chọn tỉnh/thành --</option>
+                    {provinces.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Quận/Huyện
+                    Quận/Huyện *
                   </label>
-                  <input
-                    type="text"
-                    value={createForm.district}
-                    onChange={(e) => setCreateForm({ ...createForm, district: e.target.value })}
-                    disabled={loading.create}
+                  <select
+                    value={selectedDistrict?.code || ""}
+                    onChange={(e) => {
+                      const dist = selectedProvince?.districts.find((d) => d.code === Number(e.target.value));
+                      setSelectedDistrict(dist || null);
+                      setSelectedWard(null);
+                      if (dist) {
+                        setCreateForm({ ...createForm, district: dist.name, ward: "" });
+                      }
+                    }}
+                    disabled={loading.create || !selectedProvince}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập quận/huyện"
-                  />
+                  >
+                    <option value="">-- Chọn quận/huyện --</option>
+                    {selectedProvince?.districts.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Phường/Xã
+                    Phường/Xã *
                   </label>
-                  <input
-                    type="text"
-                    value={createForm.ward}
-                    onChange={(e) => setCreateForm({ ...createForm, ward: e.target.value })}
-                    disabled={loading.create}
+                  <select
+                    value={selectedWard?.code || ""}
+                    onChange={(e) => {
+                      const ward = selectedDistrict?.wards.find((w) => w.code === Number(e.target.value));
+                      setSelectedWard(ward || null);
+                      if (ward) {
+                        setCreateForm({ ...createForm, ward: ward.name });
+                        geocodeAddress(selectedProvince?.name, selectedDistrict?.name, ward.name);
+                      }
+                    }}
+                    disabled={loading.create || !selectedDistrict}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập phường/xã"
-                  />
+                  >
+                    <option value="">-- Chọn phường/xã --</option>
+                    {selectedDistrict?.wards.map((w) => (
+                      <option key={w.code} value={w.code}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -994,6 +750,34 @@ export default function AddressPage() {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
                   placeholder="Số nhà, tên đường, khu vực..."
                 />
+              </div>
+
+              {/* Map */}
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Vị trí bản đồ
+                </label>
+                <div className="w-full h-72 rounded-lg border border-gray-200 overflow-hidden">
+                  <MapContainer
+                    center={[createForm.latitude, createForm.longitude]}
+                    zoom={15}
+                    scrollWheelZoom
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <RecenterMap lat={createForm.latitude} lng={createForm.longitude} />
+                    <LocationMarker
+                      position={[createForm.latitude, createForm.longitude]}
+                      onSelect={(lat, lng) => {
+                        setCreateForm({ ...createForm, latitude: lat, longitude: lng });
+                      }}
+                    />
+                  </MapContainer>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">Click vào bản đồ để chọn vị trí chính xác. Tọa độ: {createForm.latitude.toFixed(6)}, {createForm.longitude.toFixed(6)}</p>
               </div>
 
               <div className="mt-4">
@@ -1040,296 +824,340 @@ export default function AddressPage() {
           )}
         </AnimatePresence>
 
-        {/* Address List/Grid */}
-        {viewMode !== 'stats' && (
-          <motion.div variants={fadeUp} className="space-y-4">
-            {filteredAddresses.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-200">
-                <MapIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {searchKeyword || Object.values(filterOptions).some(v => v !== '' && v !== 'all')
-                    ? 'Không tìm thấy địa chỉ nào'
-                    : 'Chưa có địa chỉ nào'
-                  }
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  {searchKeyword || Object.values(filterOptions).some(v => v !== '' && v !== 'all')
-                    ? 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc'
-                    : 'Thêm địa chỉ giao hàng để thuận tiện cho việc mua sắm'
-                  }
-                </p>
-                {!isCreating && !searchKeyword && !Object.values(filterOptions).some(v => v !== '' && v !== 'all') && (
-                  <button
-                    onClick={() => setIsCreating(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        {/* Address List */}
+        <motion.div variants={fadeUp} className="space-y-4">
+          {filteredAddresses.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-200">
+              <MapIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {searchKeyword ? 'Không tìm thấy địa chỉ nào' : 'Chưa có địa chỉ nào'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchKeyword ? 'Thử thay đổi từ khóa tìm kiếm' : 'Thêm địa chỉ giao hàng để thuận tiện cho việc mua sắm'}
+              </p>
+              {!isCreating && !searchKeyword && (
+                <button
+                  onClick={() => setIsCreating(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Thêm địa chỉ đầu tiên
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {filteredAddresses.map((address) => (
+                  <motion.div
+                    key={address.id}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    layout
+                    className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200"
                   >
-                    <Plus className="h-4 w-4" />
-                    Thêm địa chỉ đầu tiên
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-                <AnimatePresence>
-                  {filteredAddresses.map((address) => (
-                    <motion.div
-                      key={address.id}
-                      variants={fadeUp}
-                      initial="hidden"
-                      animate="show"
-                      exit="exit"
-                      layout
-                      className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200"
-                    >
-                      {editingId === address.id ? (
-                        <div>
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                              <Edit3 className="h-5 w-5 text-blue-600" />
-                              Chỉnh sửa địa chỉ
-                            </h4>
-                            <button
-                              onClick={handleCancelEdit}
-                              disabled={loading.update}
-                              className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
+                    {editingId === address.id ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <Edit3 className="h-5 w-5 text-blue-600" />
+                            Chỉnh sửa địa chỉ
+                          </h4>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={loading.update}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Họ và tên *
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Số điện thoại *
-                              </label>
-                              <input
-                                type="tel"
-                                value={editForm.phone}
-                                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Tỉnh/Thành phố
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.city}
-                                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Quận/Huyện
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.district}
-                                onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Phường/Xã
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.ward}
-                                onChange={(e) => setEditForm({ ...editForm, ward: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Đường/Phố
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.street}
-                                onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
-                                disabled={loading.update}
-                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Địa chỉ chi tiết *
+                              Họ và tên *
                             </label>
-                            <textarea
-                              value={editForm.addressLine}
-                              onChange={(e) => setEditForm({ ...editForm, addressLine: e.target.value })}
-                              rows={3}
+                            <input
+                              type="text"
+                              value={editForm.name}
+                              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                               disabled={loading.update}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             />
                           </div>
 
-                          <div className="mt-4">
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={editForm.isDefault}
-                                onChange={(e) => setEditForm({ ...editForm, isDefault: e.target.checked })}
-                                disabled={loading.update}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                              />
-                              <span className="text-sm font-medium text-gray-700">Đặt làm địa chỉ mặc định</span>
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Số điện thoại *
                             </label>
+                            <input
+                              type="tel"
+                              value={editForm.phone}
+                              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                              disabled={loading.update}
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            />
                           </div>
 
-                          <div className="flex gap-3 mt-4">
-                            <button
-                              onClick={handleUpdate}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Tỉnh/Thành phố *
+                            </label>
+                            <select
+                              value={editProvince?.code || ""}
+                              onChange={(e) => {
+                                const prov = provinces.find((p) => p.code === Number(e.target.value));
+                                setEditProvince(prov || null);
+                                setEditDistrict(null);
+                                setEditWard(null);
+                                if (prov) {
+                                  setEditForm({ ...editForm, city: prov.name, district: "", ward: "" });
+                                }
+                              }}
                               disabled={loading.update}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             >
-                              {loading.update ? (
-                                <>
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                  Đang cập nhật...
-                                </>
-                              ) : (
-                                <>
-                                  <Save className="h-4 w-4" />
-                                  Cập nhật
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
+                              <option value="">-- Chọn tỉnh/thành --</option>
+                              {provinces.map((p) => (
+                                <option key={p.code} value={p.code}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Quận/Huyện *
+                            </label>
+                            <select
+                              value={editDistrict?.code || ""}
+                              onChange={(e) => {
+                                const dist = editProvince?.districts.find((d) => d.code === Number(e.target.value));
+                                setEditDistrict(dist || null);
+                                setEditWard(null);
+                                if (dist) {
+                                  setEditForm({ ...editForm, district: dist.name, ward: "" });
+                                }
+                              }}
+                              disabled={loading.update || !editProvince}
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            >
+                              <option value="">-- Chọn quận/huyện --</option>
+                              {editProvince?.districts.map((d) => (
+                                <option key={d.code} value={d.code}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Phường/Xã *
+                            </label>
+                            <select
+                              value={editWard?.code || ""}
+                              onChange={(e) => {
+                                const ward = editDistrict?.wards.find((w) => w.code === Number(e.target.value));
+                                setEditWard(ward || null);
+                                if (ward) {
+                                  setEditForm({ ...editForm, ward: ward.name });
+                                  geocodeAddress(editProvince?.name, editDistrict?.name, ward.name);
+                                }
+                              }}
+                              disabled={loading.update || !editDistrict}
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            >
+                              <option value="">-- Chọn phường/xã --</option>
+                              {editDistrict?.wards.map((w) => (
+                                <option key={w.code} value={w.code}>
+                                  {w.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Đường/Phố
+                            </label>
+                            <input
+                              type="text"
+                              value={editForm.street}
+                              onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
                               disabled={loading.update}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium disabled:opacity-50"
-                            >
-                              <X className="h-4 w-4" />
-                              Hủy
-                            </button>
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            />
                           </div>
                         </div>
-                      ) : (
-                        <div>
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                {showBulkActions && (
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedAddresses.includes(address.id)}
-                                    onChange={() => toggleAddressSelection(address.id)}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                )}
-                                <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                  <User className="h-5 w-5 text-blue-600" />
-                                  {address.name}
-                                </h4>
-                                {address.isDefault && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
-                                    <Star className="h-3 w-3 fill-current" />
-                                    Mặc định
-                                  </span>
-                                )}
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Địa chỉ chi tiết *
+                          </label>
+                          <textarea
+                            value={editForm.addressLine}
+                            onChange={(e) => setEditForm({ ...editForm, addressLine: e.target.value })}
+                            rows={3}
+                            disabled={loading.update}
+                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
+                          />
+                        </div>
+
+                        {/* Edit Map */}
+                        <div className="mt-4">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Vị trí bản đồ
+                          </label>
+                          <div className="w-full h-72 rounded-lg border border-gray-200 overflow-hidden">
+                            <MapContainer
+                              center={[editForm.latitude, editForm.longitude]}
+                              zoom={15}
+                              scrollWheelZoom
+                              style={{ height: "100%", width: "100%" }}
+                            >
+                              <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                              />
+                              <RecenterMap lat={editForm.latitude} lng={editForm.longitude} />
+                              <LocationMarker
+                                position={[editForm.latitude, editForm.longitude]}
+                                onSelect={(lat, lng) => {
+                                  setEditForm({ ...editForm, latitude: lat, longitude: lng });
+                                }}
+                              />
+                            </MapContainer>
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500">Click vào bản đồ để chọn vị trí chính xác. Tọa độ: {editForm.latitude.toFixed(6)}, {editForm.longitude.toFixed(6)}</p>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editForm.isDefault}
+                              onChange={(e) => setEditForm({ ...editForm, isDefault: e.target.checked })}
+                              disabled={loading.update}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Đặt làm địa chỉ mặc định</span>
+                          </label>
+                        </div>
+
+                        <div className="flex gap-3 mt-4">
+                          <button
+                            onClick={handleUpdate}
+                            disabled={loading.update}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
+                          >
+                            {loading.update ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                Đang cập nhật...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4" />
+                                Cập nhật
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={loading.update}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium disabled:opacity-50"
+                          >
+                            <X className="h-4 w-4" />
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <User className="h-5 w-5 text-blue-600" />
+                                {address.name}
+                              </h4>
+                              {address.isDefault && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
+                                  <Star className="h-3 w-3 fill-current" />
+                                  Mặc định
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-2 text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                <span>{address.phone}</span>
                               </div>
-                              <div className="space-y-2 text-gray-600">
-                                <div className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4" />
-                                  <span>{address.phone}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                  <span className="text-sm">{formatAddress(address)}</span>
-                                </div>
+                              <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">{formatAddress(address)}</span>
                               </div>
                             </div>
+                          </div>
 
-                            <div className="flex gap-2">
+                          <div className="flex gap-2">
+                            {!address.isDefault && (
                               <button
-                                onClick={() => handleDuplicate(address)}
-                                disabled={loading.create}
-                                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                title="Sao chép"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              {!address.isDefault && (
-                                <button
-                                  onClick={() => handleSetDefault(address.id)}
-                                  disabled={loading.update}
-                                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                  title="Đặt làm mặc định"
-                                >
-                                  <Star className="h-4 w-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleEdit(address)}
+                                onClick={() => handleSetDefault(address.id)}
                                 disabled={loading.update}
                                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                title="Chỉnh sửa"
+                                title="Đặt làm mặc định"
                               >
-                                <Edit3 className="h-4 w-4" />
+                                <Star className="h-4 w-4" />
                               </button>
-                              <button
-                                onClick={() => handleDelete(address.id)}
-                                disabled={loading.delete}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                title="Xóa"
-                              >
-                                {loading.delete ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </button>
-                            </div>
+                            )}
+                            <button
+                              onClick={() => handleEdit(address)}
+                              disabled={loading.update}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(address.id)}
+                              disabled={loading.delete}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                              title="Xóa"
+                            >
+                              {loading.delete ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
                           </div>
+                        </div>
 
-                          <div className="pt-4 border-t border-gray-200">
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-3 w-3" />
-                                <span>Tạo: {new Date(address.createdAt).toLocaleDateString('vi-VN')}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="h-3 w-3" />
-                                <span>Cập nhật: {new Date(address.updatedAt).toLocaleDateString('vi-VN')}</span>
-                              </div>
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3 w-3" />
+                              <span>Tạo: {new Date(address.createdAt).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-3 w-3" />
+                              <span>Cập nhật: {new Date(address.updatedAt).toLocaleDateString('vi-VN')}</span>
                             </div>
                           </div>
                         </div>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </motion.div>
-        )}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
     </>
   )
