@@ -28,12 +28,15 @@ export interface CreateBlogPayload {
   name: string
   content: string
   userId: string
+  status?: boolean // Added status field for backend compatibility
   image?: string
 }
 
 export interface UpdateBlogPayload {
   name: string
   content: string
+  userId?: string // Added userId field for backend compatibility
+  status?: boolean // Added status field for backend compatibility
   image?: string
 }
 
@@ -144,15 +147,17 @@ export const blogService = {
         name: payload.name.trim(),
         content: payload.content.trim(),
         userId: payload.userId,
+        status: payload.status ?? true, // Default to true (visible)
         ...(payload.image && payload.image.trim() ? { image: payload.image.trim() } : {}),
       }
 
-      console.log("📤 Sending payload:", cleanPayload)
+      console.log("[v0] 📤 Creating blog with payload:", cleanPayload)
       const res = await axiosClient.post<ApiResponse<Blog>>("/blogs", cleanPayload)
+      console.log("[v0] ✅ Blog created successfully:", res.data)
       return res.data
     } catch (error: any) {
-      console.error("❌ Lỗi tạo blog:", error)
-      console.error("❌ Error details:", error.response?.data)
+      console.error("[v0] ❌ Create blog error:", error)
+      console.error("[v0] ❌ Error response:", error.response?.data)
       throw new Error(error.response?.data?.message || "Không thể tạo blog mới")
     }
   },
@@ -165,15 +170,18 @@ export const blogService = {
       const cleanPayload = {
         name: payload.name.trim(),
         content: payload.content.trim(),
+        ...(payload.userId ? { userId: payload.userId } : {}),
+        ...(payload.status !== undefined ? { status: payload.status } : {}),
         ...(payload.image && payload.image.trim() ? { image: payload.image.trim() } : {}),
       }
 
-      console.log("📤 Updating blog:", id, cleanPayload)
+      console.log("[v0] 📤 Updating blog:", id, "with payload:", cleanPayload)
       const res = await axiosClient.put<ApiResponse<Blog>>(`/blogs/${id}`, cleanPayload)
+      console.log("[v0] ✅ Blog updated successfully:", res.data)
       return res.data
     } catch (error: any) {
-      console.error(`❌ Lỗi cập nhật blog ${id}:`, error)
-      console.error("❌ Error details:", error.response?.data)
+      console.error("[v0] ❌ Update blog error:", error)
+      console.error("[v0] ❌ Error response:", error.response?.data)
       throw new Error(error.response?.data?.message || "Không thể cập nhật blog")
     }
   },

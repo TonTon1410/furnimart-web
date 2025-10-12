@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, AlertCircle, Sparkles } from "lucide-react"
+import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, Sparkles } from "lucide-react"
 import { authService } from "@/service/authService"
 import { blogService, type Blog, type CreateBlogPayload, type UpdateBlogPayload } from "@/service/blogService"
 import { useNavigate } from "react-router-dom"
@@ -36,18 +36,33 @@ export default function OwnBlog() {
 
       try {
         const profile = await authService.getProfile()
-        if (profile) {
+        if (profile && profile.id) {
           const userData = {
-            id: profile.id || "",
+            id: profile.id,
             fullName: profile.fullName || profile.email || "User",
           }
+          console.log("[v0] ✅ User profile loaded:", userData)
           setUser(userData)
+        } else {
+          // Fallback to getUserId from token
+          const userId = authService.getUserId()
+          if (userId) {
+            console.log("[v0] ⚠️ Using userId from token:", userId)
+            setUser({ id: userId, fullName: "User" })
+          } else {
+            console.error("[v0] ❌ Cannot get user ID")
+            navigate("/login")
+          }
+        }
+      } catch (err) {
+        console.error("[v0] ❌ Error getting user info:", err)
+        const userId = authService.getUserId()
+        if (userId) {
+          console.log("[v0] ⚠️ Fallback to userId from token:", userId)
+          setUser({ id: userId, fullName: "User" })
         } else {
           navigate("/login")
         }
-      } catch (err) {
-        console.error("❌ Lỗi lấy thông tin user:", err)
-        navigate("/login")
       }
     }
 
@@ -125,7 +140,7 @@ export default function OwnBlog() {
 
   // Cập nhật blog
   const handleUpdateBlog = async () => {
-    if (!editingBlog) return
+    if (!editingBlog || !user) return
 
     if (!formData.name.trim() || !formData.content.trim()) {
       alert("Vui lòng nhập đầy đủ tiêu đề và nội dung!")
@@ -137,9 +152,12 @@ export default function OwnBlog() {
       const payload: UpdateBlogPayload = {
         name: formData.name.trim(),
         content: formData.content.trim(),
+        userId: user.id,
+        status: editingBlog.status, // Keep current status
         image: formData.image.trim(),
       }
 
+      console.log("[v0] 📤 Updating blog with payload:", payload)
       const response = await blogService.updateBlog(editingBlog.id, payload)
 
       if (response.status === 200) {
@@ -150,7 +168,7 @@ export default function OwnBlog() {
         fetchMyBlogs()
       }
     } catch (err: any) {
-      console.error("Lỗi cập nhật blog:", err)
+      console.error("[v0] ❌ Update error:", err)
       alert(err.message || "Có lỗi xảy ra khi cập nhật blog")
     } finally {
       setCreating(false)
@@ -382,10 +400,63 @@ export default function OwnBlog() {
             <p className="mt-6 text-muted-foreground text-lg">Đang tải blogs...</p>
           </div>
         ) : myBlogs.length === 0 ? (
-          <div className="text-center py-24 bg-card rounded-2xl shadow-sm border border-border">
-            <AlertCircle className="h-20 w-20 text-muted mx-auto mb-6" />
-            <p className="text-foreground text-2xl font-serif font-bold mb-3">Bạn chưa có blog nào</p>
-            <p className="text-muted-foreground text-lg">Hãy tạo blog đầu tiên của bạn!</p>
+          <div className="text-center py-32 bg-gradient-to-br from-card via-background to-accent/5 rounded-3xl shadow-sm border border-border relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.05),transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(251,146,60,0.05),transparent_50%)]"></div>
+
+            <div className="relative z-10 max-w-2xl mx-auto px-6">
+              <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-full mb-8 shadow-lg">
+                <Sparkles className="h-16 w-16 text-accent" />
+              </div>
+
+              <h3 className="font-serif text-4xl font-bold text-foreground mb-4 text-balance">
+                Bắt Đầu Hành Trình Viết Blog
+              </h3>
+
+              <p className="text-muted-foreground text-lg mb-8 text-pretty leading-relaxed max-w-xl mx-auto">
+                Bạn chưa có blog nào. Hãy chia sẻ câu chuyện, kiến thức và trải nghiệm của bạn với thế giới!
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-left">
+                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
+                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                    <Edit className="h-6 w-6 text-accent" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-2">Viết Tự Do</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Thể hiện suy nghĩ và ý tưởng của bạn một cách tự nhiên nhất
+                  </p>
+                </div>
+
+                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
+                  <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
+                    <Eye className="h-6 w-6 text-secondary" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-2">Kiểm Soát</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Quản lý trạng thái hiển thị và chỉnh sửa blog bất cứ lúc nào
+                  </p>
+                </div>
+
+                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
+                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                    <Sparkles className="h-6 w-6 text-accent" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-2">Chia Sẻ</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Kết nối với cộng đồng và lan tỏa giá trị của bạn
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-10 py-5 rounded-xl hover:bg-primary/90 transition-all font-semibold shadow-xl hover:shadow-2xl hover:scale-105 text-lg"
+              >
+                <Plus className="h-6 w-6" />
+                Tạo Blog Đầu Tiên
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
