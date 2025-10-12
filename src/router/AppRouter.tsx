@@ -22,6 +22,7 @@ import CheckoutPage from "@/pages/CheckoutPage";
 import OrderConfirmationPage from "@/pages/OrderConfirmationPage";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import BlogPage from "@/pages/BlogPage"
+import OwnBlog from "@/pages/OwnBlog";
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
@@ -46,6 +47,8 @@ export default function AppRouter() {
       <Route path="/orders" element={<OrderHistory />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/blog" element={<BlogPage />} />
+      <Route path="/ownblog" element={<OwnBlog />} />
+      
 
       {/* Layout dành cho User */}
     

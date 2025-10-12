@@ -120,6 +120,30 @@ export const authService = {
       }
     }
   },
+  forgotPassword: async (email: string) => {
+    try {
+      const res = await axiosClient.post("/users/forgot-password", { email });
+      return res;
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      throw error;
+    }
+  },
+
+  // Reset Password - Đặt lại mật khẩu với token
+  resetPassword: async (token: string, newPassword: string) => {
+    try {
+      const res = await axiosClient.post("/users/reset-password", {
+        token,
+        newPassword,
+      });
+      return res;
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      throw error;
+    }
+  },
+
 
   login: async (payload: LoginPayload) => {
     try {
