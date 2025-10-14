@@ -1,12 +1,13 @@
 // src/components/productDetail/RightSection.tsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Box, Smartphone, ChevronLeft, ChevronRight } from "lucide-react";
+import { Box, Smartphone, ChevronLeft, ChevronRight, X } from "lucide-react";
 import defaultImage from "../../assets/default-image.jpg";
+import ModelViewer from "./ModelViewer"; 
 
 interface RightSectionProps {
   thumbnailImage: string;
   images: string[];
-  images3d?: { previewImage: string }[];
+  images3d?: { modelUrl: string; previewImage?: string; format?: string }[];
   selectedColorImages?: string[];
 }
 
@@ -20,7 +21,13 @@ const RightSection: React.FC<RightSectionProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
 
-  // Gom tất cả ảnh hợp lệ
+  const [show3DModal, setShow3DModal] = useState(false); // ✅ trạng thái modal
+  const [selectedModel, setSelectedModel] = useState<{
+    modelUrl: string;
+    format?: string;
+  } | null>(null);
+
+  // ✅ Gom tất cả ảnh hợp lệ (thumbnail + ảnh + preview 3D)
   const allImages = useMemo(() => {
     const arr: string[] = [];
 
@@ -31,7 +38,7 @@ const RightSection: React.FC<RightSectionProps> = ({
       arr.push(
         ...images3d
           .map((i) => i?.previewImage)
-          .filter((img) => !!img && img.trim() !== "" && img.startsWith("http"))
+          .filter((img): img is string => typeof img === "string" && img.trim() !== "" && img.startsWith("http"))
       );
 
     return arr.length > 0 ? Array.from(new Set(arr)) : [defaultImage];
@@ -44,6 +51,7 @@ const RightSection: React.FC<RightSectionProps> = ({
 
   const [mainImage, setMainImage] = useState<string>(initialImage || defaultImage);
 
+  // ✅ Cập nhật ảnh chính khi đổi màu
   useEffect(() => {
     if (selectedColorImages && selectedColorImages.length > 0)
       setMainImage(selectedColorImages[0]);
@@ -74,6 +82,42 @@ const RightSection: React.FC<RightSectionProps> = ({
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: amount, behavior: "smooth" });
     }
+  };
+
+  // ✅ Hàm mở modal hiển thị 3D
+  const handleOpen3D = () => {
+    console.log("Open 3D modal", images3d);
+    
+  if (!images3d || images3d.length === 0) {
+    alert("Sản phẩm này chưa có mô hình 3D.");
+    return;
+  }
+
+  // ✅ Chỉ nhận modelUrl thật sự hợp lệ (http, không trống)
+  const firstActive = images3d.find(
+    (m) =>
+      typeof m.modelUrl === "string" &&
+      m.modelUrl.trim() !== "" &&
+      m.modelUrl.startsWith("http")
+  );
+    console.log(" 3 d  model", firstActive);
+
+
+  if (firstActive) {
+    setSelectedModel({
+      modelUrl: firstActive.modelUrl,
+      format: firstActive.format,
+    });
+    setShow3DModal(true);
+  } else {
+    alert("Không tìm thấy mô hình 3D hợp lệ.");
+  }
+};
+
+  // ✅ Hàm đóng modal
+  const handleClose3D = () => {
+    setShow3DModal(false);
+    setSelectedModel(null);
   };
 
   return (
@@ -110,13 +154,12 @@ const RightSection: React.FC<RightSectionProps> = ({
           className="flex gap-3 overflow-x-auto pb-2 justify-start scroll-smooth max-w-full px-8"
           style={{
             scrollBehavior: "smooth",
-            scrollbarWidth: "none", // Firefox
-            msOverflowStyle: "none", // IE
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
           }}
         >
           <style>
             {`
-              /* Ẩn scrollbar cho Chrome, Safari, Edge */
               div::-webkit-scrollbar {
                 display: none;
               }
@@ -151,6 +194,7 @@ const RightSection: React.FC<RightSectionProps> = ({
           {/* Nút 3D */}
           <button
             type="button"
+            onClick={handleOpen3D}
             className="h-20 w-20 flex-shrink-0 flex flex-col items-center justify-center gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
             title="Xem 3D"
           >
@@ -158,7 +202,7 @@ const RightSection: React.FC<RightSectionProps> = ({
             <span className="text-xs font-medium">3D</span>
           </button>
 
-          {/* Nút AR */}
+          {/* Nút AR (chưa kích hoạt) */}
           <button
             type="button"
             className="h-20 w-20 flex-shrink-0 flex flex-col items-center justify-center gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
@@ -181,6 +225,29 @@ const RightSection: React.FC<RightSectionProps> = ({
           </button>
         )}
       </div>
+
+      {/* ✅ Modal hiển thị mô hình 3D */}
+      {show3DModal && selectedModel?.modelUrl && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl relative shadow-lg overflow-hidden">
+            {/* Nút đóng */}
+            <button
+              onClick={handleClose3D}
+              className="absolute top-3 right-3 text-gray-700 hover:text-red-500 transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Vùng hiển thị mô hình */}
+            <div className="w-full h-[500px]">
+              <ModelViewer
+                modelUrl={selectedModel.modelUrl}
+                format={selectedModel.format}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

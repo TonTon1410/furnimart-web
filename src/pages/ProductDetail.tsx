@@ -78,11 +78,15 @@ const ProductDetail: React.FC = () => {
 
   // Gom ảnh preview 3D (nếu có)
   const all3DPreviews =
-    product.productColors?.flatMap((pc) =>
-      pc.models3D
-        ?.map((m) => ({ previewImage: m.previewImage }))
-        .filter((m) => isValidUrl(m.previewImage)) || []
-    ) || [];
+    product?.productColors?.flatMap((color) =>
+    color.models3D
+      .filter((m) => m.status === "ACTIVE" && m.modelUrl && m.modelUrl !== "string")
+      .map((m) => ({
+        modelUrl: m.modelUrl,
+        previewImage: m.previewImage,
+        format: m.format,
+      }))
+  ) || [];
 
   // Ảnh của màu đang chọn (nếu có)
   const selectedColorImages =
