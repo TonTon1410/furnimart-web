@@ -1,12 +1,13 @@
 // src/components/productDetail/RightSection.tsx
-import React, { useMemo, useState, useEffect } from "react";
-import { Box, Smartphone } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { Box, Smartphone, ChevronLeft, ChevronRight, X } from "lucide-react";
 import defaultImage from "../../assets/default-image.jpg";
+import ModelViewer from "./ModelViewer"; 
 
 interface RightSectionProps {
   thumbnailImage: string;
   images: string[];
-  images3d?: { previewImage: string }[];
+  images3d?: { modelUrl: string; previewImage?: string; format?: string }[];
   selectedColorImages?: string[];
 }
 
@@ -16,30 +17,33 @@ const RightSection: React.FC<RightSectionProps> = ({
   images3d,
   selectedColorImages,
 }) => {
-  // Gom tất cả ảnh hợp lệ
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const [show3DModal, setShow3DModal] = useState(false); // ✅ trạng thái modal
+  const [selectedModel, setSelectedModel] = useState<{
+    modelUrl: string;
+    format?: string;
+  } | null>(null);
+
+  // ✅ Gom tất cả ảnh hợp lệ (thumbnail + ảnh + preview 3D)
   const allImages = useMemo(() => {
     const arr: string[] = [];
 
-    if (thumbnailImage && thumbnailImage.trim() !== "") {
-      arr.push(thumbnailImage);
-    }
-
-    if (Array.isArray(images)) {
+    if (thumbnailImage && thumbnailImage.trim() !== "") arr.push(thumbnailImage);
+    if (Array.isArray(images))
       arr.push(...images.filter((img) => !!img && img.trim() !== ""));
-    }
-
-    if (Array.isArray(images3d)) {
+    if (Array.isArray(images3d))
       arr.push(
         ...images3d
           .map((i) => i?.previewImage)
-          .filter((img) => !!img && img.trim() !== "" && img.startsWith("http"))
+          .filter((img): img is string => typeof img === "string" && img.trim() !== "" && img.startsWith("http"))
       );
-    }
 
     return arr.length > 0 ? Array.from(new Set(arr)) : [defaultImage];
   }, [thumbnailImage, images, images3d]);
 
-  // Ảnh chính
   const initialImage =
     selectedColorImages && selectedColorImages.length > 0
       ? selectedColorImages[0]
@@ -47,18 +51,77 @@ const RightSection: React.FC<RightSectionProps> = ({
 
   const [mainImage, setMainImage] = useState<string>(initialImage || defaultImage);
 
+  // ✅ Cập nhật ảnh chính khi đổi màu
   useEffect(() => {
-    if (selectedColorImages && selectedColorImages.length > 0) {
+    if (selectedColorImages && selectedColorImages.length > 0)
       setMainImage(selectedColorImages[0]);
-    } else if (allImages.length > 0) {
-      setMainImage(allImages[0]);
-    } else {
-      setMainImage(defaultImage);
-    }
+    else if (allImages.length > 0) setMainImage(allImages[0]);
+    else setMainImage(defaultImage);
   }, [allImages, selectedColorImages]);
 
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeftArrow(el.scrollLeft > 0);
+    setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows);
+    window.addEventListener("resize", updateArrows);
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      window.removeEventListener("resize", updateArrows);
+    };
+  }, []);
+
+  const scrollByAmount = (amount: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: amount, behavior: "smooth" });
+    }
+  };
+
+  // ✅ Hàm mở modal hiển thị 3D
+  const handleOpen3D = () => {
+    console.log("Open 3D modal", images3d);
+    
+  if (!images3d || images3d.length === 0) {
+    alert("Sản phẩm này chưa có mô hình 3D.");
+    return;
+  }
+
+  // ✅ Chỉ nhận modelUrl thật sự hợp lệ (http, không trống)
+  const firstActive = images3d.find(
+    (m) =>
+      typeof m.modelUrl === "string" &&
+      m.modelUrl.trim() !== "" &&
+      m.modelUrl.startsWith("http")
+  );
+    console.log(" 3 d  model", firstActive);
+
+
+  if (firstActive) {
+    setSelectedModel({
+      modelUrl: firstActive.modelUrl,
+      format: firstActive.format,
+    });
+    setShow3DModal(true);
+  } else {
+    alert("Không tìm thấy mô hình 3D hợp lệ.");
+  }
+};
+
+  // ✅ Hàm đóng modal
+  const handleClose3D = () => {
+    setShow3DModal(false);
+    setSelectedModel(null);
+  };
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center relative w-full">
       {/* Ảnh chính */}
       <div className="mb-4 flex w-full justify-center bg-gray-50 p-4 border border-gray-200 rounded-lg">
         <img
@@ -72,9 +135,37 @@ const RightSection: React.FC<RightSectionProps> = ({
       </div>
 
       {/* Thumbnails + Nút 3D/AR */}
-      <div className="flex w-full items-center justify-between gap-4">
-        {/* Thumbnails: scroll ngang ở mobile */}
-        <div className="flex gap-3 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
+      <div className="relative w-full flex justify-center">
+        {/* Mũi tên trái */}
+        {showLeftArrow && (
+          <button
+            type="button"
+            onClick={() => scrollByAmount(-200)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full shadow p-2"
+            aria-label="Cuộn trái"
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-700" />
+          </button>
+        )}
+
+        {/* Thanh danh sách ảnh */}
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto pb-2 justify-start scroll-smooth max-w-full px-8"
+          style={{
+            scrollBehavior: "smooth",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          <style>
+            {`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
+
           {allImages.map((img, index) => {
             const active = mainImage === img;
             return (
@@ -82,12 +173,11 @@ const RightSection: React.FC<RightSectionProps> = ({
                 key={index}
                 type="button"
                 onClick={() => setMainImage(img || defaultImage)}
-                className={`h-20 w-20 flex-shrink-0 overflow-hidden border rounded-md transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                className={`h-20 w-20 flex-shrink-0 overflow-hidden border rounded-md transition focus:outline-none ${
                   active
                     ? "border-emerald-600 shadow-md"
                     : "border-gray-300 hover:border-emerald-300"
                 }`}
-                aria-label={`Ảnh ${index + 1}`}
               >
                 <img
                   src={img || defaultImage}
@@ -100,28 +190,64 @@ const RightSection: React.FC<RightSectionProps> = ({
               </button>
             );
           })}
-        </div>
 
-        {/* Nút 3D & AR */}
-        <div className="flex gap-3 flex-shrink-0">
+          {/* Nút 3D */}
           <button
             type="button"
-            className="flex flex-col items-center gap-1 rounded-full border border-gray-300 p-3 text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
+            onClick={handleOpen3D}
+            className="h-20 w-20 flex-shrink-0 flex flex-col items-center justify-center gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
             title="Xem 3D"
           >
             <Box className="h-6 w-6" />
             <span className="text-xs font-medium">3D</span>
           </button>
+
+          {/* Nút AR (chưa kích hoạt) */}
           <button
             type="button"
-            className="flex flex-col items-center gap-1 rounded-full border border-gray-300 p-3 text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
+            className="h-20 w-20 flex-shrink-0 flex flex-col items-center justify-center gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
             title="Xem AR"
           >
             <Smartphone className="h-6 w-6" />
             <span className="text-xs font-medium">AR</span>
           </button>
         </div>
+
+        {/* Mũi tên phải */}
+        {showRightArrow && (
+          <button
+            type="button"
+            onClick={() => scrollByAmount(200)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full shadow p-2"
+            aria-label="Cuộn phải"
+          >
+            <ChevronRight className="h-5 w-5 text-gray-700" />
+          </button>
+        )}
       </div>
+
+      {/* ✅ Modal hiển thị mô hình 3D */}
+      {show3DModal && selectedModel?.modelUrl && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl relative shadow-lg overflow-hidden">
+            {/* Nút đóng */}
+            <button
+              onClick={handleClose3D}
+              className="absolute top-3 right-3 text-gray-700 hover:text-red-500 transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Vùng hiển thị mô hình */}
+            <div className="w-full h-[500px]">
+              <ModelViewer
+                modelUrl={selectedModel.modelUrl}
+                format={selectedModel.format}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

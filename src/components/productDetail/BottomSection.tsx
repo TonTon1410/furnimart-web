@@ -72,13 +72,13 @@ const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
                 </h3>
                 {/* Vật liệu */}
                 <div className="mb-4">
-                  <div className="font-medium mb-2">Vật liệu</div>
+                  <div className="text-lg font-medium mb-2">Vật liệu</div>
                   {product.materials && product.materials.length > 0 ? (
                     <div className="flex flex-wrap gap-3">
                       {product.materials.map((m) => (
                         <div
                           key={m.id}
-                          className="flex items-center gap-2 border border-gray-200 bg-gray-50 p-2 rounded-lg"
+                          className="text-lg flex items-center gap-2 border border-gray-200 bg-gray-50 p-2 rounded-lg"
                           title={m.materialName}
                         >
                           <img
@@ -99,8 +99,8 @@ const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
 
                 {/* Danh mục */}
                 <div>
-                  <span className="font-medium">Danh mục: </span>
-                  <span>{product.categoryName || "-"}</span>
+                  <span className=" text-lg font-medium">Danh mục: </span>
+                  <span className="text-lg">{product.categoryName || "-"}</span>
                 </div>
               </div>
 
@@ -109,7 +109,7 @@ const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Kích thước
                 </h3>
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-2 text-base">
                   <li>
                     <b>Chiều cao:</b> {product.height ?? "-"} cm
                   </li>

@@ -6,12 +6,33 @@ import { useCartStore } from "@/store/cart";
 import { useNavigate } from "react-router-dom";
 import ConfirmAddToCartModal, { type Color as ModalColor } from "../ConfirmAddToCartModal";
 
-interface Color {
+interface ProductColor {
   id: string;
-  colorName: string;
-  hexCode: string;
-  images?: { image: string }[];
+  color: {
+    id: string;
+    colorName: string;
+    hexCode: string;
+  };
+  images?: { id: string; image: string }[];
+  models3D?: {
+    image3d: string;
+    status: string;
+    modelUrl: string;
+    format: string;
+    sizeInMb: number;
+    previewImage: string;
+  }[];
+  status: string;
 }
+
+interface Material {
+  id: number;
+  image: string;
+  materialName: string;
+  description: string;
+  status: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -22,9 +43,11 @@ interface Product {
   length: number;
   weight: number;
   categoryName: string;
-  materialName: string;
-  color: Color[];
+  categoryId: number;
+  productColors: ProductColor[];
+  materials: Material[];
 }
+
 interface LeftSectionProps {
   product: Product;
   selectedColorId: string | null;
@@ -46,15 +69,17 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   const add = useCartStore((s) => s.add);
   const navigate = useNavigate();
 
+  // Chuyển dữ liệu productColors sang định dạng của modal
   const modalColors: ModalColor[] = useMemo(
     () =>
-      product.color.map((c) => ({
-        id: c.id,
-        colorName: c.colorName,
-        hexCode: c.hexCode,
-        images: c.images?.map((img) => img.image).filter(Boolean) ?? [],
+      product.productColors.map((pc) => ({
+        id: pc.id,
+        colorName: pc.color.colorName,
+        hexCode: pc.color.hexCode,
+        images:
+          pc.images?.map((img) => img.image).filter(Boolean) ?? [],
       })),
-    [product.color]
+    [product.productColors]
   );
 
   const handleOpenConfirm = () => {
@@ -75,8 +100,8 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   }) => {
     try {
       let finalColorId = colorId;
-      if (!finalColorId && product.color.length === 1) {
-        finalColorId = product.color[0].id;
+      if (!finalColorId && product.productColors.length === 1) {
+        finalColorId = product.productColors[0].id;
       }
       if (!finalColorId) {
         alert("Vui lòng chọn màu!");
@@ -111,18 +136,18 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       <div className="mb-8">
         <div className="mb-3 text-xl font-semibold text-gray-900">Màu sắc</div>
         <div className="flex flex-wrap gap-3">
-          {product.color.map((c) => (
+          {product.productColors.map((pc) => (
             <button
-              key={c.id}
-              onClick={() => onColorChange(c.id)}
-              aria-label={`Chọn màu ${c.colorName}`}
-              title={c.colorName}
+              key={pc.id}
+              onClick={() => onColorChange(pc.id)}
+              aria-label={`Chọn màu ${pc.color.colorName}`}
+              title={pc.color.colorName}
               className={`h-12 w-12 rounded-full border-2 shadow-sm transition hover:scale-110 ${
-                selectedColorId === c.id
+                selectedColorId === pc.id
                   ? "border-emerald-600 ring-2 ring-emerald-400"
                   : "border-gray-300 hover:border-emerald-300"
               }`}
-              style={{ backgroundColor: c.hexCode }}
+              style={{ backgroundColor: pc.color.hexCode }}
             />
           ))}
         </div>
@@ -131,7 +156,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       {/* Số lượng + Giỏ hàng */}
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Bộ chọn số lượng */}
-        <div className="flex items-center border border-gray-300 rounded-md h-10 w-[140px] sm:w-auto">
+        <div className="flex items-center border border-gray-300 rounded-md h-12 w-[140px] sm:w-auto">
           <button
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold"
@@ -168,7 +193,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         price={product.price}
         colors={modalColors}
         initialColorId={
-          selectedColorId || (product.color.length === 1 ? product.color[0].id : null)
+          selectedColorId ||
+          (product.productColors.length === 1
+            ? product.productColors[0].id
+            : null)
         }
         initialQty={quantity}
       />
