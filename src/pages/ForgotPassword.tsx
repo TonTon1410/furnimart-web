@@ -83,7 +83,7 @@ const bubbleVariants5: Variants = {
   },
 }
 
-export default function ForgotPassword()  {
+export default function ForgotPassword() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -130,7 +130,7 @@ export default function ForgotPassword()  {
     return (
       <main className="min-h-screen flex">
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-          <img src="src/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
+          <img src="/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
           <Link
             to="/"
@@ -225,7 +225,6 @@ export default function ForgotPassword()  {
           </motion.div>
         </div>
 
-        {/* Mobile back button */}
         <Link
           to="/"
           className="lg:hidden fixed top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all shadow-lg"
@@ -240,7 +239,7 @@ export default function ForgotPassword()  {
   return (
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src="src/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
+        <img src="/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"
@@ -355,7 +354,6 @@ export default function ForgotPassword()  {
         </motion.div>
       </div>
 
-      {/* Mobile back button */}
       <Link
         to="/"
         className="lg:hidden fixed top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all shadow-lg"

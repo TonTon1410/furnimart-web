@@ -317,12 +317,23 @@ export default function UserProfile() {
     }
   }
 
-  const getAvatarUrl = (user: UserProfile) => {
+   const getAvatarUrl = (user: UserProfile) => {
     if (user.avatar) {
-      return user.avatar.startsWith("http")
-        ? user.avatar
-        : `${axiosClient.defaults.baseURL?.replace("/api", "")}${user.avatar}`
+      // Nếu avatar đã là URL đầy đủ (http/https)
+      if (user.avatar.startsWith("http")) {
+        return user.avatar
+      }
+      
+      // Nếu avatar là đường dẫn tương đối, ghép với base URL server
+      const baseURL = axiosClient.defaults.baseURL?.replace("/api", "") || "http://152.53.169.79:8086"
+      
+      // Đảm bảo avatar có dấu / ở đầu
+      const avatarPath = user.avatar.startsWith("/") ? user.avatar : `/${user.avatar}`
+      
+      return `${baseURL}${avatarPath}`
     }
+    
+    // Fallback về avatar mặc định
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=d97706&color=fff&size=112`
   }
 
