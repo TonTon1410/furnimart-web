@@ -16,6 +16,7 @@ const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 
 import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
+import ColorManagementPage from "@/dashboard/roles/seller/ColorManagementPage";
 import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
 import AdminStoresPage from "@/dashboard/roles/admin/AdminStoresPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
@@ -102,6 +103,7 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
         <Route path="products" element={<SellerProductsPage />} />
+        <Route path="colors" element={<ColorManagementPage />} />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />
