@@ -35,10 +35,27 @@ export const cartService = {
   },
 
   // POST /api/carts/add?productId=&quantity=&colorId=
-  async add(productId: string, quantity: number, colorId: string) {
-    const res = await axiosClient.post<ApiResponse>(`${BASE_URL}/carts/add`, null, {
-      params: { productId, quantity, colorId },
-    });
+  // async add(productId: string, quantity: number, colorId: string) {
+  //   const res = await axiosClient.post<ApiResponse>(`${BASE_URL}/carts/add`, null, {
+  //     params: { productId, quantity, colorId },
+  //   });
+  //   return res.data;
+  // },
+
+  // async clearCart() {
+  //   const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts`);
+  //   return res.data;
+  // },
+
+  // POST /api/carts/add?productColorId=&quantity=
+  async add(productColorId: string, quantity: number) {
+    const res = await axiosClient.post<ApiResponse>(
+      `${BASE_URL}/carts/add`,
+      null,
+      {
+        params: { productColorId, quantity },
+      }
+    );
     return res.data;
   },
 
@@ -46,6 +63,7 @@ export const cartService = {
     const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts`);
     return res.data;
   },
+
 
   // PATCH /api/carts/update?productId=&quantity=&colorId=
   async update(productId: string, quantity: number, colorId: string) {

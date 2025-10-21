@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 export type Color = {
-  id: string;
+  id: string; // đây chính là productColorId trong API mới
   colorName: string;
   hexCode: string;
   images?: string[];
@@ -12,7 +12,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   // Hỗ trợ async để hiển thị loading đúng
-  onConfirm: (opts: { quantity: number; colorId: string | null }) => void | Promise<void>;
+  onConfirm: (opts: { quantity: number; productColorId: string | null }) => void | Promise<void>;
   productName: string;
   price: number;
   colors: Color[];
@@ -33,7 +33,7 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
   initialQty = 1,
 }) => {
   const [qty, setQty] = useState(Math.max(1, initialQty));
-  const [colorId, setColorId] = useState<string | null>(initialColorId);
+  const [productColorId, setProductColorId] = useState<string | null>(initialColorId);
   const [submitting, setSubmitting] = useState(false);
 
   // Khoá scroll khi mở modal
@@ -59,33 +59,33 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
   // Preselect & reset qty khi mở
   useEffect(() => {
     if (!open) return;
-    if (!colorId && colors.length > 0) setColorId(colors[0].id);
+    if (!productColorId && colors.length > 0) setProductColorId(colors[0].id);
     setQty(Math.max(1, initialQty));
-  }, [open, colors, colorId, initialQty]);
+  }, [open, colors, productColorId, initialQty]);
 
   const color = useMemo(
-    () => colors.find((c) => c.id === colorId) || null,
-    [colors, colorId]
+    () => colors.find((c) => c.id === productColorId) || null,
+    [colors, productColorId]
   );
   const thumbs = color?.images ?? [];
   const [mainImg, setMainImg] = useState<string | null>(null);
 
   useEffect(() => {
     setMainImg(thumbs[0] || null);
-  }, [colorId]); // khi đổi màu → đổi ảnh chính
+  }, [productColorId]);
 
   if (!open) return null;
 
   const handleBackdropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (submitting) return; // chặn đóng khi đang gửi
+    if (submitting) return;
     if (e.target === e.currentTarget) onClose();
   };
 
   const handleConfirm = async () => {
-    if (!colorId) return;
+    if (!productColorId) return;
     try {
       setSubmitting(true);
-      await onConfirm({ quantity: qty, colorId }); // LeftSection sẽ đóng modal khi thành công
+      await onConfirm({ quantity: qty, productColorId }); // ✅ gọi theo API mới
     } finally {
       setSubmitting(false);
     }
@@ -103,11 +103,12 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
         <div className="mb-3">
           <h3 className="text-lg font-bold text-gray-900">Xác nhận thêm vào giỏ</h3>
           <p className="text-sm text-gray-600">
-            {productName} • <span className="font-semibold text-amber-600">{fmtVND(price)}</span>
+            {productName} •{" "}
+            <span className="font-semibold text-amber-600">{fmtVND(price)}</span>
           </p>
         </div>
 
-        {/* Nội dung gọn: ảnh trái – điều khiển phải */}
+        {/* Nội dung */}
         <div className="grid gap-3 md:grid-cols-2">
           {/* Khung ảnh */}
           <div>
@@ -117,7 +118,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                   src={mainImg}
                   alt="preview"
                   className="h-full w-full object-contain"
-                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+                  onError={(e) =>
+                    ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")
+                  }
                 />
               ) : (
                 <div className="text-xs text-gray-400">Không có ảnh</div>
@@ -132,7 +135,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                     onClick={() => setMainImg(img)}
                     disabled={submitting}
                     className={`h-12 w-12 flex-shrink-0 overflow-hidden rounded border transition ${
-                      mainImg === img ? "border-emerald-600" : "border-gray-300 hover:border-emerald-300"
+                      mainImg === img
+                        ? "border-emerald-600"
+                        : "border-gray-300 hover:border-emerald-300"
                     } ${submitting ? "opacity-60" : ""}`}
                     aria-label={`thumb-${i + 1}`}
                   >
@@ -140,7 +145,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                       src={img}
                       alt={`thumb-${i}`}
                       className="h-full w-full object-cover"
-                      onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+                      onError={(e) =>
+                        ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")
+                      }
                     />
                   </button>
                 ))}
@@ -156,17 +163,19 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                 <div className="mb-2 text-xs font-medium text-gray-700">Màu sắc</div>
                 <div className="flex flex-wrap gap-2">
                   {colors.map((c) => {
-                    const active = colorId === c.id;
+                    const active = productColorId === c.id;
                     return (
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => setColorId(c.id)}
+                        onClick={() => setProductColorId(c.id)}
                         disabled={submitting}
                         title={c.colorName}
                         aria-label={`Chọn ${c.colorName}`}
                         className={`h-8 min-w-8 rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                          active ? "border-emerald-600" : "border-gray-300 hover:border-emerald-300"
+                          active
+                            ? "border-emerald-600"
+                            : "border-gray-300 hover:border-emerald-300"
                         } ${submitting ? "opacity-60" : ""}`}
                         style={{ backgroundColor: c.hexCode }}
                       />
@@ -232,7 +241,7 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={handleConfirm}
-                disabled={!colorId || submitting}
+                disabled={!productColorId || submitting}
                 aria-busy={submitting}
                 className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
