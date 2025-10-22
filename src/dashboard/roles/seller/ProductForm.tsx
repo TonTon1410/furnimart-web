@@ -20,9 +20,11 @@ export type Status = "ACTIVE" | "INACTIVE";
 
 export type ColorReq = {
   colorId?: string; // ID của color từ dropdown (nếu chọn từ danh sách)
+  productColorId?: string; // ID của product-color đã tồn tại (dùng để update)
+  productId?: string; // ID của product (dùng khi update product-color)
   colorName: string;
   hexCode: string; // ví dụ "#FFCC00"
-  imageRequestList?: { imageUrl: string }[];
+  imageRequestList?: { imageUrl: string; isNew?: boolean }[]; // isNew: đánh dấu ảnh mới chưa lưu
   model3DRequestList?: {
     status: Status;
     modelUrl: string;
@@ -70,22 +72,6 @@ type Material = {
   materialName: string;
   status: Status;
   image?: string;
-};
-
-const emptyForm: ProductFormValues = {
-  code: "",
-  name: "",
-  description: "",
-  price: 0,
-  thumbnailImage: "",
-  weight: 0,
-  height: 0,
-  width: 0,
-  length: 0,
-  categoryId: 0,
-  materialIds: [],
-  status: "ACTIVE",
-  colorRequests: [],
 };
 
 const fallbackImg =
@@ -147,29 +133,44 @@ const ProductForm: React.FC<Props> = ({
   useEffect(() => {
     (async () => {
       try {
-        const [cRes, mRes, colorsRes] = await Promise.all([
-          axiosClient.get<{ data: Category[] }>("/categories"),
-          axiosClient.get<{ data: Material[] }>("/materials"),
-          colorService.getAll(),
+        // Load categories and materials
+        const [cRes, mRes] = await Promise.all([
+          axiosClient.get("/categories"),
+          axiosClient.get("/materials"),
         ]);
-        setCats((cRes.data?.data || []).filter((c) => c.status === "ACTIVE"));
-        setMats((mRes.data?.data || []).filter((m) => m.status === "ACTIVE"));
-        setColors(colorsRes || []);
-      } catch {
-        // bỏ qua để form vẫn dùng được
+
+        // Extract data arrays - check structure carefully
+        const categoriesData = (cRes.data?.data || []) as Category[];
+        const materialsData = (mRes.data?.data || []) as Material[];
+
+        // Filter active items
+        const activeCats = categoriesData.filter((c) => c.status === "ACTIVE");
+        const activeMats = materialsData.filter((m) => m.status === "ACTIVE");
+
+        setCats(activeCats);
+        setMats(activeMats);
+
+        // Load colors separately (may fail independently)
+        try {
+          const colorsRes = await colorService.getAll();
+          setColors(colorsRes || []);
+        } catch (colorErr) {
+          console.warn("⚠️ Failed to load colors:", colorErr);
+          setColors([]);
+        }
+      } catch (error) {
+        console.error("❌ Error loading options:", error);
       } finally {
         setLoadingOpt(false);
       }
     })();
   }, []);
+
+  // Chỉ reset form khi mode thay đổi, KHÔNG phụ thuộc vào initial
   useEffect(() => {
-    if (mode === "create") {
-      setForm(emptyForm);
-    } else if (mode === "edit" && initial) {
-      // merge để đảm bảo có đủ field mặc định
-      setForm({ ...emptyForm, ...initial });
-    }
-  }, [mode, initial]);
+    // Form mode changed
+  }, [mode]);
+
   const update = (patch: Partial<ProductFormValues>) =>
     setForm((s) => ({ ...s, ...patch }));
 
@@ -259,6 +260,36 @@ const ProductForm: React.FC<Props> = ({
     update({ colorRequests: arr });
   };
 
+  // Xóa màu sản phẩm khỏi database (hard delete)
+  const deleteProductColor = async (idx: number) => {
+    const item = form.colorRequests?.[idx];
+    if (!item) return;
+
+    // Nếu chưa có productColorId → chỉ xóa khỏi form (chưa lưu DB)
+    if (!item.productColorId) {
+      removeColor(idx);
+      return;
+    }
+
+    // Confirm trước khi xóa
+    const confirmMsg = `⚠️ Bạn có chắc muốn XÓA VĨNH VIỄN màu "${item.colorName}"?\n\nThao tác này KHÔNG THỂ HOÀN TÁC!`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      // Gọi API DELETE
+      await colorService.deleteProductColor(String(item.productColorId));
+
+      // Xóa khỏi form state
+      removeColor(idx);
+
+      alert("✅ Đã xóa màu thành công!");
+    } catch (error: any) {
+      const errorMsg =
+        error?.response?.data?.message || error?.message || "Không thể xóa màu";
+      alert(`❌ Lỗi: ${errorMsg}`);
+    }
+  };
+
   // Create new color via API
   const handleCreateColor = async () => {
     if (!newColorName.trim() || !newColorHex) {
@@ -319,16 +350,19 @@ const ProductForm: React.FC<Props> = ({
       update({ colorRequests: arr });
     };
 
-  // const addColorImage = (idx: number) => {
-  //   const arr = [...(form.colorRequests || [])];
-  //   const item = { ...(arr[idx] || {}) } as ColorReq;
-  //   item.imageRequestList = [
-  //     ...(item.imageRequestList || []),
-  //     { imageUrl: "" },
-  //   ];
-  //   arr[idx] = item;
-  //   update({ colorRequests: arr });
-  // };
+  const addColorImage = async (idx: number) => {
+    const arr = [...(form.colorRequests || [])];
+    const item = { ...(arr[idx] || {}) } as ColorReq;
+
+    // Thêm ảnh mới với flag isNew = true (chỉ ở chế độ edit)
+    const isEditMode = mode === "edit" && !!item.productColorId;
+    item.imageRequestList = [
+      ...(item.imageRequestList || []),
+      { imageUrl: "", isNew: isEditMode },
+    ];
+    arr[idx] = item;
+    update({ colorRequests: arr });
+  };
 
   const setColorImage =
     (idx: number, imgIdx: number) =>
@@ -336,11 +370,89 @@ const ProductForm: React.FC<Props> = ({
       const arr = [...(form.colorRequests || [])];
       const item = { ...(arr[idx] || {}) } as ColorReq;
       const list = [...(item.imageRequestList || [])];
-      list[imgIdx] = { imageUrl: e.target.value };
+      // ⭐ Giữ lại flag isNew khi update URL
+      const currentImage = list[imgIdx] || {};
+      list[imgIdx] = {
+        imageUrl: e.target.value,
+        isNew: currentImage.isNew, // Giữ nguyên flag isNew
+      };
       item.imageRequestList = list;
       arr[idx] = item;
       update({ colorRequests: arr });
     };
+
+  // Lưu ảnh mới lên server (chỉ gửi ảnh mới được thêm)
+  const saveNewColorImage = async (idx: number, imgIdx: number) => {
+    const arr = [...(form.colorRequests || [])];
+    const item = { ...arr[idx] };
+    if (!item) return;
+
+    const imageUrl = item.imageRequestList?.[imgIdx]?.imageUrl?.trim();
+    if (!imageUrl) {
+      alert("Vui lòng nhập URL ảnh!");
+      return;
+    }
+
+    // Kiểm tra thiếu data
+    if (!item.productColorId) {
+      alert(
+        "❌ Lỗi: Không tìm thấy productColorId. Màu này có thể chưa được lưu vào database."
+      );
+      return;
+    }
+    if (!item.productId) {
+      alert("❌ Lỗi: Không tìm thấy productId.");
+      return;
+    }
+    if (!item.colorId) {
+      alert("❌ Lỗi: Không tìm thấy colorId.");
+      return;
+    }
+
+    // Kiểm tra xem đây có phải ảnh mới hay không (ảnh mới là ảnh vừa được thêm vào)
+    // Ở chế độ edit và có productColorId
+    if (mode === "edit") {
+      try {
+        // ⚠️ GỬI TẤT CẢ ẢNH (cả cũ + mới) vì backend có thể yêu cầu full update
+        const allImages = (item.imageRequestList || [])
+          .filter((img) => img.imageUrl && img.imageUrl.trim() !== "")
+          .map((img) => ({ imageUrl: img.imageUrl }));
+
+        const requestBody = {
+          productId: String(item.productId),
+          colorId: String(item.colorId), // ✅ GỬI colorId vì backend cần biết màu nào
+          status: "ACTIVE" as const,
+          imageRequests: allImages, // GỬI TẤT CẢ ẢNH
+          model3DRequests: [], // Rỗng vì không update model 3D
+        };
+
+        // Gọi API với TẤT CẢ ảnh
+        await colorService.updateProductColor(
+          String(item.productColorId),
+          requestBody
+        );
+
+        // Đánh dấu ảnh đã lưu (xóa flag isNew)
+        const list = [...(item.imageRequestList || [])];
+        list[imgIdx] = { imageUrl, isNew: false };
+        item.imageRequestList = list;
+        arr[idx] = item;
+        update({ colorRequests: arr });
+
+        alert("✅ Đã lưu ảnh mới thành công!");
+      } catch (error: any) {
+        const errorMsg =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message ||
+          "Không thể lưu ảnh";
+
+        alert(`❌ Lỗi: ${errorMsg}`);
+      }
+    } else {
+      alert("⚠️ Chế độ create - ảnh sẽ được lưu khi submit form.");
+    }
+  };
 
   const removeColorImage = (idx: number, imgIdx: number) => {
     const arr = [...(form.colorRequests || [])];
@@ -404,11 +516,15 @@ const ProductForm: React.FC<Props> = ({
       length: Number(form.length || 0),
       materialIds: form.materialIds || [],
       colorRequests: (form.colorRequests || []).map((c) => ({
-        ...c,
+        productColorId: c.productColorId, // ⭐ QUAN TRỌNG: Để phân biệt UPDATE vs CREATE
+        productId: c.productId, // ⭐ QUAN TRỌNG: ID của product
+        colorId: c.colorId,
+        colorName: c.colorName,
         hexCode: c.hexCode?.trim() || "#000000",
-        imageRequestList: (c.imageRequestList || []).filter((i) =>
-          i.imageUrl?.trim()
-        ),
+        // ⚠️ Xóa field isNew khi gửi API
+        imageRequestList: (c.imageRequestList || [])
+          .filter((i) => i.imageUrl?.trim())
+          .map((i) => ({ imageUrl: i.imageUrl.trim() })), // Chỉ gửi imageUrl
         model3DRequestList: (c.model3DRequestList || []).length
           ? c.model3DRequestList
           : undefined,
@@ -798,46 +914,104 @@ const ProductForm: React.FC<Props> = ({
 
                         <button
                           type="button"
-                          onClick={() => removeColor(idx)}
+                          onClick={() => deleteProductColor(idx)}
                           className="inline-flex items-center gap-2 self-start rounded-lg border border-red-300 px-2.5 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/20"
+                          title={
+                            c.productColorId
+                              ? "Xóa vĩnh viễn màu này khỏi database"
+                              : "Xóa màu khỏi form"
+                          }
                         >
-                          <Trash2 className="h-4 w-4" /> Xoá màu
+                          <Trash2 className="h-4 w-4" /> Xóa màu
                         </button>
                       </div>
 
                       {/* Ảnh (URL) */}
                       <div className="grid gap-2">
-                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                          Ảnh (URL)
-                        </div>
-                        {(c.imageRequestList || []).map((img, imgIdx) => (
-                          <div key={imgIdx} className="flex items-center gap-2">
-                            <input
-                              id={idOf(`color-img-${idx}-${imgIdx}`)}
-                              aria-label={`Ảnh màu ${idx + 1} - ${imgIdx + 1}`}
-                              value={img.imageUrl}
-                              onChange={setColorImage(idx, imgIdx)}
-                              placeholder="https://...jpg"
-                              className="grow min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-                     text-gray-900 placeholder:text-gray-400
-                     dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeColorImage(idx, imgIdx)}
-                              className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                            >
-                              Xoá
-                            </button>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Ảnh sản phẩm theo màu (có thể thêm nhiều ảnh)
                           </div>
-                        ))}
-                        {/* <button
-                        type="button"
-                        onClick={() => addColorImage(idx)}
-                        className="mt-1 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                      >
-                        <Plus className="h-4 w-4" /> Thêm ảnh
-                      </button> */}
+                          <button
+                            type="button"
+                            onClick={() => addColorImage(idx)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                          >
+                            <Plus className="h-3 w-3" /> Thêm ảnh
+                          </button>
+                        </div>
+
+                        {(c.imageRequestList || []).length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-gray-800/50">
+                            <ImageIcon className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                              Chưa có ảnh nào. Nhấn "Thêm ảnh" để thêm.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {(c.imageRequestList || []).map((img, imgIdx) => (
+                              <div
+                                key={imgIdx}
+                                className="flex items-start gap-2"
+                              >
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                      {imgIdx + 1}
+                                    </span>
+                                    <input
+                                      id={idOf(`color-img-${idx}-${imgIdx}`)}
+                                      aria-label={`Ảnh màu ${idx + 1} - ${
+                                        imgIdx + 1
+                                      }`}
+                                      value={img.imageUrl}
+                                      onChange={setColorImage(idx, imgIdx)}
+                                      placeholder="https://example.com/image.jpg"
+                                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                                    />
+                                    {/* Hiển thị nút Lưu cho ảnh mới chưa lưu */}
+                                    {img.isNew && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          saveNewColorImage(idx, imgIdx)
+                                        }
+                                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                                        title="Lưu ảnh này lên server (không ảnh hưởng thông tin sản phẩm khác)"
+                                      >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Lưu ảnh
+                                      </button>
+                                    )}
+                                  </div>
+                                  {img.imageUrl && (
+                                    <div className="ml-8 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/50">
+                                      <img
+                                        src={img.imageUrl}
+                                        alt={`Preview ${imgIdx + 1}`}
+                                        className="h-20 w-20 rounded object-cover"
+                                        onError={(e) => {
+                                          const target = e.currentTarget;
+                                          target.style.display = "none";
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeColorImage(idx, imgIdx)}
+                                  className="mt-2 rounded-lg border border-red-300 px-2.5 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                                  title="Xóa ảnh này"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {!isValidHex6(c.hexCode || "") && (
                           <p className="text-xs text-red-600 dark:text-red-400">
                             Nhập mã dạng #RRGGBB (ví dụ #FFCC00). Bạn có thể
