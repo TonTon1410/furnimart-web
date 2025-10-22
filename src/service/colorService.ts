@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Colors API ở port 8080 (API Gateway hoặc Product Service)
-const COLORS_API_BASE_URL = "http://152.53.169.79:8080/api";
+const COLORS_API_BASE_URL = "http://152.53.227.115:8080/api";
 
 console.log("🎨 Colors API Base URL:", COLORS_API_BASE_URL);
 
@@ -36,6 +36,20 @@ export type Color = {
 export type ColorFormData = {
   colorName: string;
   hexCode: string;
+};
+
+export type ProductColorUpdateRequest = {
+  productId: string;
+  colorId?: string; // ⚠️ Optional để tránh lỗi backend "Color already exists"
+  status: "ACTIVE" | "INACTIVE";
+  imageRequests?: { imageUrl: string }[];
+  model3DRequests?: {
+    status: "ACTIVE" | "INACTIVE";
+    modelUrl: string;
+    format: "OBJ" | "GLB" | "FBX" | "USDZ";
+    sizeInMb: number;
+    previewImage: string;
+  }[];
 };
 
 export type ColorResponse = {
@@ -78,6 +92,44 @@ export const colorService = {
    */
   delete: async (id: string): Promise<void> => {
     await colorApiClient.delete(`/colors/${id}`);
+  },
+
+  /**
+   * PUT /api/product-colors/{id} - Cập nhật ProductColor (chỉ gửi ảnh mới thêm vào)
+   */
+  updateProductColor: async (
+    productColorId: string,
+    data: ProductColorUpdateRequest
+  ): Promise<ColorResponse> => {
+    console.log("🚀 colorService.updateProductColor called:", {
+      method: "PUT",
+      url: `/product-colors/${productColorId}`,
+      productColorId,
+      data,
+    });
+
+    const response = await colorApiClient.put<ColorResponse>(
+      `/product-colors/${productColorId}`,
+      data
+    );
+
+    console.log("✅ colorService.updateProductColor response:", response.data);
+    return response.data;
+  },
+
+  /**
+   * DELETE /api/product-colors/{id} - Xóa ProductColor (xóa cứng)
+   */
+  deleteProductColor: async (productColorId: string): Promise<void> => {
+    console.log("🗑️ colorService.deleteProductColor called:", {
+      method: "DELETE",
+      url: `/product-colors/${productColorId}`,
+      productColorId,
+    });
+
+    await colorApiClient.delete(`/product-colors/${productColorId}`);
+
+    console.log("✅ colorService.deleteProductColor success");
   },
 };
 

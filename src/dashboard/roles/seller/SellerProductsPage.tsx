@@ -291,11 +291,14 @@ const SellerProductsPage: React.FC = () => {
       if (p.productColors && p.productColors.length > 0) {
         // Format from detail API: productColors
         colorRequests = p.productColors.map((pc) => ({
+          productColorId: pc.id, // ⭐ QUAN TRỌNG: ID của product-color để update
+          productId: p.id, // ⭐ QUAN TRỌNG: ID của product
           colorId: pc.color.id,
           colorName: pc.color.colorName,
           hexCode: pc.color.hexCode || "#000000",
           imageRequestList: (pc.images || []).map((i) => ({
             imageUrl: i.image,
+            isNew: false, // Ảnh cũ không phải ảnh mới
           })),
           model3DRequestList: (pc.models3D || []).map((m) => ({
             status: m.status || "ACTIVE",
@@ -306,13 +309,17 @@ const SellerProductsPage: React.FC = () => {
           })),
         }));
       } else if (p.color && p.color.length > 0) {
-        // Format from list API: color
+        // Format from list API: color (không có productColorId từ list API)
+        // ⚠️ Cần gọi detail API để có productColorId cho chức năng thêm ảnh
         colorRequests = p.color.map((c) => ({
+          productColorId: undefined, // List API không trả về, cần fetch detail
+          productId: p.id, // ⭐ ID của product
           colorId: c.id,
           colorName: c.colorName,
           hexCode: c.hexCode || "#000000",
           imageRequestList: (c.images || []).map((i) => ({
             imageUrl: i.image,
+            isNew: false, // Ảnh cũ không phải ảnh mới
           })),
           model3DRequestList: (c.models3D || []).map((m) => ({
             status: m.status || "ACTIVE",
@@ -387,7 +394,7 @@ const SellerProductsPage: React.FC = () => {
         if (res.status === 200) {
           const updated: ProductItem = res.data.data;
 
-          // Step 2: Create productColors if there are new colors
+          // Step 2: Update/Create productColors
           if (colorRequests && colorRequests.length > 0) {
             for (const colorReq of colorRequests) {
               try {
@@ -402,24 +409,57 @@ const SellerProductsPage: React.FC = () => {
                   colorId = newColor.id;
                 }
 
-                // Create productColor with colorId
-                if (colorId) {
+                // ⭐ Phân biệt: UPDATE nếu có productColorId, CREATE nếu không
+                console.log("🔍 Check productColorId:", {
+                  colorReq,
+                  hasProductColorId: !!(colorReq as any).productColorId,
+                  productColorId: (colorReq as any).productColorId,
+                });
+
+                if ((colorReq as any).productColorId) {
+                  // UPDATE product-color đã tồn tại - CHỈ gửi imageRequests và model3D
+                  console.log(
+                    "🔄 UPDATE product-color:",
+                    (colorReq as any).productColorId
+                  );
+
+                  await axiosClient.put(
+                    `/product-colors/${(colorReq as any).productColorId}`,
+                    {
+                      productId: selectedId,
+                      // ❌ KHÔNG gửi colorId khi update để tránh lỗi "Color already exists"
+                      status: "ACTIVE",
+                      imageRequests:
+                        colorReq.imageRequestList
+                          ?.map((img: any) => ({
+                            imageUrl: img.imageUrl ? img.imageUrl.trim() : img,
+                          }))
+                          .filter((img: any) => img.imageUrl || img) || [],
+                      model3DRequests: colorReq.model3DRequestList || [],
+                    }
+                  );
+                } else if (colorId) {
+                  // CREATE product-color mới
+                  console.log("➕ CREATE product-color for colorId:", colorId);
+
                   await axiosClient.post("/product-colors", {
                     productId: selectedId,
                     colorId: colorId,
                     status: "ACTIVE",
                     imageRequests:
-                      colorReq.imageRequestList?.filter((img) =>
-                        img.imageUrl.trim()
-                      ) || [],
+                      colorReq.imageRequestList
+                        ?.map((img: any) => ({
+                          imageUrl: img.imageUrl ? img.imageUrl.trim() : img,
+                        }))
+                        .filter((img: any) => img.imageUrl || img) || [],
                     model3DRequests: colorReq.model3DRequestList || [],
                   });
                 }
               } catch (err: any) {
-                console.error("Failed to create product color:", err);
+                console.error("Failed to update/create product color:", err);
                 setServerErr(
                   err?.response?.data?.message ||
-                    "Lỗi khi thêm màu: " + colorReq.colorName
+                    "Lỗi khi xử lý màu: " + colorReq.colorName
                 );
                 // Continue with other colors
               }
