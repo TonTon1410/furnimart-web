@@ -243,130 +243,130 @@ export default function OwnBlog() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-primary text-primary-foreground py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-accent/20 opacity-90"></div>
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="h-8 w-8 text-accent" />
-            <span className="text-accent font-semibold tracking-wide uppercase text-sm">Không gian sáng tạo</span>
+      <div className="bg-primary text-primary-foreground py-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-secondary/30 opacity-90"></div>
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="flex items-center gap-3 mb-3">
+            <Sparkles className="h-6 w-6 text-accent" />
+            <span className="text-accent font-semibold tracking-wide uppercase text-xs">Không gian sáng tạo</span>
           </div>
-          <h1 className="font-serif text-5xl md:text-6xl font-bold mb-6 text-balance leading-tight">Blog Của Tôi</h1>
-          <p className="text-xl text-primary-foreground/80 max-w-2xl text-pretty leading-relaxed">
+          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-3 text-balance leading-tight">Blog Của Tôi</h1>
+          <p className="text-base text-primary-foreground/90 max-w-2xl text-pretty leading-relaxed">
             Quản lý và chia sẻ những câu chuyện, suy nghĩ và trải nghiệm của bạn với thế giới
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide mb-2">Tổng số blog</p>
-                <p className="font-serif text-4xl font-bold text-foreground mt-1">{stats.total}</p>
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Tổng số blog</p>
+                <p className="font-serif text-3xl font-bold text-foreground">{stats.total}</p>
               </div>
-              <div className="h-14 w-14 bg-accent/10 rounded-xl flex items-center justify-center">
-                <Calendar className="h-7 w-7 text-accent" />
+              <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-accent" />
               </div>
             </div>
           </div>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide mb-2">Đang hiển thị</p>
-                <p className="font-serif text-4xl font-bold text-accent mt-1">{stats.published}</p>
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đang hiển thị</p>
+                <p className="font-serif text-3xl font-bold text-accent">{stats.published}</p>
               </div>
-              <div className="h-14 w-14 bg-accent/10 rounded-xl flex items-center justify-center">
-                <Eye className="h-7 w-7 text-accent" />
+              <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                <Eye className="h-5 w-5 text-accent" />
               </div>
             </div>
           </div>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 hover:shadow-md transition-shadow">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide mb-2">Đã ẩn</p>
-                <p className="font-serif text-4xl font-bold text-muted-foreground mt-1">{stats.hidden}</p>
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đã ẩn</p>
+                <p className="font-serif text-3xl font-bold text-muted-foreground">{stats.hidden}</p>
               </div>
-              <div className="h-14 w-14 bg-muted rounded-xl flex items-center justify-center">
-                <EyeOff className="h-7 w-7 text-muted-foreground" />
+              <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
+                <EyeOff className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
           </div>
         </div>
 
         {!showCreateForm && (
-          <div className="mb-12">
+          <div className="mb-8">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="flex items-center gap-3 bg-primary text-primary-foreground px-8 py-4 rounded-xl hover:bg-primary/90 transition-all font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              className="flex items-center gap-2 bg-accent text-accent-foreground px-6 py-2.5 rounded-lg hover:bg-accent/90 transition-all font-semibold shadow-md hover:shadow-lg text-sm"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
               Tạo Blog Mới
             </button>
           </div>
         )}
 
         {showCreateForm && (
-          <div className="bg-card rounded-2xl shadow-xl p-10 mb-12 border-2 border-accent/20">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="font-serif text-3xl font-bold text-foreground">
+          <div className="bg-card rounded-xl shadow-lg p-8 mb-8 border border-border">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-serif text-2xl font-bold text-foreground">
                 {editingBlog ? "Chỉnh Sửa Blog" : "Tạo Blog Mới"}
               </h2>
               <button
                 onClick={handleCancelEdit}
-                className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-lg"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 hover:bg-muted rounded-lg"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
+                <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
                   Tiêu đề Blog <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-5 py-4 border-2 border-border rounded-xl focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all bg-background text-foreground"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all bg-background text-foreground text-sm"
                   placeholder="Nhập tiêu đề blog..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
+                <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
                   Nội dung <span className="text-destructive">*</span>
                 </label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={10}
-                  className="w-full px-5 py-4 border-2 border-border rounded-xl focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground leading-relaxed"
+                  rows={8}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground text-sm leading-relaxed"
                   placeholder="Viết nội dung blog của bạn..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
+                <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
                   URL Hình ảnh
                 </label>
                 <input
                   type="url"
                   value={formData.image}
                   onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full px-5 py-4 border-2 border-border rounded-xl focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all bg-background text-foreground"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all bg-background text-foreground text-sm"
                   placeholder="https://example.com/image.jpg"
                 />
                 {formData.image && (
-                  <div className="mt-4">
-                    <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Xem trước:</p>
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Xem trước:</p>
                     <img
                       src={formData.image || "/placeholder.svg"}
                       alt="Preview"
-                      className="h-40 w-auto rounded-xl border-2 border-border shadow-md"
+                      className="h-32 w-auto rounded-lg border border-border shadow-md"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).style.display = "none"
                       }}
@@ -375,17 +375,17 @@ export default function OwnBlog() {
                 )}
               </div>
 
-              <div className="flex gap-4 pt-6">
+              <div className="flex gap-3 pt-4">
                 <button
                   onClick={editingBlog ? handleUpdateBlog : handleCreateBlog}
                   disabled={creating}
-                  className="flex-1 bg-primary text-primary-foreground py-4 rounded-xl font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-sm"
                 >
                   {creating ? "Đang xử lý..." : editingBlog ? "Cập Nhật Blog" : "Tạo Blog"}
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="px-10 py-4 border-2 border-border rounded-xl font-semibold hover:bg-muted transition-all"
+                  className="px-6 py-2.5 border border-border rounded-lg font-semibold hover:bg-muted transition-all text-sm"
                 >
                   Hủy
                 </button>
@@ -395,91 +395,84 @@ export default function OwnBlog() {
         )}
 
         {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent"></div>
-            <p className="mt-6 text-muted-foreground text-lg">Đang tải blogs...</p>
+          <div className="text-center py-16">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent"></div>
+            <p className="mt-4 text-muted-foreground text-sm">Đang tải blogs...</p>
           </div>
         ) : myBlogs.length === 0 ? (
-          <div className="text-center py-32 bg-gradient-to-br from-card via-background to-accent/5 rounded-3xl shadow-sm border border-border relative overflow-hidden">
+          <div className="text-center py-16 bg-gradient-to-br from-card via-background to-accent/5 rounded-xl shadow-sm border border-border relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.05),transparent_50%)]"></div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(251,146,60,0.05),transparent_50%)]"></div>
 
-            <div className="relative z-10 max-w-2xl mx-auto px-6">
-              <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-full mb-8 shadow-lg">
-                <Sparkles className="h-16 w-16 text-accent" />
+            <div className="relative z-10 max-w-xl mx-auto px-6">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-full mb-6 shadow-lg">
+                <Sparkles className="h-12 w-12 text-accent" />
               </div>
 
-              <h3 className="font-serif text-4xl font-bold text-foreground mb-4 text-balance">
+              <h3 className="font-serif text-2xl font-bold text-foreground mb-3 text-balance">
                 Bắt Đầu Hành Trình Viết Blog
               </h3>
 
-              <p className="text-muted-foreground text-lg mb-8 text-pretty leading-relaxed max-w-xl mx-auto">
+              <p className="text-muted-foreground text-sm mb-6 text-pretty leading-relaxed">
                 Bạn chưa có blog nào. Hãy chia sẻ câu chuyện, kiến thức và trải nghiệm của bạn với thế giới!
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-left">
-                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
-                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                    <Edit className="h-6 w-6 text-accent" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-left">
+                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
+                  <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-3">
+                    <Edit className="h-5 w-5 text-accent" />
                   </div>
-                  <h4 className="font-semibold text-foreground mb-2">Viết Tự Do</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Thể hiện suy nghĩ và ý tưởng của bạn một cách tự nhiên nhất
-                  </p>
+                  <h4 className="font-semibold text-foreground mb-1 text-sm">Viết Tự Do</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Thể hiện suy nghĩ và ý tưởng của bạn</p>
                 </div>
 
-                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
-                    <Eye className="h-6 w-6 text-secondary" />
+                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
+                  <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center mb-3">
+                    <Eye className="h-5 w-5 text-secondary" />
                   </div>
-                  <h4 className="font-semibold text-foreground mb-2">Kiểm Soát</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Quản lý trạng thái hiển thị và chỉnh sửa blog bất cứ lúc nào
-                  </p>
+                  <h4 className="font-semibold text-foreground mb-1 text-sm">Kiểm Soát</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Quản lý trạng thái hiển thị</p>
                 </div>
 
-                <div className="bg-card/50 backdrop-blur-sm p-6 rounded-xl border border-border/50">
-                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                    <Sparkles className="h-6 w-6 text-accent" />
+                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
+                  <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-3">
+                    <Sparkles className="h-5 w-5 text-accent" />
                   </div>
-                  <h4 className="font-semibold text-foreground mb-2">Chia Sẻ</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Kết nối với cộng đồng và lan tỏa giá trị của bạn
-                  </p>
+                  <h4 className="font-semibold text-foreground mb-1 text-sm">Chia Sẻ</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Kết nối với cộng đồng</p>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-10 py-5 rounded-xl hover:bg-primary/90 transition-all font-semibold shadow-xl hover:shadow-2xl hover:scale-105 text-lg"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-all font-semibold shadow-lg hover:shadow-xl text-sm"
               >
-                <Plus className="h-6 w-6" />
+                <Plus className="h-4 w-4" />
                 Tạo Blog Đầu Tiên
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {myBlogs.map((blog) => (
               <article
                 key={blog.id}
-                className="bg-card rounded-2xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 border border-border group"
+                className="bg-card rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-border group"
               >
-                {/* Status badge */}
                 <div
-                  className={`px-5 py-3 flex items-center justify-between ${
+                  className={`px-4 py-2 flex items-center justify-between ${
                     blog.status ? "bg-accent/10 border-b border-accent/20" : "bg-muted border-b border-border"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     {blog.status ? (
                       <>
-                        <Eye className="h-4 w-4 text-accent" />
+                        <Eye className="h-3.5 w-3.5 text-accent" />
                         <span className="text-xs font-semibold text-accent uppercase tracking-wide">Đang hiển thị</span>
                       </>
                     ) : (
                       <>
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                           Đã ẩn
                         </span>
@@ -494,9 +487,8 @@ export default function OwnBlog() {
                   </button>
                 </div>
 
-                {/* Image */}
                 {blog.image && (
-                  <div className="h-56 overflow-hidden bg-muted">
+                  <div className="h-40 overflow-hidden bg-muted">
                     <img
                       src={blogService.getSafeImageUrl(blog.image) || "/placeholder.svg"}
                       alt={blog.name}
@@ -509,37 +501,33 @@ export default function OwnBlog() {
                   </div>
                 )}
 
-                <div className="p-7">
-                  {/* Title */}
-                  <h3 className="font-serif text-2xl font-bold text-foreground mb-4 line-clamp-2 leading-tight group-hover:text-accent transition-colors">
+                <div className="p-5">
+                  <h3 className="font-serif text-lg font-bold text-foreground mb-3 line-clamp-2 leading-tight group-hover:text-accent transition-colors">
                     {blog.name}
                   </h3>
 
-                  {/* Content preview */}
-                  <p className="text-muted-foreground mb-6 line-clamp-3 leading-relaxed">
-                    {blogService.truncateContent(blog.content, 120)}
+                  <p className="text-muted-foreground mb-4 line-clamp-2 leading-relaxed text-sm">
+                    {blogService.truncateContent(blog.content, 100)}
                   </p>
 
-                  {/* Meta info */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground pt-5 border-t border-border mb-6">
-                    <Calendar className="h-4 w-4" />
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-3 border-t border-border mb-4">
+                    <Calendar className="h-3.5 w-3.5" />
                     <span>Tạo: {blogService.formatDate(blog.createdAt)}</span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleEditClick(blog)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-accent bg-accent/10 hover:bg-accent/20 rounded-xl transition-all font-semibold"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-accent bg-accent/10 hover:bg-accent/20 rounded-lg transition-all font-semibold text-xs"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3.5 w-3.5" />
                       Sửa
                     </button>
                     <button
                       onClick={() => handleDeleteBlog(blog.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-xl transition-all font-semibold"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-all font-semibold text-xs"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                       Xóa
                     </button>
                   </div>
