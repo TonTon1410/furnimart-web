@@ -24,6 +24,10 @@ const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
 const SellerChat = Placeholder("Seller • Chat");
 
+// import WarehousesPage from "@/dashboard/roles/manager/WarehousesPage";
+// import ZonesPage from "@/dashboard/roles/manager/ZonesPage";
+// import LocationsPage from "@/dashboard/roles/manager/LocationsPage";
+// import InventoryPage from "@/dashboard/roles/manager/InventoryPage";  
 const ManagerInventory = Placeholder("Manager • Inventory");
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
@@ -70,6 +74,10 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        {/* <Route path="warehouses" element={<WarehousesPage />} />
+        <Route path="zones" element={<ZonesPage />} />
+        <Route path="locations" element={<LocationsPage />} />
+        <Route path="inventory" element={<InventoryPage />} /> */}
         <Route path="inventory" element={<ManagerInventory />} />
         <Route path="orders/approval" element={<ManagerApproval />} />
         <Route path="deliveries/assign" element={<ManagerAssign />} />
