@@ -72,6 +72,10 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        {/* <Route path="warehouses" element={<WarehousesPage />} />
+        <Route path="zones" element={<ZonePage/>} />
+        <Route path="locations" element={<LocationItemPage />} />
+        <Route path="inventory" element={<InventoryPage />} /> */}
         <Route path="inventory" element={<ManagerInventory />} />
         <Route path="orders/approval" element={<ManagerApproval />} />
         <Route path="deliveries/assign" element={<ManagerAssign />} />
