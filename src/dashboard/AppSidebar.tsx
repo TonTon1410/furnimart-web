@@ -1,6 +1,6 @@
-// ✅ src/roles/dashboard/AppSidebar.tsx (đã sửa)
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, MoreHorizontal } from "lucide-react";
 import { useSidebar } from "@/context/SidebarContext";
@@ -14,9 +14,16 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
 
   const role = (authService.getRole?.() as RoleKey) || "seller";
-  const { main: navItems, others: othersItems = [] } = getNavForRole(role);
 
-  const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(null);
+  // ⚡️ Chỉ tính lại khi role thay đổi
+  const { main: navItems, others: othersItems = [] } = useMemo(
+    () => getNavForRole(role),
+    [role]
+  );
+
+  const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(
+    null
+  );
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -26,7 +33,7 @@ const AppSidebar: React.FC = () => {
     [location.pathname]
   );
 
-  // 🧠 Hàm tự động mở submenu dựa theo route hiện tại
+  // 🧠 Tự động mở submenu theo route hiện tại
   const handleAutoOpenSubmenu = useCallback(() => {
     let matched: { type: "main" | "others"; index: number } | null = null;
 
@@ -39,21 +46,31 @@ const AppSidebar: React.FC = () => {
       });
     });
 
-    if (matched) setOpenSubmenu((prev) => (prev ? prev : matched));
-  }, [isActive, navItems, othersItems]);
+    // ✅ chỉ mở khi chưa mở submenu nào
+    if (matched && !openSubmenu) {
+      setOpenSubmenu(matched);
+    }
+  }, [isActive, navItems, othersItems, openSubmenu]);
 
   useEffect(() => {
     handleAutoOpenSubmenu();
-  }, [location, handleAutoOpenSubmenu]);
+  }, [location.pathname, handleAutoOpenSubmenu]);
 
-  // 🧩 Cập nhật chiều cao submenu mỗi khi submenu mở / layout thay đổi
+  // 🧩 Cập nhật chiều cao submenu khi thay đổi openSubmenu
   useEffect(() => {
     const newHeights: Record<string, number> = {};
     Object.entries(subRefs.current).forEach(([key, el]) => {
       if (el) newHeights[key] = el.scrollHeight;
     });
-    setSubMenuHeight(newHeights);
-  }, [navItems, othersItems, isExpanded, isHovered, isMobileOpen, openSubmenu]);
+
+    // ✅ chỉ setState khi thực sự khác để tránh vòng lặp
+    setSubMenuHeight((prev) => {
+      const isDifferent =
+        Object.keys(newHeights).length !== Object.keys(prev).length ||
+        Object.entries(newHeights).some(([key, value]) => prev[key] !== value);
+      return isDifferent ? newHeights : prev;
+    });
+  }, [openSubmenu]); // 👈 chỉ chạy khi submenu mở/đóng
 
   const toggleSub = (i: number, type: "main" | "others") => {
     setOpenSubmenu((prev) =>
@@ -116,7 +133,9 @@ const AppSidebar: React.FC = () => {
                             <Link
                               to={s.path}
                               className={`menu-dropdown-item ${
-                                active ? "menu-dropdown-item-active" : "menu-dropdown-item-inactive"
+                                active
+                                  ? "menu-dropdown-item-active"
+                                  : "menu-dropdown-item-inactive"
                               }`}
                             >
                               {s.name}
@@ -160,7 +179,10 @@ const AppSidebar: React.FC = () => {
   return (
     <>
       {isMobileOpen && (
-        <div className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden" onClick={toggleMobileSidebar} />
+        <div
+          className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden"
+          onClick={toggleMobileSidebar}
+        />
       )}
 
       <aside
@@ -173,7 +195,11 @@ const AppSidebar: React.FC = () => {
         onMouseEnter={() => !isExpanded && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
+        <div
+          className={`py-8 flex ${
+            !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+          }`}
+        >
           <Link to={DP()} aria-label="Dashboard Home" title="Dashboard">
             {isExpanded || isHovered || isMobileOpen ? (
               <span className="text-xl font-extrabold text-gray-900 dark:text-white">
