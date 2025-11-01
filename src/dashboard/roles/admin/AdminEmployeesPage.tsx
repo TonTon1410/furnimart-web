@@ -187,7 +187,9 @@ const AdminEmployeesPage: React.FC = () => {
           alt={name || "User"}
           onError={() => setBroken(true)}
           className="rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
-          style={{ width: size, height: size }}
+          {...({
+            style: { width: size, height: size },
+          } as React.ImgHTMLAttributes<HTMLImageElement>)}
         />
       );
     }
@@ -195,7 +197,9 @@ const AdminEmployeesPage: React.FC = () => {
     return (
       <div
         className="flex items-center justify-center rounded-lg bg-gray-200 text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-        style={{ width: size, height: size }}
+        {...({
+          style: { width: size, height: size },
+        } as React.HTMLAttributes<HTMLDivElement>)}
         aria-label={name ? `Avatar của ${name}` : "Avatar mặc định"}
         title={name || "User"}
       >
