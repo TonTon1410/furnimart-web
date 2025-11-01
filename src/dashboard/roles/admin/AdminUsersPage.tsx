@@ -437,7 +437,7 @@ const AdminUsersPage: React.FC = () => {
             {/* Body */}
             <div className="p-6">
               {/* Avatar và tên */}
-              <div className="mb-6 flex items-center gap-4">
+              <div className="mb-4 flex items-center gap-4">
                 <Avatar
                   name={detailUser.fullName}
                   src={
@@ -457,24 +457,23 @@ const AdminUsersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Thông tin chi tiết */}
-              <div className="grid gap-4">
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Vai trò
-                  </div>
-                  <div className="col-span-2">
+              {/* Thông tin chi tiết - 2 cột */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Cột 1 */}
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Vai trò
+                    </div>
                     <span className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800">
                       {detailUser.role}
                     </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Trạng thái
-                  </div>
-                  <div className="col-span-2">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Trạng thái
+                    </div>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${
                         detailUser.status === "ACTIVE"
@@ -492,74 +491,95 @@ const AdminUsersPage: React.FC = () => {
                       {detailUser.status}
                     </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Email
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Email
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.email || "—"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.email || "—"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Số điện thoại
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Số điện thoại
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.phone || "—"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.phone || "—"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Giới tính
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Giới tính
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.gender ? "Nam" : "Nữ"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.gender ? "Nam" : "Nữ"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Ngày sinh
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.birthday
-                      ? new Date(detailUser.birthday).toLocaleDateString(
-                          "vi-VN"
-                        )
-                      : "—"}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    CCCD
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.cccd || "—"}
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Ngày sinh
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.birthday
+                        ? new Date(detailUser.birthday).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : "—"}
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Điểm tích lũy
+                {/* Cột 2 */}
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      CCCD
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.cccd || "—"}
+                    </div>
                   </div>
-                  <div className="col-span-2">
+
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Điểm tích lũy
+                    </div>
                     <span className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-sm font-semibold text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-800">
                       {detailUser.point ?? 0} điểm
                     </span>
                   </div>
-                </div>
 
-                {detailUser.storeIds && detailUser.storeIds.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Cửa hàng quản lý
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Ngày tạo
                     </div>
-                    <div className="col-span-2">
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailUser.createdAt
+                        ? new Date(detailUser.createdAt).toLocaleString("vi-VN")
+                        : "—"}
+                    </div>
+                  </div>
+
+                  {detailUser.updatedAt && (
+                    <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Cập nhật lần cuối
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {new Date(detailUser.updatedAt).toLocaleString("vi-VN")}
+                      </div>
+                    </div>
+                  )}
+
+                  {detailUser.storeIds && detailUser.storeIds.length > 0 && (
+                    <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <div className="mb-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Cửa hàng quản lý
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
                         {detailUser.storeIds.map((storeId, idx) => (
                           <span
@@ -574,30 +594,8 @@ const AdminUsersPage: React.FC = () => {
                         {detailUser.storeIds.length} cửa hàng
                       </p>
                     </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Ngày tạo
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailUser.createdAt
-                      ? new Date(detailUser.createdAt).toLocaleString("vi-VN")
-                      : "—"}
-                  </div>
+                  )}
                 </div>
-
-                {detailUser.updatedAt && (
-                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Cập nhật lần cuối
-                    </div>
-                    <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(detailUser.updatedAt).toLocaleString("vi-VN")}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

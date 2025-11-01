@@ -7,7 +7,10 @@ import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import CustomDropdown from "@/components/CustomDropdown";
 import Pagination from "@/components/Pagination";
-import EmployeeForm, { type EmployeeFormValues } from "./EmployeeForm";
+import EmployeeForm, {
+  type EmployeeFormValues,
+  type Role,
+} from "./EmployeeForm";
 
 // -------- Types ----------
 interface Employee {
@@ -21,7 +24,6 @@ interface Employee {
   role: string; // STAFF, MANAGER, DELIVERY
   status: "ACTIVE" | "INACTIVE";
   cccd?: string | null;
-  point?: number | null;
   createdAt?: string; // ISO
   updatedAt?: string;
   storeIds?: string[]; // mảng ID các cửa hàng
@@ -283,13 +285,30 @@ const AdminEmployeesPage: React.FC = () => {
     setEditServerErr(null);
 
     try {
-      // Loại bỏ các field empty string
-      const payload: Record<string, any> = {};
-      Object.entries(values).forEach(([key, value]) => {
-        if (value !== "" && value !== undefined && value !== null) {
-          payload[key] = value;
-        }
-      });
+      // Tạo payload đầy đủ theo API specification
+      const payload: any = {
+        fullName: values.fullName,
+        gender: values.gender,
+        status: values.status,
+        role: values.role,
+      };
+
+      // Thêm các trường optional nếu có giá trị
+      if (values.phone && values.phone.trim()) {
+        payload.phone = values.phone.trim();
+      }
+      if (values.avatar && values.avatar.trim()) {
+        payload.avatar = values.avatar.trim();
+      }
+      if (values.birthday) {
+        payload.birthday = values.birthday; // Đã là ISO format từ form
+      }
+      if (values.cccd && values.cccd.trim()) {
+        payload.cccd = values.cccd.trim();
+      }
+      if (values.storeId && values.storeId.trim()) {
+        payload.storeId = values.storeId.trim();
+      }
 
       console.log("Update payload:", JSON.stringify(payload, null, 2));
 
@@ -539,6 +558,16 @@ const AdminEmployeesPage: React.FC = () => {
                           Chi tiết
                         </button>
                         <button
+                          onClick={() => {
+                            setEditingEmployee(u);
+                            setEditOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-600 transition-all hover:bg-emerald-50 active:scale-95 dark:border-emerald-800 dark:bg-gray-900 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                          Sửa
+                        </button>
+                        <button
                           onClick={() => handleDelete(u.id)}
                           disabled={deletingIds.has(u.id)}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-900/20"
@@ -629,24 +658,23 @@ const AdminEmployeesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Thông tin chi tiết */}
-              <div className="grid gap-4">
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Vai trò
-                  </div>
-                  <div className="col-span-2">
+              {/* Thông tin chi tiết - 2 cột */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Cột 1 */}
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Vai trò
+                    </div>
                     <span className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800">
                       {detailEmployee.role}
                     </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Trạng thái
-                  </div>
-                  <div className="col-span-2">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Trạng thái
+                    </div>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${
                         detailEmployee.status === "ACTIVE"
@@ -664,64 +692,91 @@ const AdminEmployeesPage: React.FC = () => {
                       {detailEmployee.status}
                     </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Email
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Email
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100 break-all">
+                      {detailEmployee.email || "—"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.email || "—"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Số điện thoại
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Số điện thoại
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailEmployee.phone || "—"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.phone || "—"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Giới tính
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Giới tính
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailEmployee.gender ? "Nam" : "Nữ"}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.gender ? "Nam" : "Nữ"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Ngày sinh
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.birthday
-                      ? new Date(detailEmployee.birthday).toLocaleDateString(
-                          "vi-VN"
-                        )
-                      : "—"}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    CCCD
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.cccd || "—"}
-                  </div>
-                </div>
-
-                {detailEmployee.storeIds &&
-                  detailEmployee.storeIds.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Cửa hàng quản lý
+                  {detailEmployee.updatedAt && (
+                    <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                        Cập nhật lần cuối
                       </div>
-                      <div className="col-span-2">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {new Date(detailEmployee.updatedAt).toLocaleString(
+                          "vi-VN"
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cột 2 */}
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Ngày sinh
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailEmployee.birthday
+                        ? new Date(detailEmployee.birthday).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : "—"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      CCCD
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailEmployee.cccd || "—"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      Ngày tạo
+                    </div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      {detailEmployee.createdAt
+                        ? new Date(detailEmployee.createdAt).toLocaleString(
+                            "vi-VN"
+                          )
+                        : "—"}
+                    </div>
+                  </div>
+
+                  {detailEmployee.storeIds &&
+                    detailEmployee.storeIds.length > 0 && (
+                      <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                          Cửa hàng quản lý
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {detailEmployee.storeIds.map((storeId, idx) => {
                             const store = stores.find((s) => s.id === storeId);
@@ -740,62 +795,23 @@ const AdminEmployeesPage: React.FC = () => {
                             );
                           })}
                         </div>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                           {detailEmployee.storeIds.length} cửa hàng
                         </p>
                       </div>
-                    </div>
-                  )}
-
-                <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Ngày tạo
-                  </div>
-                  <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                    {detailEmployee.createdAt
-                      ? new Date(detailEmployee.createdAt).toLocaleString(
-                          "vi-VN"
-                        )
-                      : "—"}
-                  </div>
+                    )}
                 </div>
-
-                {detailEmployee.updatedAt && (
-                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Cập nhật lần cuối
-                    </div>
-                    <div className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(detailEmployee.updatedAt).toLocaleString(
-                        "vi-VN"
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Footer */}
             <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setEditingEmployee(detailEmployee);
-                    setEditOpen(true);
-                    setDetailEmployee(null);
-                  }}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:scale-98 flex items-center justify-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Sửa thông tin
-                </button>
-                <button
-                  onClick={() => setDetailEmployee(null)}
-                  className="flex-1 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-98 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-                >
-                  Đóng
-                </button>
-              </div>
+              <button
+                onClick={() => setDetailEmployee(null)}
+                className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-98 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>
@@ -844,11 +860,15 @@ const AdminEmployeesPage: React.FC = () => {
               phone: editingEmployee.phone ?? undefined,
               avatar: editingEmployee.avatar ?? undefined,
               gender: editingEmployee.gender,
-              birthday: editingEmployee.birthday ?? undefined,
+              birthday: editingEmployee.birthday
+                ? new Date(editingEmployee.birthday).toISOString().split("T")[0]
+                : undefined,
               status: editingEmployee.status,
               cccd: editingEmployee.cccd ?? undefined,
-              point: editingEmployee.point ?? undefined,
+              role: editingEmployee.role as Role,
+              storeId: editingEmployee.storeIds?.[0] ?? undefined,
             }}
+            stores={stores}
             submitting={editSubmitting}
             serverMsg={editServerMsg}
             serverErr={editServerErr}
