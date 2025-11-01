@@ -129,7 +129,9 @@ const inventoryService = {
 
   // 📈 Tổng tồn kho khả dụng
   getTotalAvailable: async (productColorId: string) => {
-    return axiosClient.get(`/api/inventories/total-available/${productColorId}`);
+    return axiosClient.get(`/inventories/stock/total-available`, {
+      params: { productColorId },
+    });
   },
 
   // 🎨 Lấy danh sách inventory theo ProductColor

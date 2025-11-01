@@ -59,11 +59,7 @@ const Cart: React.FC = () => {
                       type="button"
                       className="px-2 py-1 text-sm"
                       onClick={() =>
-                        updateQty(
-                          i.productId,
-                          i.colorId,
-                          Math.max(1, i.qty - 1)
-                        )
+                        updateQty(i.productColorId, Math.max(1, i.qty - 1))
                       }
                     >
                       −
@@ -72,9 +68,7 @@ const Cart: React.FC = () => {
                     <button
                       type="button"
                       className="px-2 py-1 text-sm"
-                      onClick={() =>
-                        updateQty(i.productId, i.colorId, i.qty + 1)
-                      }
+                      onClick={() => updateQty(i.productColorId, i.qty + 1)}
                     >
                       +
                     </button>
@@ -83,7 +77,7 @@ const Cart: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => remove(i.productId, i.colorId)} // <-- truyền cả colorId
+                  onClick={() => remove(i.productColorId)}
                   className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
                 >
                   Xóa

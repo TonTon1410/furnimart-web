@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/service/cartService.ts
-import axiosClient from "@/service/axiosClient"
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
+import axiosClient from "@/service/axiosClient";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://152.53.169.79:8080/api";
 
 export interface CartItemDTO {
   cartItemId: number;
   productId: string;
+  productColorId: string; // ID của productColor (biến thể sản phẩm)
   productName: string;
   image: string;
   price: number;
@@ -30,7 +32,9 @@ export interface ApiResponse<T = any> {
 
 export const cartService = {
   async getMyCart() {
-    const res = await axiosClient.get<ApiResponse<CartDTO>>(`${BASE_URL}/carts`);
+    const res = await axiosClient.get<ApiResponse<CartDTO>>(
+      `${BASE_URL}/carts`
+    );
     return res.data.data;
   },
 
@@ -59,33 +63,39 @@ export const cartService = {
     return res.data;
   },
 
+  // DELETE /api/carts - Dọn sạch giỏ hàng
   async clearCart() {
     const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts`);
     return res.data;
   },
 
-
-  // PATCH /api/carts/update?productId=&quantity=&colorId=
-  async update(productId: string, quantity: number, colorId: string) {
-    const res = await axiosClient.patch<ApiResponse>(`${BASE_URL}/carts/update`, null, {
-      params: { productId, quantity, colorId },
-    });
-    return res.data;
-  },
-
-  // ✅ DELETE /api/carts/remove/{productId}/color/{colorId} — xoá đúng 1 biến thể
-  async removeOne(productId: string, colorId: string) {
-    const res = await axiosClient.delete<ApiResponse>(
-      `${BASE_URL}/carts/remove/${productId}/color/${colorId}`
+  // PATCH /api/carts/update?productColorId=&quantity=
+  async update(productColorId: string, quantity: number) {
+    const res = await axiosClient.patch<ApiResponse>(
+      `${BASE_URL}/carts/update`,
+      null,
+      {
+        params: { productColorId, quantity },
+      }
     );
     return res.data;
   },
 
-  // DELETE /api/carts/remove?productIds=aaa&productIds=bbb
+  // DELETE /api/carts/remove/{productColorId} - Xoá 1 sản phẩm khỏi giỏ hàng
+  async removeOne(productColorId: string) {
+    const res = await axiosClient.delete<ApiResponse>(
+      `${BASE_URL}/carts/remove/${productColorId}`
+    );
+    return res.data;
+  },
+
+  // DELETE /api/carts/remove?productIds=aaa&productIds=bbb - Xoá nhiều sản phẩm
   async removeMany(productIds: string[]) {
     const params = new URLSearchParams();
     productIds.forEach((id) => params.append("productIds", id));
-    const res = await axiosClient.delete<ApiResponse>(`${BASE_URL}/carts/remove?${params.toString()}`);
+    const res = await axiosClient.delete<ApiResponse>(
+      `${BASE_URL}/carts/remove?${params.toString()}`
+    );
     return res.data;
   },
 };

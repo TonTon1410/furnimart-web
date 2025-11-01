@@ -18,7 +18,7 @@ interface Product {
     id: number;
     image: string;
     materialName: string;
-    description: string;
+    description: string | null;
     status: string;
   }[];
 }

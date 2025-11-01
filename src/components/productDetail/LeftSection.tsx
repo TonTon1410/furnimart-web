@@ -4,7 +4,9 @@ import { CheckCircle, ShoppingCart } from "lucide-react";
 import { authService } from "@/service/authService";
 import { useCartStore } from "@/store/cart";
 import { useNavigate } from "react-router-dom";
-import ConfirmAddToCartModal, { type Color as ModalColor } from "../ConfirmAddToCartModal";
+import ConfirmAddToCartModal, {
+  type Color as ModalColor,
+} from "../ConfirmAddToCartModal";
 
 interface ProductColor {
   id: string;
@@ -15,12 +17,10 @@ interface ProductColor {
   };
   images?: { id: string; image: string }[];
   models3D?: {
-    image3d: string;
     status: string;
     modelUrl: string;
     format: string;
-    sizeInMb: number;
-    previewImage: string;
+    previewImage?: string;
   }[];
   status: string;
 }
@@ -29,7 +29,7 @@ interface Material {
   id: number;
   image: string;
   materialName: string;
-  description: string;
+  description: string | null;
   status: string;
 }
 
@@ -44,23 +44,24 @@ interface Product {
   weight: number;
   categoryName: string;
   categoryId: number;
-  productColors: ProductColor[];
-  materials: Material[];
+  productColors?: ProductColor[];
+  materials?: Material[];
 }
 
 interface LeftSectionProps {
   product: Product;
   selectedColorId: string | null;
   onColorChange: (id: string) => void;
+  availableStock: number | null;
 }
 
-const fmtVND = (n: number) =>
-  new Intl.NumberFormat("vi-VN").format(n) + " ₫";
+const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const LeftSection: React.FC<LeftSectionProps> = ({
   product,
   selectedColorId,
   onColorChange,
+  availableStock,
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -72,12 +73,11 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   // Chuyển dữ liệu productColors sang định dạng của modal
   const modalColors: ModalColor[] = useMemo(
     () =>
-      product.productColors.map((pc) => ({
+      (product.productColors || []).map((pc) => ({
         id: pc.id,
         colorName: pc.color.colorName,
         hexCode: pc.color.hexCode,
-        images:
-          pc.images?.map((img) => img.image).filter(Boolean) ?? [],
+        images: pc.images?.map((img) => img.image).filter(Boolean) ?? [],
       })),
     [product.productColors]
   );
@@ -93,14 +93,18 @@ const LeftSection: React.FC<LeftSectionProps> = ({
 
   const handleConfirmAdd = async ({
     quantity: confirmQty,
-    colorId,
+    productColorId,
   }: {
     quantity: number;
-    colorId: string | null;
+    productColorId: string | null;
   }) => {
     try {
-      let finalColorId = colorId;
-      if (!finalColorId && product.productColors.length === 1) {
+      let finalColorId = productColorId;
+      if (
+        !finalColorId &&
+        product.productColors &&
+        product.productColors.length === 1
+      ) {
         finalColorId = product.productColors[0].id;
       }
       if (!finalColorId) {
@@ -108,7 +112,8 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         return;
       }
 
-      await add(product.id, confirmQty, finalColorId);
+      // finalColorId chính là productColorId (id của productColor)
+      await add(finalColorId, confirmQty);
 
       setQuantity(confirmQty);
       if (selectedColorId !== finalColorId) onColorChange(finalColorId);
@@ -130,13 +135,28 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         <p className="mt-3 text-3xl font-extrabold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
           {fmtVND(product.price)}
         </p>
+
+        {/* Hiển thị tồn kho */}
+        {selectedColorId && (
+          <div className="mt-2 text-sm">
+            {availableStock === null ? (
+              <span className="text-gray-500">Đang kiểm tra tồn kho...</span>
+            ) : availableStock > 0 ? (
+              <span className="text-green-600 font-medium">
+                Còn {availableStock} sản phẩm
+              </span>
+            ) : (
+              <span className="text-red-600 font-medium">Hết hàng</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Màu sắc */}
       <div className="mb-8">
         <div className="mb-3 text-xl font-semibold text-gray-900">Màu sắc</div>
         <div className="flex flex-wrap gap-3">
-          {product.productColors.map((pc) => (
+          {(product.productColors || []).map((pc) => (
             <button
               key={pc.id}
               onClick={() => onColorChange(pc.id)}
@@ -147,8 +167,14 @@ const LeftSection: React.FC<LeftSectionProps> = ({
                   ? "border-emerald-600 ring-2 ring-emerald-400"
                   : "border-gray-300 hover:border-emerald-300"
               }`}
-              style={{ backgroundColor: pc.color.hexCode }}
-            />
+            >
+              <span
+                className="block h-full w-full rounded-full"
+                {...({
+                  style: { backgroundColor: pc.color.hexCode },
+                } as React.HTMLAttributes<HTMLSpanElement>)}
+              />
+            </button>
           ))}
         </div>
       </div>
@@ -159,7 +185,8 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         <div className="flex items-center border border-gray-300 rounded-md h-12 w-[140px] sm:w-auto">
           <button
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold"
+            disabled={availableStock === 0}
+            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             −
           </button>
@@ -167,8 +194,18 @@ const LeftSection: React.FC<LeftSectionProps> = ({
             {quantity}
           </span>
           <button
-            onClick={() => setQuantity((q) => q + 1)}
-            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold"
+            onClick={() =>
+              setQuantity((q) =>
+                availableStock !== null && availableStock > 0
+                  ? Math.min(q + 1, availableStock)
+                  : q + 1
+              )
+            }
+            disabled={
+              availableStock === 0 ||
+              (availableStock !== null && quantity >= availableStock)
+            }
+            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             +
           </button>
@@ -177,10 +214,15 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         {/* Nút Thêm giỏ hàng */}
         <button
           onClick={handleOpenConfirm}
-          className="rounded-md py-3 px-5 text-lg font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 w-full sm:w-auto flex items-center justify-center gap-2"
+          disabled={availableStock === 0}
+          className={`rounded-md py-3 px-5 text-lg font-bold text-white shadow-lg transition-transform w-full sm:w-auto flex items-center justify-center gap-2 ${
+            availableStock === 0
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:scale-[1.02] active:scale-[0.98]"
+          }`}
         >
           <ShoppingCart className="h-5 w-5" />
-          <span>Thêm vào giỏ hàng</span>
+          <span>{availableStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}</span>
         </button>
       </div>
 
@@ -194,7 +236,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         colors={modalColors}
         initialColorId={
           selectedColorId ||
-          (product.productColors.length === 1
+          (product.productColors && product.productColors.length === 1
             ? product.productColors[0].id
             : null)
         }
