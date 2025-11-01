@@ -6,6 +6,7 @@ import LeftSection from "../components/productDetail/LeftSection";
 import BottomSection from "../components/productDetail/BottomSection";
 import { productService } from "../service/productService";
 import type { Product as ProductType } from "../service/productService";
+import inventoryService from "../service/inventoryService";
 import NotFound from "./NotFound";
 import LoadingPage from "./LoadingPage";
 
@@ -20,6 +21,7 @@ const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
+  const [availableStock, setAvailableStock] = useState<number | null>(null);
 
   // Nếu sản phẩm chỉ có 1 màu thì tự chọn
   useEffect(() => {
@@ -27,6 +29,28 @@ const ProductDetail: React.FC = () => {
       setSelectedColorId(product.productColors[0].id);
     }
   }, [product]);
+
+  // Load tồn kho khi chọn màu
+  useEffect(() => {
+    if (!selectedColorId) {
+      setAvailableStock(null);
+      return;
+    }
+
+    const fetchStock = async () => {
+      try {
+        const res = await inventoryService.getTotalAvailable(selectedColorId);
+        if (res?.data?.data !== undefined) {
+          setAvailableStock(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching stock:", err);
+        setAvailableStock(null);
+      }
+    };
+
+    fetchStock();
+  }, [selectedColorId]);
 
   // Lấy sản phẩm cùng danh mục trừ chính nó
   const getRelatedProducts = async (
@@ -72,21 +96,24 @@ const ProductDetail: React.FC = () => {
 
   // Gom tất cả ảnh hợp lệ
   const allColorImages =
-    product.productColors?.flatMap((pc) =>
-      pc.images?.map((img) => img.image).filter((i) => isValidUrl(i)) || []
+    product.productColors?.flatMap(
+      (pc) =>
+        pc.images?.map((img) => img.image).filter((i) => isValidUrl(i)) || []
     ) || [];
 
   // Gom ảnh preview 3D (nếu có)
   const all3DPreviews =
     product?.productColors?.flatMap((color) =>
-    color.models3D
-      .filter((m) => m.status === "ACTIVE" && m.modelUrl && m.modelUrl !== "string")
-      .map((m) => ({
-        modelUrl: m.modelUrl,
-        previewImage: m.previewImage,
-        format: m.format,
-      }))
-  ) || [];
+      (color.models3D || [])
+        .filter(
+          (m) => m.status === "ACTIVE" && m.modelUrl && m.modelUrl !== "string"
+        )
+        .map((m) => ({
+          modelUrl: m.modelUrl,
+          previewImage: m.previewImage,
+          format: m.format,
+        }))
+    ) || [];
 
   // Ảnh của màu đang chọn (nếu có)
   const selectedColorImages =
@@ -122,6 +149,7 @@ const ProductDetail: React.FC = () => {
               product={product}
               selectedColorId={selectedColorId}
               onColorChange={setSelectedColorId}
+              availableStock={availableStock}
             />
           </div>
         </div>

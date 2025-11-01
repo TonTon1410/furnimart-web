@@ -118,8 +118,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                             className="px-2 py-1 text-sm disabled:opacity-50"
                             onClick={() =>
                               updateQty(
-                                i.productId,
-                                i.colorId,
+                                i.productColorId,
                                 Math.max(1, i.qty - 1)
                               )
                             }
@@ -133,7 +132,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                             type="button"
                             className="px-2 py-1 text-sm disabled:opacity-50"
                             onClick={() =>
-                              updateQty(i.productId, i.colorId, i.qty + 1)
+                              updateQty(i.productColorId, i.qty + 1)
                             }
                             aria-label="Tăng"
                             disabled={loading}
@@ -145,7 +144,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
                       <button
                         type="button"
-                        onClick={() => remove(i.productId, i.colorId)} // <-- truyền cả colorId
+                        onClick={() => remove(i.productColorId)}
                         className="text-xs text-red-500 hover:underline disabled:opacity-50"
                         disabled={loading}
                       >
