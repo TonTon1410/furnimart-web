@@ -128,33 +128,94 @@ const LeftSection: React.FC<LeftSectionProps> = ({
   };
 
   return (
-    <div className="relative p-4">
+    <div className="relative p-3 md:p-6 space-y-4 md:space-y-6">
       {/* Tên + giá */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-        <p className="mt-3 text-3xl font-extrabold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
-          {fmtVND(product.price)}
-        </p>
+      <div className="space-y-3 md:space-y-4">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
+          {product.name}
+        </h1>
+        <div className="flex items-baseline gap-3">
+          <p className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
+            {fmtVND(product.price)}
+          </p>
+        </div>
 
         {/* Hiển thị tồn kho */}
         {selectedColorId && (
-          <div className="mt-2 text-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
             {availableStock === null ? (
-              <span className="text-gray-500">Đang kiểm tra tồn kho...</span>
+              <span className="text-gray-600">Đang kiểm tra tồn kho...</span>
             ) : availableStock > 0 ? (
-              <span className="text-green-600 font-medium">
-                Còn {availableStock} sản phẩm
-              </span>
+              <>
+                <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-green-700">
+                  Còn {availableStock} sản phẩm
+                </span>
+              </>
             ) : (
-              <span className="text-red-600 font-medium">Hết hàng</span>
+              <>
+                <span className="h-2 w-2 bg-red-500 rounded-full"></span>
+                <span className="text-red-700">Hết hàng</span>
+              </>
             )}
           </div>
         )}
       </div>
 
+      {/* Thông tin nhanh */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:rounded-xl border border-gray-200">
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">
+            Danh mục
+          </p>
+          <p className="text-sm font-semibold text-gray-900">
+            {product.categoryName}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">
+            Vật liệu
+          </p>
+          <p className="text-sm font-semibold text-gray-900">
+            {product.materials && product.materials.length > 0
+              ? product.materials.map((m) => m.materialName).join(", ")
+              : "Chưa cập nhật"}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">
+            Kích thước
+          </p>
+          <p className="text-sm font-semibold text-gray-900">
+            {product.length} × {product.width} × {product.height} cm
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">
+            Trọng lượng
+          </p>
+          <p className="text-sm font-semibold text-gray-900">
+            {product.weight} kg
+          </p>
+        </div>
+      </div>
+
       {/* Màu sắc */}
-      <div className="mb-8">
-        <div className="mb-3 text-xl font-semibold text-gray-900">Màu sắc</div>
+      <div className="space-y-3 md:space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">
+            Chọn màu sắc
+          </h3>
+          {selectedColorId && (
+            <span className="text-sm text-gray-600">
+              {
+                (product.productColors || []).find(
+                  (pc) => pc.id === selectedColorId
+                )?.color.colorName
+              }
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-3">
           {(product.productColors || []).map((pc) => (
             <button
@@ -162,69 +223,49 @@ const LeftSection: React.FC<LeftSectionProps> = ({
               onClick={() => onColorChange(pc.id)}
               aria-label={`Chọn màu ${pc.color.colorName}`}
               title={pc.color.colorName}
-              className={`h-12 w-12 rounded-full border-2 shadow-sm transition hover:scale-110 ${
+              className={`relative h-14 w-14 rounded-xl border-2 shadow-sm transition-all hover:scale-110 ${
                 selectedColorId === pc.id
-                  ? "border-emerald-600 ring-2 ring-emerald-400"
+                  ? "border-emerald-600 ring-4 ring-emerald-100 scale-110"
                   : "border-gray-300 hover:border-emerald-300"
               }`}
             >
               <span
-                className="block h-full w-full rounded-full"
+                className="block h-full w-full rounded-lg"
                 {...({
                   style: { backgroundColor: pc.color.hexCode },
                 } as React.HTMLAttributes<HTMLSpanElement>)}
               />
+              {selectedColorId === pc.id && (
+                <CheckCircle className="absolute -top-1 -right-1 h-5 w-5 text-emerald-600 bg-white rounded-full" />
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Số lượng + Giỏ hàng */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Bộ chọn số lượng */}
-        <div className="flex items-center border border-gray-300 rounded-md h-12 w-[140px] sm:w-auto">
-          <button
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            disabled={availableStock === 0}
-            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            −
-          </button>
-          <span className="min-w-[60px] text-center text-base font-semibold">
-            {quantity}
-          </span>
-          <button
-            onClick={() =>
-              setQuantity((q) =>
-                availableStock !== null && availableStock > 0
-                  ? Math.min(q + 1, availableStock)
-                  : q + 1
-              )
-            }
-            disabled={
-              availableStock === 0 ||
-              (availableStock !== null && quantity >= availableStock)
-            }
-            className="w-10 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            +
-          </button>
-        </div>
-
-        {/* Nút Thêm giỏ hàng */}
-        <button
-          onClick={handleOpenConfirm}
-          disabled={availableStock === 0}
-          className={`rounded-md py-3 px-5 text-lg font-bold text-white shadow-lg transition-transform w-full sm:w-auto flex items-center justify-center gap-2 ${
-            availableStock === 0
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:scale-[1.02] active:scale-[0.98]"
-          }`}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          <span>{availableStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}</span>
-        </button>
-      </div>
+      {/* Nút Thêm giỏ hàng */}
+      <button
+        onClick={handleOpenConfirm}
+        disabled={
+          !selectedColorId || availableStock === null || availableStock === 0
+        }
+        className={`w-full rounded-lg md:rounded-xl py-3 md:py-4 px-4 md:px-6 text-base md:text-lg font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 md:gap-3 ${
+          !selectedColorId || availableStock === null || availableStock === 0
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+        }`}
+      >
+        <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
+        <span>
+          {!selectedColorId
+            ? "Vui lòng chọn màu"
+            : availableStock === null
+            ? "Đang kiểm tra..."
+            : availableStock === 0
+            ? "Hết hàng"
+            : "Thêm vào giỏ hàng"}
+        </span>
+      </button>
 
       {/* Modal */}
       <ConfirmAddToCartModal

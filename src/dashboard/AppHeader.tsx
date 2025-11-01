@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, LogOut } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "@/hooks/useTheme";
 import Dropdown from "./Dropdown";
 import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
@@ -159,7 +159,9 @@ const AppHeader: React.FC = () => {
                 id={btnId}
                 aria-haspopup="menu"
                 aria-controls={menuId}
-                aria-expanded={openUser ? "true" : "false"}
+                {...({
+                  "aria-expanded": openUser,
+                } as React.ButtonHTMLAttributes<HTMLButtonElement>)}
                 onClick={() => setOpenUser((v) => !v)}
                 className="flex items-center gap-2 rounded-full border border-gray-300 dark:border-gray-700 pl-1 pr-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-100"
               >

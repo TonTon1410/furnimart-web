@@ -6,6 +6,7 @@ import { DP } from "./paths";
 
 import AdminCategoriesPage from "@/dashboard/roles/admin/AdminCategoriesPage";
 import AdminMaterialsPage from "@/dashboard/roles/admin/AdminMaterialsPage";
+import UserProfile from "@/pages/UserProfile";
 const Placeholder = (t: string) => () => <div className="p-6 text-lg">{t}</div>;
 
 const AdminSettings = Placeholder("Admin • Settings");
@@ -52,6 +53,7 @@ export default function RoleRoutes() {
       <Routes>
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
+        <Route path="profile" element={<UserProfile />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="employees" element={<AdminEmployeesPage />} />
         <Route path="stores" element={<AdminStoresPage />} />
@@ -73,6 +75,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        <Route path="profile" element={<UserProfile />} />
         {/* <Route path="warehouses" element={<WarehousesPage />} />
         <Route path="zones" element={<ZonePage/>} />
         <Route path="locations" element={<LocationItemPage />} />
@@ -95,6 +98,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("orders")} replace />} />
+        <Route path="profile" element={<UserProfile />} />
         <Route path="orders" element={<DeliveryOrders />} />
         <Route path="pickup" element={<DeliveryPickup />} />
         <Route path="status" element={<DeliveryStatus />} />
@@ -110,6 +114,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
+        <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
         <Route path="stock" element={<SellerStock />} />

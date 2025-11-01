@@ -126,9 +126,9 @@ const ProductDetail: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8">
+      <div className="w-full max-w-7xl mx-auto py-4 md:py-10 px-2 md:px-8">
         {/* Khung hình ảnh + thông tin */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 rounded-2xl bg-white shadow-lg p-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 rounded-xl md:rounded-2xl bg-white shadow-lg p-4 md:p-8">
           {/* Hình ảnh bên trái */}
           <div className="md:col-span-7">
             <RightSection
