@@ -6,7 +6,13 @@ const statusColors: Record<string, string> = {
   INACTIVE: "#9e9e9e",
 };
 
-const WarehouseMap = ({ warehouses }: { warehouses: any[] }) => {
+const WarehouseMap = ({
+  warehouses,
+  onSelectWarehouse,
+}: {
+  warehouses: any[];
+  onSelectWarehouse: (warehouseId: string) => void;
+}) => {
   return (
     <Grid
       container
@@ -17,8 +23,17 @@ const WarehouseMap = ({ warehouses }: { warehouses: any[] }) => {
       }}
     >
       {warehouses.map((wh) => (
-        <Box key={wh.id}>
-          <Card variant="outlined" sx={{ borderRadius: 2, borderColor: "#ddd" }}>
+        <Box key={wh.id} onClick={() => onSelectWarehouse(wh.id)}>
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
+              borderColor: "#ddd",
+              cursor: "pointer",
+              transition: "0.2s",
+              "&:hover": { boxShadow: 3 },
+            }}
+          >
             <CardContent>
               <Typography variant="h6" mb={2}>
                 {wh.warehouseName} ({wh.status})
@@ -65,10 +80,6 @@ const WarehouseMap = ({ warehouses }: { warehouses: any[] }) => {
                               color: "#fff",
                               textAlign: "center",
                               fontSize: "0.75rem",
-                              cursor: "pointer",
-                              "&:hover": {
-                                opacity: 0.8,
-                              },
                             }}
                           >
                             {loc.code}

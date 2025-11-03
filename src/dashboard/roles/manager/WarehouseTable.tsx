@@ -1,33 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataGrid } from "@mui/x-data-grid";
 
-const WarehouseTable = ({ warehouses }: { warehouses: any[] }) => {
-  const rows = warehouses.flatMap((wh) =>
-    wh.zones.map((z: any) => ({
-      id: `${wh.id}-${z.id}`,
-      warehouseName: wh.warehouseName,
-      capacity: wh.capacity,
-      warehouseStatus: wh.status,
-      zoneName: z.zoneName,
-      zoneCode: z.zoneCode,
-      zoneStatus: z.status,
-      quantity: z.quantity,
-    }))
-  );
+const WarehouseTable = ({
+  warehouses,
+  onSelectWarehouse,
+}: {
+  warehouses: any[];
+  onSelectWarehouse: (warehouseId: string) => void;
+}) => {
+  // ✅ Mỗi kho là 1 dòng duy nhất
+  const rows = warehouses.map((wh) => ({
+    id: wh.id,
+    warehouseId: wh.id,
+    warehouseName: wh.warehouseName,
+    capacity: wh.capacity,
+    status: wh.status,
+  }));
 
   const columns = [
-    { field: "warehouseName", headerName: "Kho", flex: 1 },
-    { field: "warehouseStatus", headerName: "Trạng thái kho", width: 150 },
-    { field: "capacity", headerName: "Sức chứa", width: 120 },
-    { field: "zoneCode", headerName: "Mã khu", width: 100 },
-    { field: "zoneName", headerName: "Tên khu vực", flex: 1 },
-    { field: "zoneStatus", headerName: "Trạng thái khu", width: 150 },
-    { field: "quantity", headerName: "Số lượng chứa", width: 150 },
+    { field: "warehouseName", headerName: "Tên kho", flex: 2, minWidth: 150 },
+    { field: "capacity", headerName: "Sức chứa", flex: 1, width: 150 },
+    { field: "status", headerName: "Trạng thái", flex: 1, width: 150 },
   ];
 
   return (
-    <div style={{ height: 500, width: "100%" }}>
+    <div style={{ height: 'auto', width: "100%" }}>
       <DataGrid
+        autoHeight
         rows={rows}
         columns={columns}
         initialState={{
@@ -37,6 +36,7 @@ const WarehouseTable = ({ warehouses }: { warehouses: any[] }) => {
         }}
         pageSizeOptions={[5, 10, 20]}
         disableRowSelectionOnClick
+        onRowClick={(params) => onSelectWarehouse(params.row.warehouseId)}
       />
     </div>
   );

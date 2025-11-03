@@ -35,6 +35,7 @@ const LayoutContent: React.FC = () => {
           <Outlet />
         </main>
       </div>
+      <ToastComponent />
     </div>
   );
 };
