@@ -1,10 +1,12 @@
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { useToastRadix } from "@/context/useToastRadix";
 import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered } = useSidebar();
+  const { ToastComponent } = useToastRadix();
 
   return (
     <div className="min-h-screen xl:flex">
@@ -18,6 +20,7 @@ const LayoutContent: React.FC = () => {
           <Outlet />
         </main>
       </div>
+      <ToastComponent />
     </div>
   );
 };

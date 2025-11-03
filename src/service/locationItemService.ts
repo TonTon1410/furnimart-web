@@ -1,3 +1,4 @@
+// src/service/locationItemService.ts
 import axiosClient from "./axiosClient";
 
 const locationItemService = {
@@ -21,21 +22,21 @@ const locationItemService = {
     return axiosClient.get(url);
   },
 
-
-  // ✅ Tạo mới Location Item
+  // ✅ Tạo mới Location Item (có quantity)
   createLocationItem: async (data: {
     zoneId: string;
     rowLabel: string;
     columnNumber: number;
     code: string;
-    status: "ACTIVE" | "INACTIVE";
     description: string;
+    quantity: number; // 👈 thêm trường quantity
+    status: "ACTIVE" | "INACTIVE";
   }) => {
     const url = `/location-items`;
     return axiosClient.post(url, data);
   },
 
-  // ✅ Cập nhật Location Item theo ID
+  // ✅ Cập nhật Location Item theo ID (có quantity)
   updateLocationItem: async (
     locationItemId: string | number,
     data: {
@@ -43,8 +44,9 @@ const locationItemService = {
       rowLabel: string;
       columnNumber: number;
       code: string;
-      status: "ACTIVE" | "INACTIVE";
       description: string;
+      quantity: number; // 👈 thêm trường quantity
+      status: "ACTIVE" | "INACTIVE";
     }
   ) => {
     const url = `/location-items/${locationItemId}`;
