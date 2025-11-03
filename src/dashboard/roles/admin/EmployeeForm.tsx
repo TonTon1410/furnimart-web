@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import CustomDropdown from "@/components/CustomDropdown";
 
 export type Status = "ACTIVE" | "INACTIVE";
 export type Role = "STAFF" | "MANAGER" | "DELIVERY";
@@ -15,7 +16,6 @@ export interface EmployeeFormValues {
   role?: Role;
   status: Status;
   cccd?: string;
-  point?: number;
 }
 
 export interface Store {
@@ -61,7 +61,6 @@ const EmployeeForm: React.FC<Props> = ({
     role: initial?.role ?? "STAFF",
     status: initial?.status ?? "ACTIVE",
     cccd: initial?.cccd ?? "",
-    point: initial?.point ?? 0,
   });
 
   // preview avatar
@@ -116,11 +115,6 @@ const EmployeeForm: React.FC<Props> = ({
       return;
     }
 
-    if (name === "point") {
-      setForm((s) => ({ ...s, point: parseInt(value) || 0 }));
-      return;
-    }
-
     setForm((s) => ({
       ...s,
       [name]: value,
@@ -154,7 +148,6 @@ const EmployeeForm: React.FC<Props> = ({
       role: form.role,
       status: form.status,
       cccd: form.cccd?.trim() || "",
-      point: form.point || 0,
     };
 
     console.log("Payload being sent:", JSON.stringify(payload, null, 2));
@@ -165,8 +158,6 @@ const EmployeeForm: React.FC<Props> = ({
   // Style thống nhất (light/dark)
   const inputClass =
     "mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-  const selectClassRound =
-    "mt-1 w-full appearance-none rounded-full border border-gray-300 bg-white px-4 py-3 pr-10 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
   const labelClass =
     "block text-sm font-medium text-gray-700 dark:text-gray-200";
 
@@ -242,77 +233,41 @@ const EmployeeForm: React.FC<Props> = ({
           </div>
 
           <div>
-            <label htmlFor="storeId" className={labelClass}>
-              Cửa hàng
-            </label>
-            <div className="relative">
-              <select
-                id="storeId"
-                name="storeId"
-                value={form.storeId || ""}
-                onChange={handleChange}
-                className={selectClassRound}
-              >
-                <option value="">-- Chọn cửa hàng --</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name} - {store.addressLine}, {store.ward},{" "}
-                    {store.city}
-                  </option>
-                ))}
-              </select>
-              <svg
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
+            <CustomDropdown
+              id="storeId"
+              label="Cửa hàng"
+              value={form.storeId || ""}
+              onChange={(value) => {
+                console.log("StoreId changed to:", value);
+                setForm((s) => ({ ...s, storeId: value }));
+              }}
+              options={[
+                { value: "", label: "-- Chọn cửa hàng --" },
+                ...stores.map((store) => ({
+                  value: store.id,
+                  label: `${store.name} - ${store.addressLine}, ${store.ward}, ${store.city}`,
+                })),
+              ]}
+              fullWidth
+            />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Để trống nếu chưa gán cửa hàng
             </p>
           </div>
 
-          {/* Chỉ hiện khi edit */}
-          {mode === "edit" && (
-            <>
-              <div>
-                <label htmlFor="cccd" className={labelClass}>
-                  CCCD
-                </label>
-                <input
-                  id="cccd"
-                  name="cccd"
-                  value={form.cccd}
-                  onChange={handleChange}
-                  placeholder="001234567890"
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="point" className={labelClass}>
-                  Điểm tích lũy
-                </label>
-                <input
-                  id="point"
-                  name="point"
-                  type="number"
-                  value={form.point}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className={inputClass}
-                  min="0"
-                />
-              </div>
-            </>
-          )}
+          <div>
+            <label htmlFor="cccd" className={labelClass}>
+              CCCD
+            </label>
+            <input
+              id="cccd"
+              name="cccd"
+              value={form.cccd}
+              onChange={handleChange}
+              placeholder="001234567890"
+              className={inputClass}
+            />
+          </div>
         </div>
 
         {/* ===== Cột 2 ===== */}
@@ -356,33 +311,19 @@ const EmployeeForm: React.FC<Props> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="gender" className={labelClass}>
-                Giới tính
-              </label>
-              <div className="relative">
-                <select
-                  id="gender"
-                  name="gender"
-                  value={String(form.gender)}
-                  onChange={handleChange}
-                  className={selectClassRound}
-                >
-                  <option value="true">Nam</option>
-                  <option value="false">Nữ</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
+              <CustomDropdown
+                id="gender"
+                label="Giới tính"
+                value={String(form.gender)}
+                onChange={(value) => {
+                  setForm((s) => ({ ...s, gender: value === "true" }));
+                }}
+                options={[
+                  { value: "true", label: "Nam" },
+                  { value: "false", label: "Nữ" },
+                ]}
+                fullWidth
+              />
             </div>
             <div>
               <label htmlFor="birthday" className={labelClass}>
@@ -400,68 +341,37 @@ const EmployeeForm: React.FC<Props> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Chỉ hiện role khi tạo mới */}
-            {mode === "create" && (
-              <div>
-                <label htmlFor="role" className={labelClass}>
-                  Vai trò
-                </label>
-                <div className="relative">
-                  <select
-                    id="role"
-                    name="role"
-                    value={form.role}
-                    onChange={handleChange}
-                    className={selectClassRound}
-                  >
-                    <option value="STAFF">STAFF</option>
-                    <option value="MANAGER">MANAGER</option>
-                    <option value="DELIVERY">DELIVERY</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-            )}
+            <div>
+              <CustomDropdown
+                id="role"
+                label="Vai trò"
+                value={form.role || "STAFF"}
+                onChange={(value) => {
+                  setForm((s) => ({ ...s, role: value as Role }));
+                }}
+                options={[
+                  { value: "STAFF", label: "STAFF" },
+                  { value: "MANAGER", label: "MANAGER" },
+                  { value: "DELIVERY", label: "DELIVERY" },
+                ]}
+                fullWidth
+              />
+            </div>
 
-            <div className={mode === "create" ? "" : "col-span-2"}>
-              <label htmlFor="status" className={labelClass}>
-                Trạng thái
-              </label>
-              <div className="relative">
-                <select
-                  id="status"
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className={selectClassRound}
-                >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.08z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
+            <div>
+              <CustomDropdown
+                id="status"
+                label="Trạng thái"
+                value={form.status}
+                onChange={(value) => {
+                  setForm((s) => ({ ...s, status: value as Status }));
+                }}
+                options={[
+                  { value: "ACTIVE", label: "ACTIVE" },
+                  { value: "INACTIVE", label: "INACTIVE" },
+                ]}
+                fullWidth
+              />
             </div>
           </div>
         </div>

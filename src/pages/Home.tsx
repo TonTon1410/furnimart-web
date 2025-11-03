@@ -1,13 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Truck,
-  ShieldCheck,
-  RotateCcw,
-  MessageSquare,
-  CheckCircle,
-} from "lucide-react";
+import { Truck, ShieldCheck, RotateCcw, MessageSquare } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Link } from "react-router-dom";
@@ -16,12 +10,25 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 import ProductCard from "@/components/ProductCard";
-import { useCartStore } from "@/store/cart";
+// import { useCartStore } from "@/store/cart"; // Không dùng nữa vì cần chọn màu ở trang chi tiết
 import { productService, type Product } from "@/service/homeService";
-import axiosClient from "@/service/axiosClient";
+import axios from "axios";
 
 // Import ảnh local đúng chuẩn
 import heroImg from "@/assets/home-image.png";
+
+// Sử dụng API Gateway chính (port 8080) để routing đến service categories
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://152.53.227.115:8080/api";
+
+// Tạo axios instance cho public API (không cần token)
+const publicAxios = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 10000,
+});
 
 // ---- helpers & animation ----
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
@@ -45,9 +52,7 @@ type Category = {
 };
 
 const Home: React.FC = () => {
-  const add = useCartStore((s) => s.add); // API: add(productId, qty)
   const [products, setProducts] = useState<Product[]>([]);
-  const [addedProduct, setAddedProduct] = useState<string | null>(null);
 
   // ✅ Categories (load bằng axiosClient tại chỗ)
   const [cats, setCats] = useState<Category[]>([]);
@@ -64,21 +69,35 @@ const Home: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    axiosClient
+    // Gọi API public không cần token - sử dụng publicAxios
+    publicAxios
       .get<{ status: number; message: string; data: Category[] }>("/categories")
       .then((res) => {
+        console.log("✅ Categories loaded:", res.data);
         const all = res.data?.data ?? [];
-        setCats(all.filter((c) => c.status === "ACTIVE"));
+        const activeCats = all.filter((c: Category) => c.status === "ACTIVE");
+
+        // Delay nhỏ để đảm bảo DOM ready trước khi render Swiper
+        setTimeout(() => {
+          setCats(activeCats);
+          setCatsLoading(false);
+        }, 50);
       })
       .catch((err: any) => {
-        console.error("Load categories error:", err);
+        console.error("❌ Load categories error:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
+        // Nếu lỗi, vẫn set empty array để không hiển thị loading mãi
+        setCats([]);
         setCatsErr(
           err?.response?.data?.message ||
             err?.message ||
             "Không tải được danh mục"
         );
-      })
-      .finally(() => setCatsLoading(false));
+        setCatsLoading(false);
+      });
   }, []);
 
   return (
@@ -158,12 +177,7 @@ const Home: React.FC = () => {
 
       {/* ✅ CATEGORIES – 1 hàng, tự chạy bằng Swiper */}
       <section className="mx-auto max-w-7xl px-6 py-14">
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-        >
+        <div>
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -174,7 +188,7 @@ const Home: React.FC = () => {
               </p>
             </div>
             <Link
-              to="/shop?catId=${c.id}"
+              to="/shop"
               className="text-sm font-semibold text-emerald-700 hover:underline"
             >
               Xem tất cả →
@@ -209,15 +223,46 @@ const Home: React.FC = () => {
             <div className="rounded-3xl border border-gray-200 bg-white p-6 text-gray-600">
               Chưa có danh mục khả dụng.
             </div>
+          ) : cats.length < 4 ? (
+            // Hiển thị grid thông thường khi có ít categories
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {cats.map((c) => (
+                <div
+                  key={c.id}
+                  className="group relative overflow-hidden rounded-3xl opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
+                >
+                  <Link to={`/shop?catId=${c.id}`}>
+                    <img
+                      src={
+                        c.image ||
+                        "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+                      }
+                      alt={c.categoryName}
+                      onError={onImgError}
+                      className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <div className="text-sm opacity-90">Khám phá</div>
+                      <div className="text-xl font-bold">{c.categoryName}</div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
           ) : (
+            // Swiper khi có nhiều categories
             <Swiper
+              key={`cat-swiper-${cats.length}`}
               modules={[Autoplay]}
               slidesPerView={1.2}
               spaceBetween={16}
               autoplay={{ delay: 2200, disableOnInteraction: false }}
-              loop
+              loop={true}
               speed={650}
-              loopAdditionalSlides={4}
+              observer={true}
+              observeParents={true}
+              watchOverflow={true}
               breakpoints={{
                 640: { slidesPerView: 2.2, spaceBetween: 18 },
                 1024: { slidesPerView: 3.2, spaceBetween: 20 },
@@ -253,7 +298,7 @@ const Home: React.FC = () => {
               ))}
             </Swiper>
           )}
-        </motion.div>
+        </div>
       </section>
 
       {/* SẢN PHẨM NỔI BẬT */}
@@ -283,7 +328,8 @@ const Home: React.FC = () => {
             animate="show"
           >
             {products.map((p) => {
-              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
+              const img =
+                p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -296,15 +342,8 @@ const Home: React.FC = () => {
                       price: p.price,
                       thumbnailImage: img,
                     }}
-                    onAdd={async () => {
-                      try {
-                        await add(p.id, 1); // ✅ dùng API store
-                        setAddedProduct(p.name);
-                        setTimeout(() => setAddedProduct(null), 2000);
-                      } catch (err) {
-                        console.error("Add to cart error:", err);
-                      }
-                    }}
+                    // Note: ProductCard không có onAdd prop
+                    // Người dùng cần vào trang chi tiết để chọn màu trước khi thêm vào giỏ
                   />
                 </motion.div>
               );
@@ -312,17 +351,6 @@ const Home: React.FC = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* ✅ TOAST xác nhận */}
-      {addedProduct && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow-lg">
-          <CheckCircle className="h-5 w-5 text-white" />
-          <span>
-            Đã thêm <span className="font-semibold">{addedProduct}</span> vào
-            giỏ hàng
-          </span>
-        </div>
-      )}
 
       {/* KHÁCH HÀNG NÓI GÌ */}
       <section className="bg-white py-16">
