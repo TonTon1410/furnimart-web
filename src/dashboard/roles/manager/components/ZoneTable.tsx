@@ -19,7 +19,7 @@ import zoneService from "@/service/zoneService";
 import ZoneForm from "./ZoneForm";
 import ZoneRow from "./ZoneRow";
 import ConfirmDialog from "./ConfirmDialog";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import LocationForm from "./LocationForm";
 
 interface ZoneTableProps {
@@ -38,7 +38,7 @@ const ZoneTable = ({ warehouseId, onParentRefetch }: ZoneTableProps) => {
     message: "",
     onConfirm: () => {},
   });
-  const { showToast } = useToastRadix();
+  const { showToast } = useToast();
 
   // ✅ Form tạo LocationItem
   const [openLocationForm, setOpenLocationForm] = useState(false);
