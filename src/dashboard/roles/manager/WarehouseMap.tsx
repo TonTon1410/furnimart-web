@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// ✅ IMPORT THÊM
 import {
   Box,
   Typography,
@@ -7,31 +6,42 @@ import {
   CardContent,
   Tooltip,
   IconButton,
+  Stack, // Giữ lại Stack nếu cần thiết cho các nút
 } from "@mui/material";
-// ✅ Thêm icon Plus
-import { Edit, Plus } from "lucide-react";
+// ✅ Import thêm BoxIcon (biểu tượng tồn kho)
+import { Edit, Plus, Box as BoxIcon } from "lucide-react";
+
+// Khai báo kiểu dữ liệu cho Entity Type (Giữ nguyên)
+type EntityType = 'WAREHOUSE' | 'ZONE' | 'LOCATION';
+
+// Khai báo Props mới (Cập nhật tên prop cho hành động edit kho)
+interface WarehouseMapProps {
+  warehouses: any[];
+  onEditWarehouse: (warehouseId: string) => void; // Đổi tên từ onSelectWarehouse
+  onCreateZone: (warehouseId: string) => void;
+  onEditZone: (zoneId: string, warehouseId: string) => void;
+  onCreateLocation: (zoneId: string) => void;
+  onEditLocation: (locationItemId: string, zoneId: string) => void;
+  // ✅ PROP MỚI: Handler xem tồn kho (Giữ nguyên)
+  onViewInventory: (id: string, name: string, type: EntityType) => void;
+}
 
 const statusColors: Record<string, string> = {
   ACTIVE: "#4caf50",
   INACTIVE: "#9e9e9e",
 };
 
-// ✅ Hàm chia mảng (ĐÃ CẬP NHẬT LOGIC)
-// Chia mảng thành 2 hàng (theo yêu cầu)
+// Hàm chia mảng (Lấy logic từ CODE CŨ)
 const chunkArray = (arr: any[]) => {
   if (!arr || arr.length === 0) return [];
 
-  // Yêu cầu: 1 khu vực -> 1 hàng
   if (arr.length === 1) {
     return [arr];
   }
-  // Yêu cầu: 2 khu vực -> 1 hàng
   if (arr.length === 2) {
     return [arr];
   }
 
-  // Yêu cầu: 3 khu vực -> 2/1, 8 khu vực -> 4/4
-  // Logic này: Math.ceil(length / 2) cho hàng đầu tiên
   const chunkSize = Math.ceil(arr.length / 2);
   const chunks = [];
   for (let i = 0; i < arr.length; i += chunkSize) {
@@ -40,8 +50,9 @@ const chunkArray = (arr: any[]) => {
   return chunks;
 };
 
+
 // =================================================================
-// ✅ (MỚI) Component nội bộ cho nút tạo Zone
+// ✅ Component nội bộ cho nút tạo Zone (Lấy từ CODE CŨ)
 // =================================================================
 const AddZoneButton = ({
   onClick,
@@ -60,7 +71,7 @@ const AddZoneButton = ({
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
-      aspectRatio: "3 / 1", // Tỷ lệ tương tự zone
+      aspectRatio: "3 / 1",
       cursor: "pointer",
       transition: "0.2s",
       "&:hover": { bgcolor: "#f0f0f0", borderColor: "#aaa" },
@@ -78,7 +89,7 @@ const AddZoneButton = ({
 );
 
 // =================================================================
-// ✅ (MỚI) Component nội bộ cho nút tạo Location
+// ✅ Component nội bộ cho nút tạo Location (Lấy từ CODE CŨ)
 // =================================================================
 const AddLocationButton = ({
   onClick,
@@ -98,7 +109,7 @@ const AddLocationButton = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        aspectRatio: "2 / 0.8", // Tỷ lệ tương tự location
+        aspectRatio: "2 / 0.8",
         cursor: "pointer",
         transition: "0.2s",
         "&:hover": { bgcolor: "#e9e9e9", color: "black", borderColor: "#777" },
@@ -109,32 +120,24 @@ const AddLocationButton = ({
   </Tooltip>
 );
 
-// =================================================================
-// MAIN COMPONENT
-// =================================================================
-const WarehouseMap = ({
+
+const WarehouseMap: React.FC<WarehouseMapProps> = ({
   warehouses,
-  onSelectWarehouse,
+  onEditWarehouse, // Đổi tên prop
+  onCreateZone,
   onEditZone,
   onEditLocation,
-  onCreateZone, // ✅ Prop mới
-  onCreateLocation, // ✅ Prop mới
-}: {
-  warehouses: any[];
-  onSelectWarehouse: (warehouseId: string) => void;
-  onEditZone: (zoneId: string, warehouseId: string) => void;
-  onEditLocation: (locationId: string, zoneId: string) => void;
-  onCreateZone: (warehouseId: string) => void; // ✅ Prop mới
-  onCreateLocation: (zoneId: string) => void; // ✅ Prop mới
+  onCreateLocation,
+  onViewInventory // ✅ Giữ nguyên prop tồn kho
 }) => {
-  // ✅ Các chữ cái được phép
-  const ALLOWED_ZONES = "ABCDEFGH".split("");
-
+  // ✅ Các chữ cái được phép (Lấy từ CODE CŨ)
+  const ALLOWED_ZONES = "ABCDEFGH".split(""); 
+  
   return (
     <>
-      {warehouses.map((wh) => {
+      {warehouses.map((wh: any) => {
         // =================================================================
-        // ✅ (MỚI) Logic kiểm tra xem có thể thêm Zone không
+        // ✅ Logic kiểm tra xem có thể thêm Zone không (Lấy từ CODE CŨ)
         // =================================================================
         const usedZoneCodes =
           wh.zones?.map((z: any) => z.zoneCode?.toUpperCase()) || [];
@@ -143,10 +146,9 @@ const WarehouseMap = ({
           (letter) => !usedZoneCodes.includes(letter)
         );
 
-        const hasCapacity = (wh.zones?.length || 0) < wh.capacity;
+        const hasCapacity = (wh.zones?.length || 0) < (wh.capacity || 8); // Giả định capacity là 8 nếu không có
         const hasLetters = availableZoneLetters.length > 0;
 
-        // Có thể thêm nếu: còn sức chứa VÀ còn chữ cái
         const canAddZone = hasCapacity && hasLetters;
 
         // Tạo mảng render (gồm zone + nút add)
@@ -171,7 +173,7 @@ const WarehouseMap = ({
               }}
             >
               <CardContent>
-                {/* Tiêu đề kho VÀ nút edit kho */}
+                {/* Tiêu đề kho VÀ nút edit kho & nút xem tồn kho */}
                 <Box
                   sx={{
                     display: "flex",
@@ -181,20 +183,36 @@ const WarehouseMap = ({
                   }}
                 >
                   <Typography variant="h6">
-                    {wh.warehouseName} – Sức chứa: {wh.capacity} (Đã dùng:{" "}
+                    {wh.warehouseName} – Sức chứa: {wh.capacity || 8} (Đã dùng:{" "}
                     {wh.zones?.length || 0})
                   </Typography>
-                  <Tooltip title="Chỉnh sửa kho">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectWarehouse(wh.id);
-                      }}
-                    >
-                      <Edit size={18} />
-                    </IconButton>
-                  </Tooltip>
+                  <Stack direction="row" spacing={1}>
+                    {/* ✅ Nút XEM TỒN KHO KHO HÀNG (GIỮ NGUYÊN TỪ FILE TRƯỚC) */}
+                    <Tooltip title={`Xem tồn kho của Kho hàng: ${wh.warehouseName}`}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewInventory(wh.id, wh.warehouseName, 'WAREHOUSE');
+                        }}
+                      >
+                        <BoxIcon size={18} /> 
+                      </IconButton>
+                    </Tooltip>
+
+                    {/* Nút EDIT KHO HÀNG (GIỮ NGUYÊN LOGIC CŨ/MỚI) */}
+                    <Tooltip title="Chỉnh sửa kho">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditWarehouse(wh.id);
+                        }}
+                      >
+                        <Edit size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
                 </Box>
 
                 {/* ✅ Render các hàng khu vực */}
@@ -213,7 +231,7 @@ const WarehouseMap = ({
                     {/* ✅ Render các item trong hàng (Zone hoặc Nút Add) */}
                     {zoneRow.map((zone: any) => {
                       // =================================================================
-                      // ✅ (MỚI) Trường hợp 1: Render Nút Add Zone
+                      // ✅ Trường hợp 1: Render Nút Add Zone
                       // =================================================================
                       if (zone.id === "ADD_ZONE_BUTTON") {
                         return (
@@ -228,7 +246,7 @@ const WarehouseMap = ({
                       }
 
                       // =================================================================
-                      // ✅ (MỚI) Trường hợp 2: Render Zone
+                      // ✅ Trường hợp 2: Render Zone
                       // =================================================================
                       
                       // Tạo mảng render cho location (locations + nút add)
@@ -244,7 +262,8 @@ const WarehouseMap = ({
                           key={zone.id}
                           sx={{
                             position: "relative",
-                            border: "1px solid #ccc",
+                            border: 1, // Thay thế border: "1px solid #ccc"
+                            borderColor: statusColors[zone.status] || '#ccc', // Thêm màu trạng thái
                             borderRadius: 2,
                             bgcolor: "#fafafa",
                             p: 1,
@@ -254,25 +273,36 @@ const WarehouseMap = ({
                             aspectRatio: "3 / 1",
                           }}
                         >
-                          {/* Nút edit khu vực (Đã có) */}
-                          <Tooltip title="Chỉnh sửa khu vực">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditZone(zone.id, wh.id);
-                              }}
-                              sx={{
-                                position: "absolute",
-                                top: 4,
-                                right: 4,
-                                zIndex: 1,
-                                padding: "2px",
-                              }}
-                            >
-                              <Edit size={16} />
-                            </IconButton>
-                          </Tooltip>
+                          {/* Nút điều khiển Khu vực */}
+                          <Stack direction="row" spacing={0.5} sx={{ position: 'absolute', top: 4, right: 4 }}>
+                            {/* ✅ Nút XEM TỒN KHO KHU VỰC (GIỮ NGUYÊN TỪ FILE TRƯỚC) */}
+                            <Tooltip title={`Xem tồn kho của Khu vực: ${zone.zoneName}`}>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onViewInventory(zone.id, zone.zoneName, 'ZONE');
+                                    }}
+                                    sx={{ padding: '2px', color: 'rgba(0, 0, 0, 0.6)' }}
+                                >
+                                    <BoxIcon size={12} />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Nút EDIT KHU VỰC (GIỮ NGUYÊN LOGIC CŨ/MỚI) */}
+                            <Tooltip title="Chỉnh sửa Khu vực">
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditZone(zone.id, wh.id);
+                                    }}
+                                    sx={{ padding: '2px', color: 'rgba(0, 0, 0, 0.6)' }}
+                                >
+                                    <Edit size={12} />
+                                </IconButton>
+                            </Tooltip>
+                          </Stack>
 
                           <Typography
                             fontWeight="bold"
@@ -287,7 +317,7 @@ const WarehouseMap = ({
                             {zone.zoneCode} - {zone.zoneName}
                           </Typography>
 
-                          {/* ✅ Lưới vị trí bên trong zone (Đã cập nhật) */}
+                          {/* ✅ Lưới vị trí bên trong zone (Lấy từ CODE CŨ) */}
                           <Box
                             sx={{
                               display: "grid",
@@ -300,7 +330,7 @@ const WarehouseMap = ({
                             {/* ✅ Render (Location hoặc Nút Add) */}
                             {locationItems.map((loc: any) => {
                               // =================================================================
-                              // ✅ (MỚI) Render Nút Add Location
+                              // ✅ Render Nút Add Location
                               // =================================================================
                               if (loc.id === "ADD_LOCATION_BUTTON") {
                                 return (
@@ -315,7 +345,7 @@ const WarehouseMap = ({
                               }
 
                               // =================================================================
-                              // ✅ Render Location (Đã có)
+                              // ✅ Render Location
                               // =================================================================
                               return (
                                 <Tooltip
@@ -337,8 +367,32 @@ const WarehouseMap = ({
                                       aspectRatio: "2 / 0.8",
                                     }}
                                   >
-                                    {/* Nút edit vị trí (Đã có) */}
-                                    <Tooltip title="Chỉnh sửa vị trí">
+                                    {/* ✅ Nút XEM TỒN KHO VỊ TRÍ (GIỮ NGUYÊN TỪ FILE TRƯỚC) */}
+                                    <Tooltip title={`Xem tồn kho tại Vị trí: ${loc.code}`}>
+                                      <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              onViewInventory(loc.id, loc.code, 'LOCATION');
+                                          }}
+                                          sx={{
+                                              position: 'absolute',
+                                              top: 0,
+                                              left: 0,
+                                              zIndex: 1,
+                                              padding: '1px',
+                                              color: 'rgba(255, 255, 255, 0.8)', // Đổi màu icon để dễ nhìn trên nền màu
+                                              "&:hover": {
+                                                  color: "black",
+                                              },
+                                          }}
+                                      >
+                                          <BoxIcon size={12} />
+                                      </IconButton>
+                                    </Tooltip>
+
+                                    {/* Nút EDIT VỊ TRÍ (GIỮ NGUYÊN LOGIC CŨ/MỚI) */}
+                                    <Tooltip title="Chỉnh sửa Vị trí">
                                       <IconButton
                                         size="small"
                                         onClick={(e) => {
@@ -351,7 +405,7 @@ const WarehouseMap = ({
                                           right: 0,
                                           zIndex: 1,
                                           padding: "1px",
-                                          color: "rgba(0, 0, 0, 0.6)",
+                                          color: "rgba(255, 255, 255, 0.8)", // Đổi màu icon để dễ nhìn trên nền màu
                                           "&:hover": {
                                             color: "black",
                                           },

@@ -1,106 +1,144 @@
 import React, { useState } from "react";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import WarehouseMap from "./WarehouseMap";
-import WarehouseForm from "./components/WarehouseForm";
-import { useWarehouseData } from "./hook/useWarehouseData";
-import LoadingPage from "@/pages/LoadingPage";
-import ZoneForm from "./components/ZoneForm";
-import LocationForm from "./components/LocationForm";
+import WarehouseForm from "./components/WarehouseForm"; // Giả định component tồn tại
+import ZoneForm from "./components/ZoneForm"; // Giả định component tồn tại
+import LocationForm from "./components/LocationForm"; // Giả định component tồn tại
+// import InventoryTableListModal from "./components/InventoryTableListModal"; // ✅ Giữ lại import component mới
+import LoadingPage from "@/pages/LoadingPage"; // Giả định component tồn tại
+
+import { useWarehouseData } from "./hook/useWarehouseData"; // Giả định hook tồn tại
+
+// Khai báo kiểu cho entity (Kho, Khu, Vị trí) (Giữ nguyên)
+type EntityType = 'WAREHOUSE' | 'ZONE' | 'LOCATION';
 
 const WarehouseManagement: React.FC = () => {
   const { warehouses, loading, refetch, storeId } = useWarehouseData();
-
-  // State cho Warehouse Form
+  // State cho Warehouse Form (Giữ nguyên)
   const [openForm, setOpenForm] = useState(false);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(
     null
   );
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
-  // State cho Zone Form (✅ Cập nhật)
+  // State cho Zone Form (Giữ nguyên)
   const [openZoneForm, setOpenZoneForm] = useState(false);
   const [zoneFormMode, setZoneFormMode] = useState<"create" | "edit">("create");
   const [selectedZoneInfo, setSelectedZoneInfo] = useState<{
-    id: string | null; // ID có thể null khi tạo mới
+    id: string | null;
     warehouseId: string;
   } | null>(null);
 
-  // State cho Location Form (✅ Cập nhật)
+  // State cho Location Form (Giữ nguyên)
   const [openLocationForm, setOpenLocationForm] = useState(false);
   const [locationFormMode, setLocationFormMode] = useState<"create" | "edit">(
     "create"
   );
   const [selectedLocationInfo, setSelectedLocationInfo] = useState<{
-    id: string | null; // ID có thể null khi tạo mới
+    id: string | null;
     zoneId: string;
   } | null>(null);
 
-  if (loading) return <LoadingPage />;
-  console.log("STORE ID:", storeId);
-
-  // Hàm: Xử lý mở form chỉnh sửa Zone (✅ Cập nhật)
-  const handleEditZone = (id: string, warehouseId: string) => {
-    setSelectedZoneInfo({ id, warehouseId });
-    setZoneFormMode("edit");
-    setOpenZoneForm(true);
-  };
-
-  // ✅ Hàm mới: Xử lý mở form tạo Zone
-  const handleCreateZone = (warehouseId: string) => {
-    setSelectedZoneInfo({ id: null, warehouseId });
-    setZoneFormMode("create");
-    setOpenZoneForm(true);
-  };
-
-  // Hàm: Xử lý mở form chỉnh sửa Location (✅ Cập nhật)
-  const handleEditLocation = (id: string, zoneId: string) => {
-    setSelectedLocationInfo({ id, zoneId });
-    setLocationFormMode("edit");
-    setOpenLocationForm(true);
-  };
-
-  // ✅ Hàm mới: Xử lý mở form tạo Location
-  const handleCreateLocation = (zoneId: string) => {
-    setSelectedLocationInfo({ id: null, zoneId });
-    setLocationFormMode("create");
-    setOpenLocationForm(true);
-  };
-
-  // ✅ Hàm chung để đóng và reset form
+  // Hàm đóng Form Zone (Giữ nguyên)
   const closeZoneForm = () => {
     setOpenZoneForm(false);
     setSelectedZoneInfo(null);
   };
 
+  // Hàm tạo Zone (Giữ nguyên)
+  const handleCreateZone = (warehouseId: string) => {
+    setZoneFormMode("create");
+    setSelectedZoneInfo({ id: null, warehouseId });
+    setOpenZoneForm(true);
+  };
+
+  // Hàm chỉnh sửa Zone (Giữ nguyên)
+  const handleEditZone = (zoneId: string, warehouseId: string) => {
+    setZoneFormMode("edit");
+    setSelectedZoneInfo({ id: zoneId, warehouseId });
+    setOpenZoneForm(true);
+  };
+
+  // Hàm đóng Form Location (Giữ nguyên)
   const closeLocationForm = () => {
     setOpenLocationForm(false);
     setSelectedLocationInfo(null);
   };
 
+  // Hàm tạo Location (Giữ nguyên)
+  const handleCreateLocation = (zoneId: string) => {
+    setLocationFormMode("create");
+    setSelectedLocationInfo({ id: null, zoneId });
+    setOpenLocationForm(true);
+  }
+
+  // Hàm chỉnh sửa Location (Giữ nguyên)
+  const handleEditLocation = (locationItemId: string, zoneId: string) => {
+    setLocationFormMode("edit");
+    setSelectedLocationInfo({ id: locationItemId, zoneId });
+    setOpenLocationForm(true);
+  };
+
+  // State và handler cho Modal hiển thị tồn kho (MỚI - Giữ nguyên)
+  const [openInventoryModal, setOpenInventoryModal] = useState(false);
+  const [inventoryEntityType, setInventoryEntityType] = useState<
+    EntityType | null
+  >(null);
+  const [selectedInventoryEntity, setSelectedInventoryEntity] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  /**
+   * Mở modal hiển thị tồn kho cho một entity (Kho, Khu vực, Vị trí) (Giữ nguyên)
+   */
+  const handleViewInventory = (
+    id: string,
+    name: string,
+    type: EntityType
+  ) => {
+    setSelectedInventoryEntity({ id, name });
+    setInventoryEntityType(type);
+    setOpenInventoryModal(true);
+  };
+
+  // Chỉnh sửa handler cho WarehouseEdit để khớp với CODE CŨ (đổi tên biến trong callback)
+  const handleEditWarehouse = (id: string) => {
+    setSelectedWarehouseId(id);
+    setFormMode("edit");
+    setOpenForm(true);
+  };
+
+
+  if (loading) {
+    return <LoadingPage />;
+  }
+
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
         mb={2}
       >
-        <h2>Quản lý kho hàng</h2>
+        {/* Đổi h2 thành Typography h5 để khớp với file gốc được upload */}
+        <Typography variant="h5">Quản lý kho hàng</Typography> 
       </Stack>
 
+
+
+      {/* HIỂN THỊ SƠ ĐỒ KHO HÀNG */}
       {!loading && warehouses.length > 0 ? (
-        // Nếu có kho hàng, hiển thị bản đồ
         <WarehouseMap
           warehouses={warehouses}
-          onSelectWarehouse={(id) => {
-            setSelectedWarehouseId(id);
-            setFormMode("edit");
-            setOpenForm(true);
-          }}
+          // ✅ Cập nhật prop: đổi onSelectWarehouse thành onEditWarehouse
+          onEditWarehouse={handleEditWarehouse} 
+          onCreateZone={handleCreateZone}
           onEditZone={handleEditZone}
+          onCreateLocation={handleCreateLocation}
           onEditLocation={handleEditLocation}
-          onCreateZone={handleCreateZone} // ✅ Mới
-          onCreateLocation={handleCreateLocation} // ✅ Mới
+          onViewInventory={handleViewInventory} // ✅ Giữ lại prop tồn kho
         />
       ) : (
         // ... (phần code trạng thái trống giữ nguyên) ...
@@ -134,7 +172,7 @@ const WarehouseManagement: React.FC = () => {
               Không tìm thấy kho hàng của bạn. Nếu chưa có hãy tạo kho hàng
             </Typography>
             <Button
-              disabled={loading || !storeId} // Giữ logic disable
+              disabled={loading || !storeId}
               variant="contained"
               color="primary"
               onClick={() => {
@@ -149,7 +187,7 @@ const WarehouseManagement: React.FC = () => {
         </Box>
       )}
 
-      {/* Form kho hàng (đã có) */}
+      {/* Form kho hàng (Giữ nguyên) */}
       {storeId && (
         <WarehouseForm
           open={openForm}
@@ -161,33 +199,44 @@ const WarehouseManagement: React.FC = () => {
         />
       )}
 
-      {/* Form khu vực (✅ Cập nhật) */}
+      {/* Form khu vực (Giữ nguyên) */}
       {selectedZoneInfo && (
         <ZoneForm
           open={openZoneForm}
           onClose={closeZoneForm}
-          mode={zoneFormMode} // Sử dụng mode
+          mode={zoneFormMode}
           warehouseId={selectedZoneInfo.warehouseId}
-          zoneId={selectedZoneInfo.id || undefined} // Id chỉ có khi edit
+          zoneId={selectedZoneInfo.id || undefined}
           onSuccess={() => {
             closeZoneForm();
-            refetch(); // Tải lại toàn bộ dữ liệu
+            refetch();
           }}
         />
       )}
 
-      {/* Form vị trí (✅ Cập nhật) */}
+      {/* Form vị trí (Giữ nguyên) */}
       {selectedLocationInfo && (
         <LocationForm
           open={openLocationForm}
           onClose={closeLocationForm}
-          mode={locationFormMode} // Sử dụng mode
+          mode={locationFormMode}
           zoneId={selectedLocationInfo.zoneId}
-          locationItemId={selectedLocationInfo.id || undefined} // Id chỉ có khi edit
+          locationItemId={selectedLocationInfo.id || undefined}
           onSuccess={() => {
             closeLocationForm();
-            refetch(); // Tải lại toàn bộ dữ liệu
+            refetch();
           }}
+        />
+      )}
+
+      {/* 📦 MODAL HIỂN THỊ TỒN KHO (Giữ nguyên) */}
+      {selectedInventoryEntity && (
+        <InventoryTableListModal
+          open={openInventoryModal}
+          onClose={() => setOpenInventoryModal(false)}
+          entityId={selectedInventoryEntity.id}
+          entityName={selectedInventoryEntity.name}
+          entityType={inventoryEntityType!}
         />
       )}
     </Box>

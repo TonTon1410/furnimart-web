@@ -101,6 +101,11 @@ const inventoryService = {
     return axiosClient.get(url, { params: { requiredQty } });
   },
 
+  // 🏷️ Lấy danh sách inventory theo Location Item
+  getInventoryByLocationItem: async (locationItemId: string) => {
+    return axiosClient.get(`/api/inventories/location-item/${locationItemId}`);
+  },
+
   // 🏷️ Lấy danh sách inventory theo Zone
   getInventoryByZone: async (zoneId: string) => {
     return axiosClient.get(`/api/inventories/zone/${zoneId}`);
