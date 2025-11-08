@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/service/authService.ts
 import axiosClient from "./axiosClient";
+import axios from "axios";
 import { mapBackendRoleToKey, type RoleKey } from "@/router/paths";
 
 interface LoginPayload {
@@ -55,8 +56,8 @@ const ROLE_KEY = "app:role";
  */
 let DEV_FORCE_ROLE: RoleKey | null = null;
 // DEV_FORCE_ROLE = "seller";
-// DEV_FORCE_ROLE = "admin";
-DEV_FORCE_ROLE = "manager";
+DEV_FORCE_ROLE = "admin";
+// DEV_FORCE_ROLE = "manager";
 // DEV_FORCE_ROLE = "delivery";
 
 /** ====== Helpers: decode JWT an toàn & suy ra role ====== */
@@ -93,9 +94,13 @@ function inferRoleFromToken(token: string): RoleKey | null {
     p?.role ??
     (Array.isArray(p?.roles) ? p.roles[0] : undefined) ??
     (Array.isArray(p?.authorities)
-      ? (typeof p.authorities[0] === "string" ? p.authorities[0] : p.authorities[0]?.authority)
+      ? typeof p.authorities[0] === "string"
+        ? p.authorities[0]
+        : p.authorities[0]?.authority
       : undefined) ??
-    (Array.isArray(p?.realm_access?.roles) ? p.realm_access.roles[0] : undefined);
+    (Array.isArray(p?.realm_access?.roles)
+      ? p.realm_access.roles[0]
+      : undefined);
 
   return mapBackendRoleToKey(rawRole);
 }
@@ -103,9 +108,14 @@ function inferRoleFromToken(token: string): RoleKey | null {
 export const authService = {
   register: async (payload: RegisterPayload) => {
     try {
-      const res = await axiosClient.post<RegisterResponse>("/auth/register", payload);
+      const res = await axiosClient.post<RegisterResponse>(
+        "/auth/register",
+        payload
+      );
       if (res.data.status === 201 && res.data.data) return res;
-      throw new Error(res.data.message || "Registration response không đúng format");
+      throw new Error(
+        res.data.message || "Registration response không đúng format"
+      );
     } catch (error: any) {
       if (error.response) {
         const message =
@@ -114,7 +124,9 @@ export const authService = {
           `Server error: ${error.response.status}`;
         throw new Error(message);
       } else if (error.request) {
-        throw new Error("Không thể kết nối đến server. Kiểm tra server có đang chạy?");
+        throw new Error(
+          "Không thể kết nối đến server. Kiểm tra server có đang chạy?"
+        );
       } else {
         throw new Error(error.message || "Có lỗi xảy ra");
       }
@@ -144,7 +156,6 @@ export const authService = {
     }
   },
 
-
   login: async (payload: LoginPayload) => {
     try {
       const res = await axiosClient.post<LoginResponse>("/auth/login", payload);
@@ -169,7 +180,9 @@ export const authService = {
           `Server error: ${error.response.status}`;
         throw new Error(message);
       } else if (error.request) {
-        throw new Error("Không thể kết nối đến server. Kiểm tra server có đang chạy?");
+        throw new Error(
+          "Không thể kết nối đến server. Kiểm tra server có đang chạy?"
+        );
       } else {
         throw new Error(error.message || "Có lỗi xảy ra");
       }
@@ -187,56 +200,172 @@ export const authService = {
     return !!token;
   },
 
-   getToken: () => {
+  getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
   },
 
   // New: call server to get current user profile (async)
-  async getProfile(): Promise<{ id?: string; email?: string; [k: string]: any } | null> {
+  async getProfile(): Promise<{
+    id?: string;
+    email?: string;
+    [k: string]: any;
+  } | null> {
     try {
       const token = localStorage.getItem(TOKEN_KEY);
       if (!token) return null;
 
-      // assuming backend exposes /users/profile (adjust path if different)
-      const res = await axiosClient.get("/users/profile");
-      // res.data?.data hoặc res.data tùy format backend
-      const payload = res.data?.data ?? res.data ?? null;
-      if (!payload) return null;
-      // try to return normalized profile object
-      return {
-        id: payload.id ?? payload.userId ?? payload.sub ?? null,
-        email: payload.email ?? payload.username ?? null,
-        ...payload
-      };
+      // decode token to check raw role claim
+      const decoded = safeDecodeJwt(token) ?? {};
+      const rawRole =
+        decoded?.role ??
+        (Array.isArray(decoded?.roles) ? decoded.roles[0] : undefined) ??
+        (Array.isArray(decoded?.authorities)
+          ? typeof decoded.authorities[0] === "string"
+            ? decoded.authorities[0]
+            : decoded.authorities[0]?.authority
+          : undefined) ??
+        undefined;
+
+      const isCustomer = (() => {
+        if (!rawRole) return false;
+        try {
+          return rawRole.toString().toUpperCase() === "CUSTOMER";
+        } catch {
+          return false;
+        }
+      })();
+
+      // If role is CUSTOMER → use /users/profile (customer flow)
+      if (isCustomer) {
+        try {
+          const res = await axiosClient.get("/users/profile");
+          const payload = res.data?.data ?? res.data ?? null;
+          if (!payload) return null;
+          return {
+            id: payload.id ?? payload.userId ?? payload.sub ?? null,
+            email: payload.email ?? payload.username ?? null,
+            ...payload,
+          };
+        } catch (err: any) {
+          console.warn(
+            "authService.getProfile: /users/profile failed,",
+            err?.response?.status
+          );
+          // allow fallback below
+        }
+      }
+
+      // For non-CUSTOMER roles, call employees profile endpoint (different service/port)
+      // Try a list of candidate employee API bases (primary 8080, fallback 8086) before falling back to user endpoints
+      const EMPLOYEE_API_BASES = [
+        (import.meta.env.VITE_EMPLOYEE_API_BASE as string) ||
+          "http://152.53.227.115:8080/api",
+        "http://152.53.227.115:8086/api",
+      ];
+
+      for (const base of EMPLOYEE_API_BASES) {
+        try {
+          const axiosEmp = axios.create({ baseURL: base });
+          // Ensure Authorization header with current token
+          axiosEmp.defaults.headers = axiosEmp.defaults.headers || {};
+          axiosEmp.defaults.headers.Authorization = `Bearer ${token}`;
+          console.log(
+            `authService.getProfile: calling employees profile endpoint @ ${base}`
+          );
+          const resEmp = await axiosEmp.get("/employees/profile");
+          const payload = resEmp.data?.data ?? resEmp.data ?? null;
+          if (payload) {
+            return {
+              id: payload.id ?? payload.userId ?? payload.sub ?? null,
+              email: payload.email ?? payload.username ?? null,
+              ...payload,
+            };
+          }
+        } catch (err: any) {
+          const status = err?.response?.status;
+          console.warn(
+            "authService.getProfile: employees endpoint error @",
+            base,
+            status
+          );
+          if (status !== 404) {
+            // For unexpected errors (401/network), rethrow so caller/interceptor can handle refresh/logout
+            throw err;
+          }
+          // else continue to next base
+        }
+      }
+
+      // fallback: try common user endpoints if employees endpoint not present
+      const endpoints = [
+        "/users/profile",
+        "/users/me",
+        "/auth/profile",
+        "/profile",
+        "/me",
+      ];
+      for (const ep of endpoints) {
+        try {
+          const res = await axiosClient.get(ep);
+          const payload = res.data?.data ?? res.data ?? null;
+          if (payload) {
+            return {
+              id: payload.id ?? payload.userId ?? payload.sub ?? null,
+              email: payload.email ?? payload.username ?? null,
+              ...payload,
+            };
+          }
+        } catch (err: any) {
+          if (err?.response?.status === 404) continue;
+          throw err;
+        }
+      }
+
+      // Last resort: return claims from token
+      if (decoded) {
+        return {
+          id: decoded.id ?? decoded.userId ?? decoded.sub ?? null,
+          email: decoded.email ?? decoded.username ?? null,
+          fullName:
+            decoded.fullName ?? decoded.name ?? decoded.displayName ?? null,
+          ...decoded,
+        };
+      }
+      return null;
     } catch (error: any) {
-      console.error("authService.getProfile error:", error?.response?.data ?? error?.message ?? error);
+      console.error(
+        "authService.getProfile error:",
+        error?.response?.data ?? error?.message ?? error
+      );
       return null;
     }
   },
 
   // giữ nguyên getUserId() cũ cho backward compatibility
   getUserId(): string | null {
-  const token = this.getToken();
-  if (!token) return null;
+    const token = this.getToken();
+    if (!token) return null;
 
-  try {
-    const payloadBase64 = token.split(".")[1];
-    if (!payloadBase64) return null;
+    try {
+      const payloadBase64 = token.split(".")[1];
+      if (!payloadBase64) return null;
 
-    // Chuẩn hóa base64 để tránh lỗi padding
-    const padded = payloadBase64.padEnd(payloadBase64.length + (4 - (payloadBase64.length % 4)) % 4, "=");
+      // Chuẩn hóa base64 để tránh lỗi padding
+      const padded = payloadBase64.padEnd(
+        payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4),
+        "="
+      );
 
-    const decoded = atob(padded);
-    const payload = JSON.parse(decoded);
+      const decoded = atob(padded);
+      const payload = JSON.parse(decoded);
 
-    // Tùy backend, có thể là id, userId hoặc sub
-    return payload?.id || payload?.userId || payload?.sub || null;
-  } catch (err) {
-    console.error("Decode token error:", err);
-    return null;
-  }
-},
-
+      // Tùy backend, có thể là id, userId hoặc sub
+      return payload?.id || payload?.userId || payload?.sub || null;
+    } catch (err) {
+      console.error("Decode token error:", err);
+      return null;
+    }
+  },
 
   /** ✅ Lấy role đồng bộ:
    *  1) Nếu DEV_FORCE_ROLE khác null → dùng role test

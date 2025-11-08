@@ -376,7 +376,7 @@ export default function UserProfile() {
       // Nếu avatar là đường dẫn tương đối, ghép với base URL server
       const baseURL =
         axiosClient.defaults.baseURL?.replace("/api", "") ||
-        "http://152.53.169.79:8086";
+        "http://152.53.169.79:8080";
 
       // Đảm bảo avatar có dấu / ở đầu
       const avatarPath = user.avatar.startsWith("/")
