@@ -4,10 +4,12 @@ import { useEffect } from "react";
 import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
+import { useToastRadix } from "@/context/useToastRadix";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered } = useSidebar();
   const { theme } = useTheme();
+  const { ToastComponent } = useToastRadix();
 
   // Apply dark class only to dashboard
   useEffect(() => {
