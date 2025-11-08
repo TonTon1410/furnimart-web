@@ -24,7 +24,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import BlogPage from "@/pages/BlogPage"
 import OwnBlog from "@/pages/OwnBlog";
 import ContactPage from "@/pages/ContactPage";
-import MyPayment from "@/components/payment/myPayment";
+import MyPayment from "@/components/payment/MyPayment";
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;

@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+import { authService } from "./authService";
 
 export interface UserProfile {
   id: string;
@@ -43,10 +44,13 @@ interface ChangePasswordPayload {
 export const userService = {
   getProfile: async (): Promise<ApiResponse<UserProfile>> => {
     try {
-      const response = await axiosClient.get<ApiResponse<UserProfile>>(
-        "/users/profile"
-      );
-      return response.data;
+      const profile = await authService.getProfile();
+      if (!profile) throw new Error("Profile not found");
+      return {
+        status: 200,
+        message: "OK",
+        data: profile as UserProfile,
+      };
     } catch (error: unknown) {
       console.error("Get profile error:", error);
       throw error;

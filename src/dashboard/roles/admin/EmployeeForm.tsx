@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import CustomDropdown from "@/components/CustomDropdown";
 
 export type Status = "ACTIVE" | "INACTIVE";
-export type Role = "STAFF" | "MANAGER" | "DELIVERY";
+export type Role = "STAFF" | "BRANCH_MANAGER" | "DELIVERY";
 
 export interface EmployeeFormValues {
   fullName: string;
@@ -351,7 +351,7 @@ const EmployeeForm: React.FC<Props> = ({
                 }}
                 options={[
                   { value: "STAFF", label: "STAFF" },
-                  { value: "MANAGER", label: "MANAGER" },
+                  { value: "BRANCH_MANAGER", label: "MANAGER" },
                   { value: "DELIVERY", label: "DELIVERY" },
                 ]}
                 fullWidth

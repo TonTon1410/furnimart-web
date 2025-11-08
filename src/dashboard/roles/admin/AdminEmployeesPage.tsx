@@ -106,12 +106,39 @@ const AdminEmployeesPage: React.FC = () => {
     })();
   }, []);
 
+  // Normalize backend role strings to simple keys used for filtering/display
+  const normalizeRoleKey = (role?: string) => {
+    if (!role) return "";
+    const r = role.toUpperCase().replace(/^ROLE_/, "");
+    if (r === "BRANCH_MANAGER") return "MANAGER";
+    if (r === "STAFF") return "STAFF";
+    if (r === "DELIVERY") return "DELIVERY";
+    if (r === "ADMIN") return "ADMIN";
+    return r;
+  };
+
+  const roleLabel = (role?: string) => {
+    const key = normalizeRoleKey(role);
+    switch (key) {
+      case "STAFF":
+        return "Nhân viên bán hàng";
+      case "MANAGER":
+        return "Quản lí cửa hàng";
+      case "DELIVERY":
+        return "Nhân viên giao hàng";
+      case "ADMIN":
+        return "Quản trị hệ thống";
+      default:
+        return role || "—";
+    }
+  };
+
   const filtered = useMemo(() => {
     let arr = [...list];
 
     // 1) Lọc vai trò
     if (roleFilter !== "ALL") {
-      arr = arr.filter((u) => (u.role || "").toUpperCase() === roleFilter);
+      arr = arr.filter((u) => normalizeRoleKey(u.role) === roleFilter);
     }
 
     // 2) Lọc trạng thái
@@ -512,7 +539,7 @@ const AdminEmployeesPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800">
-                        {u.role}
+                        {normalizeRoleKey(u.role) || u.role}
                       </span>
                     </td>
                     <td className="px-4 py-4">
@@ -667,7 +694,7 @@ const AdminEmployeesPage: React.FC = () => {
                       Vai trò
                     </div>
                     <span className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800">
-                      {detailEmployee.role}
+                      {roleLabel(detailEmployee.role)}
                     </span>
                   </div>
 
