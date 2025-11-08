@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Grid, Button, CircularProgress, Alert } from '@mui/material';
 import { Save } from 'lucide-react';
-// Import các components chung
 import InventoryBaseFormFields, { ProductSelector } from './InventoryBaseFormFields';
-// Giả định service đã tồn tại
 import inventoryService from '@/service/inventoryService'; 
 
 interface InboundFormProps {
@@ -26,8 +24,9 @@ const InboundForm: React.FC<InboundFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationItemId || !productColorId || quantity <= 0) {
-      setError("Vui lòng điền đầy đủ thông tin: Sản phẩm, Vị trí và Số lượng hợp lệ.");
+    // ✅ CẬP NHẬT: Thêm kiểm tra warehouseId
+    if (!warehouseId || !locationItemId || !productColorId || quantity <= 0) {
+      setError("Vui lòng điền đầy đủ thông tin: Sản phẩm, Kho hàng, Vị trí và Số lượng hợp lệ.");
       return;
     }
 
@@ -35,23 +34,22 @@ const InboundForm: React.FC<InboundFormProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
-      // Giả định API tạo phiếu nhập/ghi nhận nhập kho
-      await inventoryService.createInboundTransaction({
+      // ✅ THAY ĐỔI: Cập nhật gọi API để dùng importStock(warehouseId, data)
+      // Reference/Mã PO không có trong ImportExportReserveReleaseData, sẽ bị bỏ qua
+      await inventoryService.importStock(warehouseId, {
         locationItemId,
         productColorId,
         quantity,
-        reference,
-        // Thêm các trường khác: userId, note, ...
       });
       
       onSuccess();
       // Reset form
       setQuantity(1);
       setReference('');
-      // Giữ lại vị trí nếu người dùng muốn nhập nhiều sản phẩm vào cùng 1 chỗ
       
     } catch (err) {
-      setError("Lỗi khi tạo giao dịch nhập kho. Vui lòng kiểm tra lại dữ liệu.");
+      // ✅ CẬP NHẬT THÔNG BÁO LỖI
+      setError("Lỗi khi tạo giao dịch nhập kho. Vui lòng kiểm tra Vị trí Kho và sức chứa.");
       console.error(err);
     } finally {
       setLoading(false);

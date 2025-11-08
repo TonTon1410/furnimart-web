@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, CircularProgress, Alert, 
-  TablePagination 
 } from '@mui/material';
 import inventoryService from '@/service/inventoryService'; 
 
@@ -11,22 +10,22 @@ const TransactionHistory: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalRecords, setTotalRecords] = useState(0);
 
-  const fetchHistory = async (currentPage: number, pageSize: number) => {
+  // ✅ Cập nhật: Hàm fetchHistory không còn tham số phân trang
+  const fetchHistory = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Giả định API getTransactionHistory hỗ trợ phân trang
+      // ✅ THAY ĐỔI: Gọi API getTransactionHistory() không cần tham số phân trang
+      // Giả sử ta muốn xem lịch sử cho tất cả sản phẩm và khu vực
       const response = await inventoryService.getTransactionHistory({
-        page: currentPage + 1, // API thường dùng 1-based index
-        size: pageSize,
-        // Có thể thêm filter, sortBy ở đây
+          productColorId: '', // Cần thêm bộ lọc Product/Zone nếu muốn lọc dữ liệu
+          zoneId: '',
       });
-      setHistory(response.data.records || []);
-      setTotalRecords(response.data.totalRecords || 0);
+      // ✅ CẬP NHẬT: API mới không rõ cấu trúc trả về, giả định data là mảng records
+      setHistory(response.data || []); 
+      // setTotalRecords(response.data.totalRecords || 0); // Loại bỏ totalRecords
+
     } catch (err) {
       setError("Không thể tải lịch sử giao dịch.");
       console.error(err);
@@ -36,17 +35,8 @@ const TransactionHistory: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHistory(page, rowsPerPage);
-  }, [page, rowsPerPage]);
-
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+    fetchHistory(); 
+  }, []);
 
   return (
     <Box>
@@ -88,20 +78,6 @@ const TransactionHistory: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 50]}
-        component="div"
-        count={totalRecords}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage="Số dòng/trang:"
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}-${to} trong ${count}`
-        }
-      />
     </Box>
   );
 };

@@ -56,10 +56,10 @@ const InventoryTableListModal: React.FC<InventoryTableListModalProps> = ({
     try {
       let response;
       switch (entityType) {
-        case 'LOCATION':
-          // ✅ API mới theo đề xuất: Lấy tồn kho theo Location Item ID
-          response = await inventoryService.getInventoryByLocationItem(entityId); 
-          break;
+        // case 'LOCATION':
+        //   // ✅ API mới theo đề xuất: Lấy tồn kho theo Location Item ID
+        //   response = await inventoryService.getInventoryByLocationItem(entityId); 
+        //   break;
         case 'ZONE':
           response = await inventoryService.getInventoryByZone(entityId);
           break;

@@ -1,3 +1,4 @@
+// file: TransferForm.tsx
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Grid, Button, CircularProgress, Alert, Divider, Paper } from '@mui/material';
 import { RefreshCw, ArrowRight } from 'lucide-react';
@@ -27,15 +28,27 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
   // States cho Sản phẩm và Số lượng
   const [productColorId, setProductColorId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [note, setNote] = useState<string>('');
+  const [note, setNote] = useState<string>(''); // Ghi chú không được gửi lên API transfer
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fromLocationItemId || !toLocationItemId || !productColorId || quantity <= 0) {
-      setError("Vui lòng chọn Vị trí Nguồn, Vị trí Đích, Sản phẩm và Số lượng hợp lệ.");
+    
+    // ✅ CẬP NHẬT: Kiểm tra bắt buộc các ID Kho hàng và Vị trí chi tiết nhất
+    if (
+        !fromWhId || 
+        !toWhId || 
+        !productColorId || 
+        quantity <= 0 ||
+        // Kiểm tra Vị trí Nguồn hoặc Vị trí Đích phải được chọn ở cấp cao nhất có thể
+        (!fromZoneId && !fromLocationItemId) ||
+        (!toZoneId && !toLocationItemId) 
+    ) {
+      setError("Vui lòng điền đầy đủ thông tin: Kho hàng Nguồn/Đích, Sản phẩm và Số lượng hợp lệ. Cần chọn ít nhất Khu vực hoặc Vị trí cho mỗi bên.");
       return;
     }
-    if (fromLocationItemId === toLocationItemId) {
+    
+    // Kiểm tra trùng lặp (chỉ cần kiểm tra Location Item nếu cả hai được chọn)
+    if (fromLocationItemId && toLocationItemId && fromLocationItemId === toLocationItemId) {
         setError("Vị trí Nguồn và Vị trí Đích phải khác nhau.");
         return;
     }
@@ -44,15 +57,29 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
+      // ✅ CẬP NHẬT: Xây dựng payload đầy đủ theo InventoryTransferData
+      const transferData = {
+        productColorId: productColorId,
+        quantity: quantity,
+        
+        // VỊ TRÍ NGUỒN (FROM)
+        fromWarehouseId: fromWhId,
+        // Chỉ thêm vào nếu có giá trị (vì interface cho phép optional)
+        ...(fromZoneId && { fromZoneId: fromZoneId }),
+        ...(fromLocationItemId && { fromLocationItemId: fromLocationItemId }),
+
+        // VỊ TRÍ ĐÍCH (TO)
+        toWarehouseId: toWhId,
+        // Chỉ thêm vào nếu có giá trị (vì interface cho phép optional)
+        ...(toZoneId && { toZoneId: toZoneId }),
+        ...(toLocationItemId && { toLocationItemId: toLocationItemId }),
+        
+        // Ghi chú bị loại bỏ để khớp với service.ts mới (nếu service không nhận note)
+        // note: note // Bỏ đi để khớp với interface mới không có 'note' trong POST
+      };
+
       // Gọi API chuyển kho
-      await inventoryService.transferInventory({
-        fromLocationItemId,
-        toLocationItemId,
-        productColorId,
-        quantity,
-        note,
-        // Thêm các trường khác: userId, ...
-      });
+      await inventoryService.transferInventory(transferData);
       
       onSuccess();
       // Reset Số lượng và Ghi chú
@@ -60,7 +87,7 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
       setNote('');
       
     } catch (err) {
-      setError("Lỗi khi tạo giao dịch chuyển kho. Vui lòng kiểm tra Tồn kho Khả dụng tại vị trí nguồn.");
+      setError("Lỗi khi tạo giao dịch chuyển kho. Vui lòng kiểm tra Tồn kho Khả dụng tại vị trí nguồn và sức chứa tại vị trí đích.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -95,8 +122,9 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
           />
         </Grid>
         <Grid item xs={12} sm={6}>
+          {/* Ghi chú vẫn giữ trên UI nhưng không gửi qua API transferInventory để khớp với service.ts */}
           <TextField
-            label="Ghi chú/Lý do chuyển"
+            label="Ghi chú/Lý do chuyển (Lưu nội bộ)"
             fullWidth
             value={note}
             onChange={(e) => setNote(e.target.value)}

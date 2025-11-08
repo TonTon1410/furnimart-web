@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Modal, Box, Typography, IconButton, Stack, TextField, Button, 
-  CircularProgress, Alert, Tooltip, FormControl, InputLabel, Select, MenuItem 
+  CircularProgress, Alert, FormControl, InputLabel, Select, MenuItem 
 } from '@mui/material';
 import { X, Save } from 'lucide-react';
 import inventoryService from '@/service/inventoryService'; 
@@ -14,6 +14,7 @@ interface InventoryItem {
   productName: string;
   productSku: string;
   physicalQty: number;
+  warehouseId: string; // ✅ GIẢ ĐỊNH: Thêm warehouseId để gọi API import/export
 }
 
 interface InventoryAdjustmentModalProps {
@@ -39,7 +40,7 @@ const style = {
 const AdjustmentTypes = [
   { value: 'INCREASE', label: 'Tăng tồn kho' },
   { value: 'DECREASE', label: 'Giảm tồn kho' },
-  { value: 'SET', label: 'Đặt lại tồn kho' }, // Set tồn kho vật lý về một giá trị
+  // ✅ ĐÃ XÓA: Loại bỏ 'SET' do API mới không hỗ trợ điều chỉnh tuyệt đối
 ];
 
 const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({ 
@@ -49,15 +50,17 @@ const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({
   locationName,
   onSuccess 
 }) => {
-  const [adjustmentType, setAdjustmentType] = useState<'INCREASE' | 'DECREASE' | 'SET'>('SET');
-  const [quantity, setQuantity] = useState<number>(0);
+  // ✅ CẬP NHẬT: Loại bỏ 'SET' khỏi kiểu dữ liệu và giá trị khởi tạo
+  const [adjustmentType, setAdjustmentType] = useState<'INCREASE' | 'DECREASE'>('INCREASE');
+  const [quantity, setQuantity] = useState<number>(1); // Bắt đầu từ 1
   const [reason, setReason] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (quantity <= 0 && adjustmentType !== 'SET') {
+    // ✅ CẬP NHẬT: Chỉ kiểm tra quantity > 0
+    if (quantity <= 0) {
       setError("Số lượng điều chỉnh phải lớn hơn 0.");
       return;
     }
@@ -65,33 +68,41 @@ const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({
       setError("Lý do điều chỉnh là bắt buộc.");
       return;
     }
+    // ✅ THÊM KIỂM TRA: Đảm bảo có warehouseId
+    if (!inventoryItem.warehouseId) {
+      setError("Thiếu thông tin Kho hàng để thực hiện điều chỉnh.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    const data = {
+    const dataToSend = {
       locationItemId: inventoryItem.locationItemId,
       productColorId: inventoryItem.productColorId,
       quantity,
-      reason,
-      adjustmentType,
-      // Thêm các trường dữ liệu cần thiết khác (ví dụ: userId)
     };
     
     try {
-      // Giả định có một API chung để xử lý tất cả các loại điều chỉnh tồn kho
-      await inventoryService.adjustInventory(data); 
+      if (adjustmentType === 'INCREASE') {
+        // ✅ SỬ DỤNG importStock cho INCREASE
+        await inventoryService.importStock(inventoryItem.warehouseId, dataToSend); 
+      } else if (adjustmentType === 'DECREASE') {
+        // ✅ SỬ DỤNG exportStock cho DECREASE
+        await inventoryService.exportStock(inventoryItem.warehouseId, dataToSend); 
+      }
+      
       onSuccess();
       onClose();
     } catch (err) {
-      setError("Lỗi điều chỉnh tồn kho. Vui lòng kiểm tra số lượng khả dụng.");
+      setError("Lỗi khi tạo giao dịch điều chỉnh. Vui lòng kiểm tra lại số lượng và vị trí.");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const isSetMode = adjustmentType === 'SET';
+  // ✅ ĐÃ XÓA: isSetMode
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -118,7 +129,7 @@ const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({
             <Select
                 value={adjustmentType}
                 label="Loại Điều chỉnh"
-                onChange={(e) => setAdjustmentType(e.target.value as 'INCREASE' | 'DECREASE' | 'SET')}
+                onChange={(e) => setAdjustmentType(e.target.value as 'INCREASE' | 'DECREASE')}
                 required
             >
                 {AdjustmentTypes.map(type => (
@@ -128,14 +139,18 @@ const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({
         </FormControl>
 
         <TextField
-          label={isSetMode ? "Số lượng tồn mới" : "Số lượng điều chỉnh"}
+          // ✅ CẬP NHẬT: Bỏ logic SET
+          label={"Số lượng điều chỉnh"} 
           type="number"
           fullWidth
           value={quantity}
-          onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+          // ✅ CẬP NHẬT: Số lượng điều chỉnh phải >= 1
+          onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
           required
           sx={{ mb: 2 }}
-          helperText={isSetMode ? "Đặt tổng số lượng tồn vật lý về giá trị này." : "Số lượng sẽ được cộng/trừ vào tồn vật lý."}
+          // ✅ CẬP NHẬT: Bỏ helperText của SET
+          helperText={"Số lượng sẽ được cộng/trừ vào tồn vật lý."} 
+          InputProps={{ inputProps: { min: 1 } }}
         />
         
         <TextField
@@ -152,12 +167,12 @@ const InventoryAdjustmentModal: React.FC<InventoryAdjustmentModalProps> = ({
         <Button
           type="submit"
           variant="contained"
-          color="primary"
+          color={adjustmentType === 'INCREASE' ? 'primary' : 'error'}
           fullWidth
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Save size={20} />}
         >
-          {loading ? 'Đang lưu...' : 'Xác nhận Điều chỉnh'}
+          {loading ? 'Đang lưu...' : (adjustmentType === 'INCREASE' ? 'Xác nhận Tăng tồn' : 'Xác nhận Giảm tồn')}
         </Button>
       </Box>
     </Modal>

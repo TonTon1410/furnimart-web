@@ -4,9 +4,7 @@ import {
   FormControl, InputLabel, Select, MenuItem 
 } from '@mui/material';
 import { Send } from 'lucide-react';
-// Import các components chung
 import InventoryBaseFormFields, { ProductSelector } from './InventoryBaseFormFields';
-// Giả định service đã tồn tại
 import inventoryService from '@/service/inventoryService'; 
 
 interface OutboundFormProps {
@@ -36,8 +34,8 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationItemId || !productColorId || quantity <= 0 || !outboundReason) {
-      setError("Vui lòng điền đầy đủ thông tin: Sản phẩm, Vị trí, Số lượng và Lý do xuất.");
+    if (!warehouseId || !locationItemId || !productColorId || quantity <= 0 || !outboundReason) {
+      setError("Vui lòng điền đầy đủ thông tin: Sản phẩm, Vị trí xuất, Số lượng và Lý do xuất.");
       return;
     }
 
@@ -45,13 +43,12 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
-      // Giả định API tạo phiếu xuất/ghi nhận xuất kho
-      await inventoryService.createOutboundTransaction({
+      await inventoryService.exportStock(warehouseId, {
         locationItemId,
         productColorId,
         quantity,
-        outboundReason,
-        reference,
+        // outboundReason,
+        // reference,
         // Thêm các trường khác: userId, ...
       });
       
