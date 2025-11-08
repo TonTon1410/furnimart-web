@@ -24,6 +24,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import BlogPage from "@/pages/BlogPage"
 import OwnBlog from "@/pages/OwnBlog";
 import ContactPage from "@/pages/ContactPage";
+import MyPayment from "@/components/payment/myPayment";
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
@@ -50,6 +51,7 @@ export default function AppRouter() {
       <Route path="/blog" element={<BlogPage />} />
       <Route path="/ownblog" element={<OwnBlog />} />
       <Route path="/contact" element={<ContactPage/>}/>
+      <Route path="/mypayment" element={<MyPayment/>}/>
       
 
       {/* Layout dành cho User */}
