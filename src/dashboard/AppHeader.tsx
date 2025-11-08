@@ -152,7 +152,7 @@ const AppHeader: React.FC = () => {
         {/* Right: theme + user */}
         <div className="flex items-center gap-4">
           <ThemeToggleButton />
-
+          
           {user ? (
             <div className="relative" ref={userRef}>
               <button
