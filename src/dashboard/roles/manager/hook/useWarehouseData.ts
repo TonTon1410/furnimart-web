@@ -34,11 +34,11 @@ export function useWarehouseData() {
         return;
       }
       
-      const userId = profile.id; // <-- LẤY UUID "bfe63af4..."
-      console.log("User ID (UUID):", userId);
+      const employeeId = profile.id; // <-- LẤY UUID "bfe63af4..."
+      console.log("Employee ID (UUID):", employeeId);
 
       // --- 2. Lấy Store ID từ User ID ---
-      const { data: storesRes } = await storeService.getStoresByUserId(userId);
+      const { data: storesRes } = await storeService.getStoresByEmployeeID(employeeId);
       const userStores = storesRes.data; 
       console.log("User Stores:", userStores);
 
