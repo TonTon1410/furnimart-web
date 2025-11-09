@@ -13,8 +13,8 @@ const InventoryManagement: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        <LayoutDashboard size={28} style={{ verticalAlign: 'middle', marginRight: 10 }} />
+      <Typography variant="h5" gutterBottom>
+        {/* <LayoutDashboard size={28} style={{ verticalAlign: 'middle', marginRight: 10 }} /> */}
         Quản lý Xuất Nhập Kho
       </Typography>
 

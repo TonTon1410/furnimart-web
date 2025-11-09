@@ -1,7 +1,7 @@
 // file: InventoryBaseFormFields.tsx
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from 'react'; // ✅ Thêm useMemo
+import React, { useState, useEffect, useMemo } from 'react';
 import { TextField, FormControl, InputLabel, Select, MenuItem, Grid, Autocomplete } from '@mui/material';
 import { productService } from '@/service/homeService';
 import warehousesService from '@/service/warehousesService';
@@ -36,8 +36,18 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
   // 1. Load Kho hàng (Warehouse)
   useEffect(() => {
     const fetchWarehouses = async () => {
-      const res = await warehousesService.getWarehouseList(); // Giả định API
-      setWarehouses(res.data);
+      try {
+        const res = await warehousesService.getWarehouseList();
+        // ✅ SỬA LỖI: Đảm bảo setWarehouses nhận được một mảng. 
+        // Giả định API trả về mảng trong res.data (hoặc res.data.data nếu giống API sản phẩm).
+        // Cập nhật an toàn: Nếu res.data là mảng, lấy nó. Ngược lại, dùng mảng rỗng.
+        const warehouseList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setWarehouses(warehouseList);
+
+      } catch (error) {
+        console.error("Failed to fetch warehouses:", error);
+        setWarehouses([]); // Đảm bảo luôn là mảng rỗng nếu có lỗi
+      }
     };
     fetchWarehouses();
   }, []);
@@ -46,9 +56,10 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
   useEffect(() => {
     if (selectedWarehouseId) {
       const fetchZones = async () => {
-        // Giả định API getZonesByWarehouseId
-        const res = await zoneService.getZoneByWarehouse(selectedWarehouseId); //
-        setZones(res.data);
+        const res = await zoneService.getZoneByWarehouse(selectedWarehouseId);
+        // Kiểm tra an toàn trước khi set
+        const zoneList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setZones(zoneList);
         onZoneChange(null); // Reset Zone khi Kho thay đổi
       };
       fetchZones();
@@ -62,9 +73,10 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
   useEffect(() => {
     if (selectedZoneId) {
       const fetchLocations = async () => {
-        // Giả định API getLocationItemsByZoneId
-        const res = await locationItemService.getLocationByZone(selectedZoneId); //
-        setLocations(res.data);
+        const res = await locationItemService.getLocationByZone(selectedZoneId);
+        // Kiểm tra an toàn trước khi set
+        const locationList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setLocations(locationList);
         onLocationChange(null); // Reset Location khi Zone thay đổi
       };
       fetchLocations();
@@ -85,7 +97,8 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
             onChange={(e) => onWarehouseChange(e.target.value as string)}
             required
           >
-            {warehouses.map(wh => (
+            {/* ✅ SỬA LỖI: Thêm kiểm tra Array.isArray() để đảm bảo gọi .map trên mảng */}
+            {Array.isArray(warehouses) && warehouses.map(wh => (
               <MenuItem key={wh.id} value={wh.id}>{wh.warehouseName}</MenuItem>
             ))}
           </Select>
@@ -101,7 +114,8 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
             onChange={(e) => onZoneChange(e.target.value as string)}
             required
           >
-            {zones.map(zone => (
+            {/* Thêm kiểm tra Array.isArray() cho an toàn */}
+            {Array.isArray(zones) && zones.map(zone => (
               <MenuItem key={zone.id} value={zone.id}>{zone.zoneName}</MenuItem>
             ))}
           </Select>
@@ -117,7 +131,8 @@ const InventoryBaseFormFields: React.FC<BaseFormFieldsProps> = ({
             onChange={(e) => onLocationChange(e.target.value as string)}
             required
           >
-            {locations.map(loc => (
+            {/* Thêm kiểm tra Array.isArray() cho an toàn */}
+            {Array.isArray(locations) && locations.map(loc => (
               <MenuItem key={loc.id} value={loc.id}>{loc.code}</MenuItem>
             ))}
           </Select>
@@ -158,16 +173,22 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   useEffect(() => {
     const fetchProducts = async () => {
-      // Giả định API getAllProductColors để lấy danh sách sản phẩm/màu sắc
-      const res = await productService.getAll(); 
-      setRawProducts(res.data.data || []); // Lấy mảng data từ ProductResponse
+      try {
+        const res = await productService.getAll(); 
+        // Đảm bảo setRawProducts nhận được một mảng
+        const productList = Array.isArray(res.data?.data) ? res.data.data : [];
+        setRawProducts(productList); 
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        setRawProducts([]);
+      }
     };
     fetchProducts();
   }, []);
 
-  // ✅ LOGIC TẠO MẢNG PHẲNG CÁC BIẾN THỂ MÀU (ProductColorVariant)
+  // LOGIC TẠO MẢNG PHẲNG CÁC BIẾN THỂ MÀU (ProductColorVariant)
   const productVariants = useMemo<ProductColorVariant[]>(() => {
-    if (!rawProducts) return [];
+    if (!Array.isArray(rawProducts)) return []; // Kiểm tra an toàn
     
     // Duyệt qua từng sản phẩm gốc
     return rawProducts.flatMap((product) => {
@@ -186,7 +207,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
     });
   }, [rawProducts]);
 
-  // ✅ CẬP NHẬT LOGIC TÌM KIẾM SẢN PHẨM ĐƯỢC CHỌN
+  // CẬP NHẬT LOGIC TÌM KIẾM SẢN PHẨM ĐƯỢC CHỌN
   const selectedProductVariant = productVariants.find(
     (v) => v.productColorId === selectedProductColorId
   ) || null;
@@ -195,13 +216,13 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
     <FormControl fullWidth sx={{ mt: 2 }} disabled={disabled}>
       <Autocomplete
         options={productVariants}
-        // ✅ CẬP NHẬT: Hiển thị tên biến thể
+        // CẬP NHẬT: Hiển thị tên biến thể
         getOptionLabel={(option) => 
           `${option.productName} (${option.productCode}) - ${option.colorName}`
         }
         value={selectedProductVariant}
         onChange={(event, newValue) => 
-          // ✅ CẬP NHẬT: Trả về productColorId
+          // CẬP NHẬT: Trả về productColorId
           onSelectProduct(newValue ? newValue.productColorId : null)
         }
         renderInput={(params) => <TextField {...params} label="Chọn Sản phẩm" required />}

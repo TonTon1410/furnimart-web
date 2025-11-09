@@ -4,8 +4,8 @@ import WarehouseMap from "./WarehouseMap";
 import WarehouseForm from "./components/WarehouseForm"; // Giả định component tồn tại
 import ZoneForm from "./components/ZoneForm"; // Giả định component tồn tại
 import LocationForm from "./components/LocationForm"; // Giả định component tồn tại
-// import InventoryTableListModal from "./components/InventoryTableListModal"; // ✅ Giữ lại import component mới
-import LoadingPage from "@/pages/LoadingPage"; // Giả định component tồn tại
+import InventoryTableListModal from "./components/InventoryTableListModal"; // ✅ Giữ lại import component mới
+// import LoadingPage from "@/pages/LoadingPage"; // Giả định component tồn tại
 
 import { useWarehouseData } from "./hook/useWarehouseData"; // Giả định hook tồn tại
 
@@ -110,9 +110,9 @@ const WarehouseManagement: React.FC = () => {
   };
 
 
-  if (loading) {
-    return <LoadingPage />;
-  }
+  // if (loading) {
+  //   return <LoadingPage />;
+  // }
 
   return (
     <Box sx={{ p: 3 }}>
