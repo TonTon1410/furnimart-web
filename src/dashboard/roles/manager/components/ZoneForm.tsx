@@ -11,7 +11,7 @@ import {
   Stack,
   Divider,
 } from "@mui/material";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import zoneService from "@/service/zoneService";
 import warehousesService from "@/service/warehousesService";
 import ConfirmDialog from "./ConfirmDialog";
@@ -33,7 +33,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
   zoneId,
   onSuccess,
 }) => {
-  const { showToast } = useToastRadix();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     zoneName: "",
@@ -56,7 +56,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
     onConfirm: () => {},
   });
 
-  // ✅ Lấy thông tin kho để hiển thị (dùng khi tạo & chỉnh sửa)
+  // Lấy thông tin kho hàng để hiển thị trong form
   useEffect(() => {
     if (warehouseId) {
       warehousesService
@@ -79,7 +79,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
     }
   }, [warehouseId]);
 
-  // ✅ Lấy dữ liệu khi chỉnh sửa Zone
+  // Lấy dữ liệu khi chỉnh sửa Zone
   useEffect(() => {
     if (mode === "edit" && zoneId) {
       zoneService
@@ -126,45 +126,99 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Xử lý xác nhận tạo / cập nhật
+  // Xử lý xác nhận tạo / cập nhật
   const handleConfirmSubmit = async () => {
-  try {
-    // ✅ ép kiểu quantity về number để đúng định dạng backend yêu cầu
-    const payload = {
-      ...formData,
-      quantity: Number(formData.quantity),
-    };
+    try {
+      // ép kiểu quantity về number để đúng định dạng backend yêu cầu
+      const payload = {
+        ...formData,
+        quantity: Number(formData.quantity),
+      };
 
-    if (mode === "create") {
-      await zoneService.createZone(payload);
+      if (mode === "create") {
+        await zoneService.createZone(payload);
+        showToast({
+          type: "success",
+          title: "Thành công",
+          description: "Tạo khu vực thành công!",
+        });
+      } else if (mode === "edit" && zoneId) {
+        await zoneService.updateZone(zoneId, payload);
+        showToast({
+          type: "success",
+          title: "Thành công",
+          description: "Cập nhật khu vực thành công!",
+        });
+      }
+
+      setConfirmDialog((prev) => ({ ...prev, open: false }));
+      onClose();
+      onSuccess?.();
+    } catch (error) {
+      console.error("❌ API Error:", error);
       showToast({
-        type: "success",
-        title: "Thành công",
-        description: "Tạo khu vực thành công!",
-      });
-    } else if (mode === "edit" && zoneId) {
-      await zoneService.updateZone(zoneId, payload);
-      showToast({
-        type: "success",
-        title: "Thành công",
-        description: "Cập nhật khu vực thành công!",
+        type: "error",
+        title: "Lỗi",
+        description: "Không thể lưu thông tin khu vực",
       });
     }
+  };
 
-    setConfirmDialog((prev) => ({ ...prev, open: false }));
-    onClose();
-    onSuccess?.();
-  } catch (error) {
-    console.error("❌ API Error:", error);
-    showToast({
-      type: "error",
-      title: "Lỗi",
-      description: "Không thể lưu thông tin khu vực",
-    });
-  }
-};
+  // Xử lý vô hiệu hóa / kích hoạt khu vực
+  const handleDisableZone = async () => {
+    try {
+      if (zoneId) {
+        await zoneService.disableZone(zoneId);
+        showToast({
+          type: "success",
+          title: "Thành công",
+          description:
+            formData.status === "ACTIVE"
+              ? "Khu vực đã được vô hiệu hóa"
+              : "Khu vực đã được kích hoạt lại",
+        });
+        onClose();
+        onSuccess?.();
+      }
+    } catch {
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          formData.status === "ACTIVE"
+            ? "Không thể vô hiệu hóa khu vực"
+            : "Không thể kích hoạt khu vực",
+      });
+    } finally {
+      setConfirmDialog((prev) => ({ ...prev, open: false }));
+    }
+  };
 
-  // ✅ Dialog xác nhận tạo/chỉnh sửa
+  // Xử lý xóa khu vực
+  const handleDeleteZone = async () => {
+    try {
+      if (zoneId) {
+        await zoneService.deleteZone(zoneId);
+        showToast({
+          type: "success",
+          title: "Thành công",
+          description: "Xóa khu vực thành công!",
+        });
+        onClose();
+        onSuccess?.();
+      }
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không thể xóa khu vực. " + (error as any).message,
+      });
+    } finally {
+      setConfirmDialog((prev) => ({ ...prev, open: false }));
+    }
+  };
+
+  // Dialog xác nhận 
   const handleSubmit = () => {
     setConfirmDialog({
       open: true,
@@ -174,6 +228,20 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
           ? "Bạn có chắc chắn muốn tạo khu vực mới không?"
           : "Bạn có chắc chắn muốn lưu các thay đổi không?",
       onConfirm: handleConfirmSubmit,
+    });
+  };
+
+  const handleToggleConfirm = () => {
+    const isActive = formData.status === "ACTIVE";
+    setConfirmDialog({
+      open: true,
+      title: isActive
+        ? "Xác nhận vô hiệu khu vực"
+        : "Xác nhận kích hoạt khu vực",
+      message: isActive
+        ? "Bạn có chắc chắn muốn vô hiệu hóa khu vực này không?"
+        : "Bạn có chắc chắn muốn kích hoạt lại khu vực này không?",
+      onConfirm: handleDisableZone,
     });
   };
 
@@ -264,13 +332,53 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
           </Grid>
         </Grid>
 
-        {/* Buttons */}
-        <Stack direction="row" justifyContent="flex-end" spacing={1} mt={3}>
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
-            {mode === "create" ? "Tạo khu vực" : "Lưu chỉnh sửa"}
-          </Button>
-        </Stack>
+        {/* ================================================================= */}
+        {/* ✅ (MỚI) Cập nhật khu vực nút bấm */}
+        {/* ================================================================= */}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mt={3}
+        >
+          {/* Left side: Delete/Disable buttons (only in edit mode) */}
+          <Stack direction="row" spacing={1}>
+            {mode === "edit" && (
+              <>
+                <Button
+                  variant="outlined"
+                  color={formData.status === "ACTIVE" ? "error" : "success"}
+                  onClick={handleToggleConfirm}
+                >
+                  {formData.status === "ACTIVE" ? "Vô hiệu" : "Hoạt động"}
+                </Button>
 
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() =>
+                    setConfirmDialog({
+                      open: true,
+                      title: "Xác nhận xóa khu vực",
+                      message:
+                        "Bạn có chắc chắn muốn xóa khu vực này không? Hành động này không thể hoàn tác.",
+                      onConfirm: handleDeleteZone,
+                    })
+                  }
+                >
+                  Xóa
+                </Button>
+              </>
+            )}
+          </Stack>
+
+          {/* Right side: Save button */}
+          <Stack direction="row" justifyContent="flex-end" spacing={1}>
+            <Button variant="contained" color="primary" onClick={handleSubmit}>
+              {mode === "create" ? "Tạo khu vực" : "Lưu chỉnh sửa"}
+            </Button>
+          </Stack>
+        </Stack>
       </Drawer>
 
       {/* ✅ ConfirmDialog dùng chung */}

@@ -20,9 +20,9 @@ const storeService = {
     return axiosClient.get(url);
   },
 
-  // ✅ Lấy danh sách cửa hàng theo userId
-  getStoresByUserId: async (userId: string) => {
-    const url = `/stores/users/${userId}`;
+  // ✅ Lấy danh sách cửa hàng theo employeeId
+  getStoresByEmployeeID: async (employeeId: string) => {
+    const url = `/stores/employees/${employeeId}`;
     return axiosClient.get(url);
   },
 
@@ -117,14 +117,14 @@ const storeService = {
   },
 
   // ✅ Gán người dùng vào cửa hàng
-  addUserToStore: async (data: { userId: string; storeId: string }) => {
+  addUserToStore: async (data: { employeeId: string; storeId: string }) => {
     const url = `/stores/users`;
     return axiosClient.post(url, data);
   },
 
   // ✅ Xóa người dùng khỏi cửa hàng
-  removeUserFromStore: async (storeId: string, userId: string) => {
-    const url = `/stores/${storeId}/users/${userId}`;
+  removeUserFromStore: async (storeId: string, employeeId: string) => {
+    const url = `/stores/${storeId}/users/${employeeId}`;
     return axiosClient.delete(url);
   },
 };

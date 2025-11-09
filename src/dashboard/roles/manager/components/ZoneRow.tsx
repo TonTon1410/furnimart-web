@@ -18,7 +18,7 @@ import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import { Edit, Trash2, Power, PowerOff } from "lucide-react";
 import locationItemService from "@/service/locationItemService";
 import ConfirmDialog from "./ConfirmDialog";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import LocationForm from "./LocationForm";
 
 const ZoneRow = ({
@@ -40,7 +40,7 @@ const ZoneRow = ({
     message: "",
     onConfirm: () => {},
   });
-  const { showToast } = useToastRadix();
+  const { showToast } = useToast();
 
   const fetchLocations = async () => {
     try {

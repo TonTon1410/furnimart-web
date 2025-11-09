@@ -1,30 +1,25 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/warehouses/WarehouseForm.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   Drawer,
-  Box,
   Typography,
   TextField,
-  MenuItem,
   Button,
   Grid,
   Stack,
   Divider,
 } from "@mui/material";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import warehousesService from "@/service/warehousesService";
-import storeService from "@/service/storeService";
-import ZoneTable from "./ZoneTable";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface WarehouseFormProps {
   open: boolean;
   onClose: () => void;
   mode: "create" | "edit";
-  storeId: string;
+  storeId: string; // ID của cửa hàng (từ người dùng)
   warehouseId?: string;
   onSuccess?: () => void;
 }
@@ -37,16 +32,15 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
   warehouseId,
   onSuccess,
 }) => {
-  const { showToast } = useToastRadix();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     warehouseName: "",
     status: "ACTIVE",
-    capacity: 0,
-    storeId: storeId,
+    capacity: 0, // Giá trị khởi tạo là số
+    storeId: storeId, // Luôn khởi tạo với storeId từ props
   });
 
-  const [stores, setStores] = useState<any[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -59,26 +53,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     onConfirm: () => {},
   });
 
-  // ✅ Lấy danh sách store đang hoạt động
-  useEffect(() => {
-    storeService
-      .getAllStores()
-      .then((res) => {
-        const activeStores = res.data?.data?.filter(
-          (s: any) => s.status === "ACTIVE"
-        );
-        setStores(activeStores || []);
-      })
-      .catch(() =>
-        showToast({
-          type: "error",
-          title: "Lỗi",
-          description: "Không thể tải danh sách cửa hàng",
-        })
-      );
-  }, []);
-
-  // ✅ Lấy dữ liệu khi edit
+  // Lấy dữ liệu khi edit (hoặc reset khi create)
   useEffect(() => {
     if (mode === "edit" && warehouseId) {
       warehousesService
@@ -89,7 +64,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             setFormData({
               warehouseName: data.warehouseName || "",
               status: data.status || "ACTIVE",
-              capacity: data.capacity || 0,
+              capacity: data.capacity || 0, // Đảm bảo là số
               storeId: data.store?.id || storeId,
             });
           }
@@ -102,6 +77,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
           })
         );
     } else if (mode === "create") {
+      // Khi tạo mới, đảm bảo dùng storeId của người dùng
       setFormData({
         warehouseName: "",
         status: "ACTIVE",
@@ -109,13 +85,30 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
         storeId: storeId,
       });
     }
-  }, [warehouseId, mode]);
+  }, [warehouseId, mode, storeId]);
 
+  // Sửa handleChange để xử lý số âm cho Sức chứa
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "capacity") {
+      if (value === "") {
+        // Nếu người dùng xóa hết, set giá trị về 0
+        setFormData({ ...formData, [name]: 0 });
+      } else {
+        const numValue = parseInt(value, 10);
+        // Chỉ cập nhật state nếu là số hợp lệ và không âm
+        if (!isNaN(numValue) && numValue >= 0) {
+          setFormData({ ...formData, [name]: numValue });
+        }
+      }
+    } else {
+      // Xử lý cho các trường khác
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
-  // ✅ Gửi yêu cầu tạo hoặc cập nhật
+  // Gửi yêu cầu tạo hoặc cập nhật
   const handleConfirmSubmit = async () => {
     try {
       if (mode === "create") {
@@ -149,7 +142,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     }
   };
 
-  // ✅ Vô hiệu / kích hoạt kho hàng
+  // Vô hiệu / kích hoạt kho hàng
   const handleDisableWarehouse = async () => {
     try {
       if (warehouseId) {
@@ -179,7 +172,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     }
   };
 
-  // ✅ Xóa kho hàng
+  // Xóa kho hàng
   const handleDeleteWarehouse = async () => {
     try {
       if (warehouseId) {
@@ -189,21 +182,21 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
           title: "Thành công",
           description: "Xóa kho hàng thành công!",
         });
-        onClose(); // ✅ Đóng Drawer
-        onSuccess?.(); // ✅ Refresh danh sách
+        onClose();
+        onSuccess?.();
       }
     } catch (error) {
       showToast({
         type: "error",
         title: "Lỗi",
-        description: "Không thể xóa kho hàng.",
+        description: "Không thể xóa kho hàng." + (error as any).message,
       });
     } finally {
       setConfirmDialog((prev) => ({ ...prev, open: false }));
     }
   };
 
-  // ✅ Mở dialog xác nhận tạo/chỉnh sửa
+  // Mở dialog xác nhận tạo/chỉnh sửa
   const handleSubmit = () => {
     setConfirmDialog({
       open: true,
@@ -216,7 +209,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     });
   };
 
-  // ✅ Mở dialog xác nhận đổi trạng thái
+  // Mở dialog xác nhận đổi trạng thái
   const handleToggleConfirm = () => {
     const isActive = formData.status === "ACTIVE";
     setConfirmDialog({
@@ -230,6 +223,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
       onConfirm: handleDisableWarehouse,
     });
   };
+
 
   return (
     <>
@@ -276,6 +270,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             />
           </Grid>
 
+          {/* Sửa trường Sức chứa */}
           <Grid item xs={12}>
             <TextField
               label="Sức chứa"
@@ -284,10 +279,19 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
               value={formData.capacity}
               onChange={handleChange}
               fullWidth
+              InputProps={{
+                inputProps: { 
+                  min: 0 
+                } 
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
             />
           </Grid>
 
-          {/* ✅ Chỉ hiển thị trạng thái */}
           <Grid item xs={12}>
             <TextField
               label="Trạng thái"
@@ -296,26 +300,10 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
               InputProps={{ readOnly: true }}
             />
           </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              select
-              label="Cửa hàng"
-              name="storeId"
-              value={formData.storeId}
-              onChange={handleChange}
-              fullWidth
-            >
-              {stores.map((store) => (
-                <MenuItem key={store.id} value={store.id}>
-                  {store.name} – {store.addressLine}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
+          
         </Grid>
 
-        {/* ✅ Các nút hành động */}
+        {/* Các nút hành động */}
         <Stack direction="row" justifyContent="flex-end" spacing={1} mt={3}>
           {mode === "edit" && (
             <>
@@ -324,7 +312,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
                 color={formData.status === "ACTIVE" ? "error" : "success"}
                 onClick={handleToggleConfirm}
               >
-                {formData.status === "ACTIVE" ? "Vô hiệu" : "Hoạt động"}
+                {formData.status === "ACTIVE" ? "Vô hiệu" : "Ho động"}
               </Button>
 
               <Button
@@ -349,18 +337,9 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             {mode === "create" ? "Tạo kho hàng" : "Lưu chỉnh sửa"}
           </Button>
         </Stack>
-
-        <Divider sx={{ mt: 3, mb: 2 }} />
-
-        {/* ✅ Hiển thị danh sách zone */}
-        {warehouseId && (
-          <Box mt={3}>
-            <ZoneTable warehouseId={warehouseId} />
-          </Box>
-        )}
       </Drawer>
 
-      {/* ✅ ConfirmDialog dùng chung */}
+      {/* ConfirmDialog dùng chung */}
       <ConfirmDialog
         open={confirmDialog.open}
         title={confirmDialog.title}

@@ -4,7 +4,7 @@ import { cartService } from "@/service/cartService";
 import { paymentService } from "@/service/paymentService";
 import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import LoadingPage from "./LoadingPage";
 import CheckoutForm from "@/components/checkout/CheckoutForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
