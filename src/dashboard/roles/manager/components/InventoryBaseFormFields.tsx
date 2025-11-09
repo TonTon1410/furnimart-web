@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react'; // ✅ Thêm useMemo
 import { TextField, FormControl, InputLabel, Select, MenuItem, Grid, Autocomplete } from '@mui/material';
-import productService from '@/service/homeService';
+import { productService } from '@/service/homeService';
 import warehousesService from '@/service/warehousesService';
 import zoneService from '@/service/zoneService';
 import locationItemService from '@/service/locationItemService';
