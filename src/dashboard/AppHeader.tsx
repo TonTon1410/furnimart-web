@@ -4,8 +4,8 @@ import { ChevronDown, LogOut } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
 import Dropdown from "./Dropdown";
-import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
+import { mapBackendRoleToKey } from "@/router/paths";
 import { DP } from "@/router/paths";
 
 type UserProfile = {
@@ -59,6 +59,7 @@ const ThemeToggleButton = () => {
 const AppHeader: React.FC = () => {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [roleKey, setRoleKey] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState(false);
   const userRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,12 +72,22 @@ const AppHeader: React.FC = () => {
     const run = async () => {
       if (!authService.isAuthenticated()) return;
       try {
-        const res = await axiosClient.get<{ data: UserProfile }>(
-          "/users/profile"
-        );
-        setUser(res.data.data);
-      } catch {
-        authService.logout();
+        const profile = await authService.getProfile();
+        if (profile) setUser(profile as UserProfile);
+        else setUser(null);
+        // Determine role: prefer cached/inferred RoleKey from authService, else try profile.role
+        try {
+          const r = authService.getRole();
+          if (r) setRoleKey(r);
+          else if (profile && profile.role) {
+            const mapped = mapBackendRoleToKey(profile.role as string);
+            if (mapped) setRoleKey(mapped);
+          }
+        } catch {
+          // ignore
+        }
+      } catch (err) {
+        console.error("AppHeader getProfile error:", err);
         setUser(null);
       }
     };
@@ -96,13 +107,13 @@ const AppHeader: React.FC = () => {
   const avatarUrl = user?.avatar?.startsWith("http")
     ? user.avatar!
     : user?.avatar
-    ? `http://localhost:8086${user.avatar}`
+    ? `http://localhost:8080${user.avatar}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(
         user?.fullName || "User"
       )}&background=0ea5e9&color=fff&size=128`;
 
   const logout = () => {
-    authService.logout();
+    authService.logout(true); // true = xóa cả remember me khi user tự logout
     setUser(null);
     setOpenUser(false);
   };
@@ -151,6 +162,12 @@ const AppHeader: React.FC = () => {
 
         {/* Right: theme + user */}
         <div className="flex items-center gap-4">
+          {user && roleKey && (
+            <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {roleKey.toUpperCase()}
+            </span>
+          )}
+
           <ThemeToggleButton />
 
           {user ? (

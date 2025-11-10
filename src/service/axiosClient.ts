@@ -5,7 +5,8 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 // ───────────────────────────────────────────────
 // Tạo instance Axios chính
 // ───────────────────────────────────────────────
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://152.53.227.115:8086/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://152.53.227.115:8080/api";
 
 // 🔍 LOG BASE URL ĐỂ DEBUG
 console.log("🌐 API_BASE_URL:", API_BASE_URL);
@@ -15,6 +16,9 @@ const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
   },
   withCredentials: true,
   timeout: 15000,
@@ -59,10 +63,19 @@ axiosClient.interceptors.request.use(
       data: config.data,
     });
 
+    // Xóa Authorization cũ trước khi thêm mới (tránh conflict)
+    delete config.headers.Authorization;
+
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Thêm headers chống cache cho mọi request
+    config.headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    config.headers["Pragma"] = "no-cache";
+    config.headers["Expires"] = "0";
+
     return config;
   },
   (error) => {
@@ -149,8 +162,12 @@ axiosClient.interceptors.response.use(
         console.error("Refresh token failed:", err);
         processQueue(err, null);
 
+        // Clear tất cả auth data
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("app:role");
+        sessionStorage.clear();
+        delete axiosClient.defaults.headers.common.Authorization;
 
         if (typeof window !== "undefined") {
           window.location.href = "/login";

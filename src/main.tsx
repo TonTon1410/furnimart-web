@@ -5,6 +5,10 @@ import "./index.css";
 import "leaflet/dist/leaflet.css";
 import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
+import { handleStaleToken } from "./utils/corsHandler";
+
+// Check và clear stale token khi app khởi động
+handleStaleToken();
 
 const el = document.getElementById("root");
 if (!el) throw new Error("Root element #root not found");

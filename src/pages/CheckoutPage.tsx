@@ -4,7 +4,7 @@ import { cartService } from "@/service/cartService";
 import { paymentService } from "@/service/paymentService";
 import { userService } from "@/service/userService";
 import { useNavigate } from "react-router-dom";
-import { useToastRadix } from "@/context/useToastRadix";
+import { useToast } from "@/context/ToastContext";
 import LoadingPage from "./LoadingPage";
 import CheckoutForm from "@/components/checkout/CheckoutForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
@@ -17,7 +17,7 @@ const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("COD");
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const { showToast, ToastComponent } = useToastRadix();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,12 +95,7 @@ const CheckoutPage: React.FC = () => {
         setVoucherCode={setVoucherCode}
         onCreateAddress={handleCreateAddress}
       />
-      <OrderSummary
-        cart={cart}
-        onCheckout={handleCheckout}
-        loading={loading}
-      />
-      <ToastComponent />
+      <OrderSummary cart={cart} onCheckout={handleCheckout} loading={loading} />
     </div>
   );
 };

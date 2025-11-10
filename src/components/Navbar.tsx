@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useCartStore, selectCartCount } from "@/store/cart";
 import CartDrawer from "./cart/CartDrawer";
-import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
 
 // Kiểu giống trang UserProfile
@@ -23,12 +22,6 @@ interface UserProfile {
   avatar?: string;
   createdAt: string;
   updatedAt: string;
-}
-interface ApiResponse<T> {
-  status: number;
-  message: string;
-  data: T;
-  timestamp?: string;
 }
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -56,18 +49,16 @@ export default function Navbar() {
       return;
     }
     try {
-      const res = await axiosClient.get<ApiResponse<UserProfile>>(
-        "/users/profile"
-      );
-      if (res.data.status === 200 && res.data.data) {
-        setUser(res.data.data);
+      const profile = await authService.getProfile();
+      if (profile) {
+        setUser(profile as UserProfile);
       } else {
-        throw new Error(res.data.message || "Không thể tải profile");
+        // no profile returned (could be 404 or fallback) — keep user null but don't force logout here
+        setUser(null);
       }
     } catch (err) {
       console.error("❌ Lấy thông tin tài khoản thất bại:", err);
-      // 401 sẽ được axiosClient refresh; nếu vẫn fail → logout
-      authService.logout();
+      // Let axios interceptors handle refresh/401; don't aggressively logout here
       setUser(null);
     }
   };
@@ -128,7 +119,7 @@ export default function Navbar() {
     if (u?.avatar) {
       return u.avatar.startsWith("http")
         ? u.avatar
-        : `http://localhost:8086${u.avatar}`;
+        : `http://localhost:8080${u.avatar}`;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       u?.fullName || "User"
@@ -136,7 +127,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    authService.logout();
+    authService.logout(true); // true = xóa cả remember me khi user tự logout
     setUser(null);
     setUserMenuOpen(false);
   };
@@ -225,7 +216,7 @@ export default function Navbar() {
                 <ChevronDown className="h-4 w-4 opacity-80" />
               </button>
 
-             {userMenuOpen && (
+              {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg bg-white text-gray-700 shadow-lg overflow-hidden">
                   <Link
                     to="/user"
@@ -239,7 +230,8 @@ export default function Navbar() {
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    Ví của tôi         </Link>
+                    Ví của tôi{" "}
+                  </Link>
                   <Link
                     to="/orders"
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
@@ -252,7 +244,7 @@ export default function Navbar() {
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    Blog của tôi 
+                    Blog của tôi
                   </Link>
                   <Link
                     to="/addresses"

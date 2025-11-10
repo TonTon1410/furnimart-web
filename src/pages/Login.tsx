@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { motion, type Variants } from "framer-motion"
-import { Eye, EyeOff, ArrowLeft } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
-import { authService } from "@/service/authService"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { motion, type Variants } from "framer-motion";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { authService } from "@/service/authService";
 
-const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }
+const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 
 const bubbleVariants: Variants = {
   animate: {
@@ -22,7 +22,7 @@ const bubbleVariants: Variants = {
       ease: [0.4, 0, 0.2, 1],
     },
   },
-}
+};
 
 const bubbleVariants2: Variants = {
   animate: {
@@ -37,7 +37,7 @@ const bubbleVariants2: Variants = {
       delay: 1,
     },
   },
-}
+};
 
 const bubbleVariants3: Variants = {
   animate: {
@@ -52,7 +52,7 @@ const bubbleVariants3: Variants = {
       delay: 2,
     },
   },
-}
+};
 
 const bubbleVariants4: Variants = {
   animate: {
@@ -67,7 +67,7 @@ const bubbleVariants4: Variants = {
       delay: 0.5,
     },
   },
-}
+};
 
 const bubbleVariants5: Variants = {
   animate: {
@@ -82,7 +82,7 @@ const bubbleVariants5: Variants = {
       delay: 3,
     },
   },
-}
+};
 
 const bubbleVariants6: Variants = {
   animate: {
@@ -97,7 +97,7 @@ const bubbleVariants6: Variants = {
       delay: 4,
     },
   },
-}
+};
 
 const bubbleVariants7: Variants = {
   animate: {
@@ -112,7 +112,7 @@ const bubbleVariants7: Variants = {
       delay: 7,
     },
   },
-}
+};
 
 const bubbleVariants8: Variants = {
   animate: {
@@ -127,21 +127,33 @@ const bubbleVariants8: Variants = {
       delay: 6,
     },
   },
-}
+};
 
 export default function Login() {
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login")
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string>("")
-  const [success, setSuccess] = useState<string>("") // Added success state
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>(""); // Added success state
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
-  })
+  });
+
+  // Load remembered email khi component mount
+  useEffect(() => {
+    const savedEmail = authService.getRememberedEmail();
+    const isRemembered = authService.isRememberMe();
+
+    if (savedEmail && isRemembered) {
+      setLoginData((prev) => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const [registerData, setRegisterData] = useState({
     fullName: "",
@@ -151,10 +163,10 @@ export default function Login() {
     confirmPassword: "",
     birthDay: "",
     gender: true, // hoặc false, tuỳ người dùng chọn
-  })
+  });
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (
       !registerData.fullName ||
@@ -163,31 +175,31 @@ export default function Login() {
       !registerData.password ||
       !registerData.birthDay
     ) {
-      setError("Vui lòng nhập đầy đủ thông tin")
-      return
+      setError("Vui lòng nhập đầy đủ thông tin");
+      return;
     }
 
     if (registerData.password !== registerData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp")
-      return
+      setError("Mật khẩu xác nhận không khớp");
+      return;
     }
 
     if (registerData.password.length < 6) {
-      setError("Mật khẩu phải có ít nhất 6 ký tự")
-      return
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
     }
 
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      const { ...registerPayload } = registerData
-      console.log("Payload gửi đăng ký:", registerPayload)
-      const response = await authService.register(registerPayload)
+      const { ...registerPayload } = registerData;
+      console.log("Payload gửi đăng ký:", registerPayload);
+      const response = await authService.register(registerPayload);
 
-      console.log("Đăng ký thành công:", response.data)
-      setSuccess("Đăng ký thành công! Chuyển sang đăng nhập...")
+      console.log("Đăng ký thành công:", response.data);
+      setSuccess("Đăng ký thành công! Chuyển sang đăng nhập...");
 
       // Reset form
       setRegisterData({
@@ -198,80 +210,87 @@ export default function Login() {
         confirmPassword: "",
         birthDay: "",
         gender: true,
-      })
+      });
 
       // Auto switch to login tab after 2 seconds
       setTimeout(() => {
-        setActiveTab("login")
-        setSuccess("")
+        setActiveTab("login");
+        setSuccess("");
         // Pre-fill email in login form
-        setLoginData((prev) => ({ ...prev, email: registerData.email }))
-      }, 2000)
+        setLoginData((prev) => ({ ...prev, email: registerData.email }));
+      }, 2000);
     } catch (error: any) {
-      console.error("Lỗi đăng ký:", error)
+      console.error("Lỗi đăng ký:", error);
 
       if (error.response?.data?.message) {
-        setError(error.response.data.message)
+        setError(error.response.data.message);
       } else if (error.response?.status === 400) {
-        setError("Thông tin đăng ký không hợp lệ")
+        setError("Thông tin đăng ký không hợp lệ");
       } else if (error.response?.status === 409) {
-        setError("Email hoặc tên đăng nhập đã tồn tại")
+        setError("Email hoặc tên đăng nhập đã tồn tại");
       } else if (error.response?.status >= 500) {
-        setError("Lỗi server, vui lòng thử lại sau")
+        setError("Lỗi server, vui lòng thử lại sau");
       } else {
-        setError("Không thể kết nối đến server")
+        setError("Không thể kết nối đến server");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault() // Ngăn form submit mặc định
+    e.preventDefault(); // Ngăn form submit mặc định
 
     if (!loginData.email || !loginData.password) {
-      setError("Vui lòng nhập đầy đủ thông tin")
-      return
+      setError("Vui lòng nhập đầy đủ thông tin");
+      return;
     }
 
-    setIsLoading(true)
-    setError("")
+    setIsLoading(true);
+    setError("");
 
     try {
       // Sử dụng authService thay vì gọi trực tiếp axiosClient
-      const response = await authService.login(loginData)
+      const response = await authService.login(loginData);
 
-      console.log("Đăng nhập thành công:", response.data)
-      navigate("/")
+      // Lưu remember me
+      authService.saveRememberMe(loginData.email, rememberMe);
+
+      console.log("Đăng nhập thành công:", response.data);
+      navigate("/");
 
       // Redirect hoặc cập nhật UI sau khi đăng nhập thành công
       // window.location.href = "/dashboard" // hoặc sử dụng navigate từ react-router
     } catch (error: any) {
-      console.error("Lỗi đăng nhập:", error)
+      console.error("Lỗi đăng nhập:", error);
 
       // Xử lý lỗi chi tiết hơn
       if (error.response?.data?.message) {
-        setError(error.response.data.message)
+        setError(error.response.data.message);
       } else if (error.response?.status === 401) {
-        setError("Email hoặc mật khẩu không đúng")
+        setError("Email hoặc mật khẩu không đúng");
       } else if (error.response?.status >= 500) {
-        setError("Lỗi server, vui lòng thử lại sau")
+        setError("Lỗi server, vui lòng thử lại sau");
       } else {
-        setError("Không thể kết nối đến server")
+        setError("Không thể kết nối đến server");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleAuth = () => {
-    console.log("Google auth attempt")
-  }
+    console.log("Google auth attempt");
+  };
 
   return (
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src="src/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
+        <img
+          src="src/assets/noithat.jpg"
+          alt="Nội thất hiện đại"
+          className="w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"
@@ -283,7 +302,9 @@ export default function Login() {
 
         <div className="absolute bottom-8 left-8 text-white">
           <h1 className="text-7xl font-bold mb-2">FurniMart</h1>
-          <p className=" text-white/90 font-bold text-lg">Ứng dụng công nghệ tiên tiến vào từng sản phẩm.</p>
+          <p className=" text-white/90 font-bold text-lg">
+            Ứng dụng công nghệ tiên tiến vào từng sản phẩm.
+          </p>
           <p className=" text-white/90 font-bold text-lg">
             {" "}
             Tối ưu hóa không gian sống và tận hưởng sự tiện nghi mỗi ngày.
@@ -359,24 +380,28 @@ export default function Login() {
 
               <button
                 onClick={() => {
-                  setActiveTab("login")
-                  setError("")
-                  setSuccess("")
+                  setActiveTab("login");
+                  setError("");
+                  setSuccess("");
                 }}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 relative z-10 ${
-                  activeTab === "login" ? "text-white" : "text-gray-600 hover:text-gray-800"
+                  activeTab === "login"
+                    ? "text-white"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 Đăng Nhập
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("register")
-                  setError("")
-                  setSuccess("")
+                  setActiveTab("register");
+                  setError("");
+                  setSuccess("");
                 }}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 relative z-10 ${
-                  activeTab === "register" ? "text-white" : "text-gray-600 hover:text-gray-800"
+                  activeTab === "register"
+                    ? "text-white"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 Đăng ký
@@ -394,21 +419,29 @@ export default function Login() {
               {activeTab === "login" && (
                 <div>
                   <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Đăng nhập tài khoản</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Đăng nhập tài khoản
+                    </h2>
                   </div>
 
                   {/* Hiển thị lỗi */}
                   {error && (
-                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                      {error}
+                    </div>
                   )}
 
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Email</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Email
+                      </label>
                       <input
                         type="email"
                         value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        onChange={(e) =>
+                          setLoginData({ ...loginData, email: e.target.value })
+                        }
                         placeholder="Nhập email"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                         required
@@ -417,12 +450,19 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Mật khẩu</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Mật khẩu
+                      </label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
                           value={loginData.password}
-                          onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                          onChange={(e) =>
+                            setLoginData({
+                              ...loginData,
+                              password: e.target.value,
+                            })
+                          }
                           placeholder="Nhập mật khẩu"
                           className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                           required
@@ -434,12 +474,28 @@ export default function Login() {
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           disabled={isLoading}
                         >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:ring-cyan-500 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          Ghi nhớ đăng nhập
+                        </span>
+                      </label>
+
                       <Link
                         to="/forgot-password"
                         className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline"
@@ -462,12 +518,16 @@ export default function Login() {
               {activeTab === "register" && (
                 <div>
                   <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Tạo tài khoản mới</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Tạo tài khoản mới
+                    </h2>
                   </div>
 
                   {/* Hiển thị lỗi và thành công */}
                   {error && (
-                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                      {error}
+                    </div>
                   )}
                   {success && (
                     <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
@@ -477,11 +537,18 @@ export default function Login() {
 
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Tên đăng nhập</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Tên đăng nhập
+                      </label>
                       <input
                         type="text"
                         value={registerData.fullName}
-                        onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            fullName: e.target.value,
+                          })
+                        }
                         placeholder="Nhập tên đăng nhập"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                         required
@@ -490,11 +557,18 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Email</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Email
+                      </label>
                       <input
                         type="email"
                         value={registerData.email}
-                        onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            email: e.target.value,
+                          })
+                        }
                         placeholder="Nhập email"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                         required
@@ -503,11 +577,18 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Số điện thoại</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Số điện thoại
+                      </label>
                       <input
                         type="tel"
                         value={registerData.phone}
-                        onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            phone: e.target.value,
+                          })
+                        }
                         placeholder="Nhập số điện thoại"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                         required
@@ -516,11 +597,18 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Ngày sinh</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Ngày sinh
+                      </label>
                       <input
                         type="date"
                         value={registerData.birthDay}
-                        onChange={(e) => setRegisterData({ ...registerData, birthDay: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            birthDay: e.target.value,
+                          })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                         required
                         disabled={isLoading}
@@ -528,12 +616,19 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Mật khẩu</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Mật khẩu
+                      </label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
                           value={registerData.password}
-                          onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                          onChange={(e) =>
+                            setRegisterData({
+                              ...registerData,
+                              password: e.target.value,
+                            })
+                          }
                           placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
                           className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                           required
@@ -546,18 +641,29 @@ export default function Login() {
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           disabled={isLoading}
                         >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">* Xác nhận mật khẩu</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        * Xác nhận mật khẩu
+                      </label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={registerData.confirmPassword}
-                          onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                          onChange={(e) =>
+                            setRegisterData({
+                              ...registerData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
                           placeholder="Nhập lại mật khẩu"
                           className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
                           required
@@ -565,11 +671,17 @@ export default function Login() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           disabled={isLoading}
                         >
-                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -636,5 +748,5 @@ export default function Login() {
         Trang Chủ
       </Link>
     </main>
-  )
+  );
 }

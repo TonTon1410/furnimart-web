@@ -197,7 +197,7 @@ export default function UserProfile() {
 
       if (axiosError.response?.status === 401) {
         console.log("🔓 Unauthorized - clearing tokens and redirecting");
-        authService.logout();
+        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
         window.location.href = "/login";
         return;
       }
@@ -377,7 +377,7 @@ export default function UserProfile() {
       // Nếu avatar là đường dẫn tương đối, ghép với base URL server
       const baseURL =
         axiosClient.defaults.baseURL?.replace("/api", "") ||
-        "http://152.53.169.79:8086";
+        "http://152.53.169.79:8080";
 
       // Đảm bảo avatar có dấu / ở đầu
       const avatarPath = user.avatar.startsWith("/")
