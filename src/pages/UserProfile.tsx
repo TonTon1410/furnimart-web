@@ -91,17 +91,18 @@ export default function UserProfile() {
   useEffect(() => {
     console.log("🔍 UserProfile component mounted");
 
+    // ✅ Check authentication TRƯỚC
     const isAuth = authService.isAuthenticated();
-    fetchUserProfile();
-    fetchDefaultAddress();
-
+    
     if (!isAuth) {
       console.log("❌ Not authenticated, redirecting to login");
       window.location.href = "/login";
       return;
     }
 
+    // ✅ Chỉ gọi MỘT LẦN sau khi đã xác thực
     fetchUserProfile();
+    fetchDefaultAddress();
   }, []);
 
   const fetchDefaultAddress = async () => {
