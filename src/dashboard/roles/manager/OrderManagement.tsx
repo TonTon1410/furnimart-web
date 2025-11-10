@@ -23,65 +23,80 @@ import { productService, type ProductColor } from "@/service/productService";
 import type { OrderItem } from "@/types/order";
 
 // Process status config - Tất cả trạng thái hiển thị bằng tiếng Việt
-const processStatusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+const processStatusConfig: Record<
+  string,
+  { label: string; color: string; icon: React.ReactNode }
+> = {
   PRE_ORDER: {
     label: "Hàng đặt trước",
-    color: "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-800",
+    color:
+      "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-800",
     icon: <Package className="h-3 w-3" />,
   },
   PENDING: {
     label: "Đang chờ",
-    color: "bg-yellow-50 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:ring-yellow-800",
+    color:
+      "bg-yellow-50 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:ring-yellow-800",
     icon: <Clock className="h-3 w-3" />,
   },
   PAYMENT: {
     label: "Đã thanh toán",
-    color: "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
+    color:
+      "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   ASSIGN_ORDER_STORE: {
     label: "Cửa hàng đã nhận đơn",
-    color: "bg-cyan-50 text-cyan-700 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:ring-cyan-800",
+    color:
+      "bg-cyan-50 text-cyan-700 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:ring-cyan-800",
     icon: <Package className="h-3 w-3" />,
   },
   MANAGER_ACCEPT: {
     label: "Quản lí cửa hàng đã nhận đơn",
-    color: "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
+    color:
+      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
     icon: <ThumbsUp className="h-3 w-3" />,
   },
   MANAGER_REJECT: {
     label: "Quản lí cửa hàng đã hủy đơn",
-    color: "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
+    color:
+      "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
     icon: <ThumbsDown className="h-3 w-3" />,
   },
   CONFIRMED: {
     label: "Đã xác nhận",
-    color: "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
+    color:
+      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   PACKAGED: {
     label: "Đang chuẩn bị hàng",
-    color: "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800",
+    color:
+      "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800",
     icon: <Package className="h-3 w-3" />,
   },
   SHIPPING: {
     label: "Đang vận chuyển",
-    color: "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-800",
+    color:
+      "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-800",
     icon: <Truck className="h-3 w-3" />,
   },
   DELIVERED: {
     label: "Đã vận chuyển",
-    color: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800",
+    color:
+      "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   FINISHED: {
     label: "Hoàn thành",
-    color: "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
+    color:
+      "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   CANCELLED: {
     label: "Đã hủy đơn",
-    color: "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
+    color:
+      "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
     icon: <XCircle className="h-3 w-3" />,
   },
 };
@@ -102,11 +117,13 @@ const OrderManagement: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
   const [fullOrderDetail, setFullOrderDetail] = useState<any>(null); // Full detail từ API /orders/{id}
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
-  
+
   // Product details for order items
-  const [productDetails, setProductDetails] = useState<Record<string, ProductColor>>({});
+  const [productDetails, setProductDetails] = useState<
+    Record<string, ProductColor>
+  >({});
   const [loadingProducts, setLoadingProducts] = useState(false);
-  
+
   // Action loading states
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
@@ -138,12 +155,12 @@ const OrderManagement: React.FC = () => {
   // Handle accept order
   const handleAcceptOrder = async (orderId: string) => {
     if (!confirm("Bạn có chắc chắn muốn chấp nhận đơn hàng này?")) return;
-    
+
     setAcceptingOrderId(orderId);
     try {
       await orderService.acceptOrder(Number(orderId));
       alert("Đã chấp nhận đơn hàng thành công!");
-      
+
       // Refresh orders
       const response = await orderService.searchAllOrders({
         search: searchQuery,
@@ -164,12 +181,12 @@ const OrderManagement: React.FC = () => {
       alert("Vui lòng nhập lý do từ chối!");
       return;
     }
-    
+
     setRejectingOrderId(orderId);
     try {
       await orderService.rejectOrder(Number(orderId), reason);
       alert("Đã từ chối đơn hàng thành công!");
-      
+
       // Refresh orders
       const response = await orderService.searchAllOrders({
         search: searchQuery,
@@ -187,7 +204,7 @@ const OrderManagement: React.FC = () => {
   const handleViewDetail = async (order: OrderItem) => {
     setSelectedOrder(order);
     setLoadingOrderDetail(true);
-    
+
     try {
       // Fetch full order detail từ API /orders/{id} - RAW DATA
       const detail = await orderService.getOrderFullDetail(Number(order.id));
@@ -202,17 +219,20 @@ const OrderManagement: React.FC = () => {
 
   // Fetch product details when modal opens
   useEffect(() => {
-    if (!selectedOrder?.orderDetails || selectedOrder.orderDetails.length === 0) return;
-    
+    if (!selectedOrder?.orderDetails || selectedOrder.orderDetails.length === 0)
+      return;
+
     const fetchProductDetails = async () => {
       setLoadingProducts(true);
       const details: Record<string, ProductColor> = {};
       const orderDetails = selectedOrder.orderDetails || [];
-      
+
       try {
         for (const item of orderDetails) {
           if (item.productColorId) {
-            const response = await productService.getProductColorById(item.productColorId);
+            const response = await productService.getProductColorById(
+              item.productColorId
+            );
             details[item.productColorId] = response.data.data;
           }
         }
@@ -223,16 +243,17 @@ const OrderManagement: React.FC = () => {
         setLoadingProducts(false);
       }
     };
-    
+
     fetchProductDetails();
   }, [selectedOrder]);
 
   // Filter by status locally and sort by date (newest first)
   const filteredOrders = useMemo(() => {
-    const filtered = statusFilter === "all" 
-      ? orders 
-      : orders.filter((order) => order.rawStatus === statusFilter);
-    
+    const filtered =
+      statusFilter === "all"
+        ? orders
+        : orders.filter((order) => order.rawStatus === statusFilter);
+
     // Sort by orderDate: newest first (descending)
     return filtered.sort((a, b) => {
       const dateA = new Date(a.orderDate).getTime();
@@ -336,7 +357,10 @@ const OrderManagement: React.FC = () => {
               { value: "PENDING", label: "Đang chờ" },
               { value: "PAYMENT", label: "Đã thanh toán" },
               { value: "ASSIGN_ORDER_STORE", label: "Cửa hàng đã nhận đơn" },
-              { value: "MANAGER_ACCEPT", label: "Quản lí cửa hàng đã nhận đơn" },
+              {
+                value: "MANAGER_ACCEPT",
+                label: "Quản lí cửa hàng đã nhận đơn",
+              },
               { value: "MANAGER_REJECT", label: "Quản lí cửa hàng đã hủy đơn" },
               { value: "CONFIRMED", label: "Đã xác nhận" },
               { value: "PACKAGED", label: "Đang chuẩn bị hàng" },
@@ -355,7 +379,10 @@ const OrderManagement: React.FC = () => {
         <Package className="h-4 w-4 text-emerald-600" />
         <span className="text-sm">
           Tổng: {loading ? "-" : totalOrders} đơn hàng
-          {statusFilter !== "all" && ` • ${processStatusConfig[statusFilter]?.label || "Lọc"}: ${filteredOrders.length}`}
+          {statusFilter !== "all" &&
+            ` • ${processStatusConfig[statusFilter]?.label || "Lọc"}: ${
+              filteredOrders.length
+            }`}
         </span>
       </div>
 
@@ -441,11 +468,16 @@ const OrderManagement: React.FC = () => {
                     <td className="px-4 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
-                          processStatusConfig[order.rawStatus || order.status]?.color || "bg-gray-50 text-gray-700 ring-gray-200"
+                          processStatusConfig[order.rawStatus || order.status]
+                            ?.color || "bg-gray-50 text-gray-700 ring-gray-200"
                         }`}
                       >
-                        {processStatusConfig[order.rawStatus || order.status]?.icon || <Clock className="h-3 w-3" />}
-                        {processStatusConfig[order.rawStatus || order.status]?.label || order.rawStatus || order.status}
+                        {processStatusConfig[order.rawStatus || order.status]
+                          ?.icon || <Clock className="h-3 w-3" />}
+                        {processStatusConfig[order.rawStatus || order.status]
+                          ?.label ||
+                          order.rawStatus ||
+                          order.status}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-gray-600 dark:text-gray-400">
@@ -460,40 +492,41 @@ const OrderManagement: React.FC = () => {
                           <Eye className="h-3.5 w-3.5" />
                           Chi tiết
                         </button>
-                        
+
                         {/* Chỉ hiện nút Accept/Reject nếu: 
                             1. Đơn hàng đã được assign (isAssigned = true)
                             2. Đơn hàng còn ở trạng thái ASSIGN_ORDER_STORE (chưa xử lý)
                         */}
-                        {order.isAssigned && order.rawStatus === 'ASSIGN_ORDER_STORE' && (
-                          <>
-                            <button
-                              onClick={() => handleAcceptOrder(order.id)}
-                              disabled={acceptingOrderId === order.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-600 transition-all hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-green-800 dark:bg-gray-900 dark:text-green-300 dark:hover:bg-green-900/20"
-                            >
-                              {acceptingOrderId === order.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <ThumbsUp className="h-3.5 w-3.5" />
-                              )}
-                              Chấp nhận
-                            </button>
-                            
-                            <button
-                              onClick={() => handleRejectOrder(order.id)}
-                              disabled={rejectingOrderId === order.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-900/20"
-                            >
-                              {rejectingOrderId === order.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <ThumbsDown className="h-3.5 w-3.5" />
-                              )}
-                              Từ chối
-                            </button>
-                          </>
-                        )}
+                        {order.isAssigned &&
+                          order.rawStatus === "ASSIGN_ORDER_STORE" && (
+                            <>
+                              <button
+                                onClick={() => handleAcceptOrder(order.id)}
+                                disabled={acceptingOrderId === order.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-600 transition-all hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-green-800 dark:bg-gray-900 dark:text-green-300 dark:hover:bg-green-900/20"
+                              >
+                                {acceptingOrderId === order.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <ThumbsUp className="h-3.5 w-3.5" />
+                                )}
+                                Chấp nhận
+                              </button>
+
+                              <button
+                                onClick={() => handleRejectOrder(order.id)}
+                                disabled={rejectingOrderId === order.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-900/20"
+                              >
+                                {rejectingOrderId === order.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <ThumbsDown className="h-3.5 w-3.5" />
+                                )}
+                                Từ chối
+                              </button>
+                            </>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -551,11 +584,19 @@ const OrderManagement: React.FC = () => {
                   </div>
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ring-1 ${
-                      processStatusConfig[selectedOrder.rawStatus || selectedOrder.status]?.color || "bg-gray-50 text-gray-700 ring-gray-200"
+                      processStatusConfig[
+                        selectedOrder.rawStatus || selectedOrder.status
+                      ]?.color || "bg-gray-50 text-gray-700 ring-gray-200"
                     }`}
                   >
-                    {processStatusConfig[selectedOrder.rawStatus || selectedOrder.status]?.icon || <Clock className="h-3 w-3" />}
-                    {processStatusConfig[selectedOrder.rawStatus || selectedOrder.status]?.label || selectedOrder.rawStatus || selectedOrder.status}
+                    {processStatusConfig[
+                      selectedOrder.rawStatus || selectedOrder.status
+                    ]?.icon || <Clock className="h-3 w-3" />}
+                    {processStatusConfig[
+                      selectedOrder.rawStatus || selectedOrder.status
+                    ]?.label ||
+                      selectedOrder.rawStatus ||
+                      selectedOrder.status}
                   </span>
                   {fullOrderDetail?.reason && (
                     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -590,8 +631,8 @@ const OrderManagement: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       {fullOrderDetail.user.avatar && (
-                        <img 
-                          src={fullOrderDetail.user.avatar} 
+                        <img
+                          src={fullOrderDetail.user.avatar}
                           alt={fullOrderDetail.user.fullName}
                           className="h-12 w-12 rounded-full object-cover border-2 border-white dark:border-gray-800"
                         />
@@ -648,7 +689,9 @@ const OrderManagement: React.FC = () => {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400">📍</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        📍
+                      </span>
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {fullOrderDetail.address.name}
@@ -657,27 +700,31 @@ const OrderManagement: React.FC = () => {
                           {fullOrderDetail.address.phone}
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          {fullOrderDetail.address.fullAddress || 
+                          {fullOrderDetail.address.fullAddress ||
                             `${fullOrderDetail.address.street}, ${fullOrderDetail.address.ward}, ${fullOrderDetail.address.district}, ${fullOrderDetail.address.city}`}
                         </div>
-                        {(fullOrderDetail.address.latitude && fullOrderDetail.address.longitude) && (
-                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            📍 {fullOrderDetail.address.latitude.toFixed(6)}, {fullOrderDetail.address.longitude.toFixed(6)}
-                          </div>
-                        )}
+                        {fullOrderDetail.address.latitude &&
+                          fullOrderDetail.address.longitude && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              📍 {fullOrderDetail.address.latitude.toFixed(6)},{" "}
+                              {fullOrderDetail.address.longitude.toFixed(6)}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
                 </div>
-              ) : selectedOrder.address && (
-                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                    Địa chỉ giao hàng
+              ) : (
+                selectedOrder.address && (
+                  <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                      Địa chỉ giao hàng
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      📍 {selectedOrder.address}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    📍 {selectedOrder.address}
-                  </div>
-                </div>
+                )
               )}
 
               {/* Payment Info - Enhanced */}
@@ -688,32 +735,45 @@ const OrderManagement: React.FC = () => {
                 {fullOrderDetail?.payment ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Tổng tiền:</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        Tổng tiền:
+                      </span>
                       <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(fullOrderDetail.payment.total)}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                       <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Phương thức</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Phương thức
+                        </div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
-                          {fullOrderDetail.payment.paymentMethod === 'COD' ? '💵 COD' : 
-                           fullOrderDetail.payment.paymentMethod === 'VNPAY' ? '💳 VNPay' : 
-                           fullOrderDetail.payment.paymentMethod}
+                          {fullOrderDetail.payment.paymentMethod === "COD"
+                            ? "💵 COD"
+                            : fullOrderDetail.payment.paymentMethod === "VNPAY"
+                            ? "💳 VNPay"
+                            : fullOrderDetail.payment.paymentMethod}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Trạng thái</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Trạng thái
+                        </div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
-                          {fullOrderDetail.payment.paymentStatus === 'PAID' ? '✅ Đã thanh toán' : 
-                           fullOrderDetail.payment.paymentStatus === 'NOT_PAID' ? '⏳ Chưa thanh toán' : 
-                           fullOrderDetail.payment.paymentStatus}
+                          {fullOrderDetail.payment.paymentStatus === "PAID"
+                            ? "✅ Đã thanh toán"
+                            : fullOrderDetail.payment.paymentStatus ===
+                              "NOT_PAID"
+                            ? "⏳ Chưa thanh toán"
+                            : fullOrderDetail.payment.paymentStatus}
                         </div>
                       </div>
                     </div>
                     {fullOrderDetail.payment.transactionCode && (
                       <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Mã giao dịch</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Mã giao dịch
+                        </div>
                         <div className="text-xs font-mono text-gray-900 dark:text-gray-100 mt-0.5 bg-white dark:bg-gray-800 px-2 py-1 rounded">
                           {fullOrderDetail.payment.transactionCode}
                         </div>
@@ -721,7 +781,8 @@ const OrderManagement: React.FC = () => {
                     )}
                     {fullOrderDetail.payment.date && (
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Ngày thanh toán: {formatDate(fullOrderDetail.payment.date)}
+                        Ngày thanh toán:{" "}
+                        {formatDate(fullOrderDetail.payment.date)}
                       </div>
                     )}
                   </div>
@@ -731,7 +792,8 @@ const OrderManagement: React.FC = () => {
                       {formatCurrency(selectedOrder.price)}
                     </div>
                     <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                      {selectedOrder.paymentMethod} • {selectedOrder.paymentStatus}
+                      {selectedOrder.paymentMethod} •{" "}
+                      {selectedOrder.paymentStatus}
                     </div>
                     {selectedOrder.transactionCode && (
                       <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -752,7 +814,7 @@ const OrderManagement: React.FC = () => {
                     {/* QR Code Image Generated */}
                     <div className="flex flex-col items-center gap-3">
                       <div className="bg-white p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <QRCodeSVG 
+                        <QRCodeSVG
                           value={fullOrderDetail.qrCode}
                           size={160}
                           level="H"
@@ -768,7 +830,8 @@ const OrderManagement: React.FC = () => {
                     </div>
                     {fullOrderDetail.qrCodeGeneratedAt && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                        📅 Tạo lúc: {formatDate(fullOrderDetail.qrCodeGeneratedAt)}
+                        📅 Tạo lúc:{" "}
+                        {formatDate(fullOrderDetail.qrCodeGeneratedAt)}
                       </div>
                     )}
                   </div>
@@ -796,52 +859,67 @@ const OrderManagement: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                fullOrderDetail?.processOrders && fullOrderDetail.processOrders.length > 0 && (
+                fullOrderDetail?.processOrders &&
+                fullOrderDetail.processOrders.length > 0 && (
                   <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
                     <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
                       Lịch sử xử lý đơn hàng
                     </div>
                     <div className="relative space-y-4">
-                      {fullOrderDetail.processOrders.map((process: any, index: number) => {
-                        const isLast = index === fullOrderDetail.processOrders.length - 1;
-                        const statusInfo = processStatusConfig[process.status] || {
-                          label: process.status,
-                          color: "bg-gray-100 text-gray-800 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700",
-                          icon: <Clock className="h-3 w-3" />
-                        };
-                        
-                        return (
-                          <div key={process.id} className="flex gap-3">
-                            {/* Timeline Line */}
-                            <div className="flex flex-col items-center">
-                              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                                isLast 
-                                  ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/30" 
-                                  : "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                              }`}>
-                                {statusInfo.icon || (
-                                  <div className="h-2 w-2 rounded-full bg-current" />
+                      {fullOrderDetail.processOrders.map(
+                        (process: any, index: number) => {
+                          const isLast =
+                            index === fullOrderDetail.processOrders.length - 1;
+                          const statusInfo = processStatusConfig[
+                            process.status
+                          ] || {
+                            label: process.status,
+                            color:
+                              "bg-gray-100 text-gray-800 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700",
+                            icon: <Clock className="h-3 w-3" />,
+                          };
+
+                          return (
+                            <div key={process.id} className="flex gap-3">
+                              {/* Timeline Line */}
+                              <div className="flex flex-col items-center">
+                                <div
+                                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                    isLast
+                                      ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/30"
+                                      : "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                                  }`}
+                                >
+                                  {statusInfo.icon || (
+                                    <div className="h-2 w-2 rounded-full bg-current" />
+                                  )}
+                                </div>
+                                {index <
+                                  fullOrderDetail.processOrders.length - 1 && (
+                                  <div
+                                    className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1"
+                                    style={{ minHeight: "20px" }}
+                                  />
                                 )}
                               </div>
-                              {index < fullOrderDetail.processOrders.length - 1 && (
-                                <div className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1" style={{ minHeight: '20px' }} />
-                              )}
-                            </div>
-                            
-                            {/* Content */}
-                            <div className="flex-1 pb-4">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${statusInfo.color}`}>
-                                  {statusInfo.label}
-                                </span>
+
+                              {/* Content */}
+                              <div className="flex-1 pb-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${statusInfo.color}`}
+                                  >
+                                    {statusInfo.label}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  {formatDate(process.createdAt)}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">
-                                {formatDate(process.createdAt)}
-                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        }
+                      )}
                     </div>
                   </div>
                 )
@@ -861,7 +939,8 @@ const OrderManagement: React.FC = () => {
 
               {/* Order Details */}
               {(fullOrderDetail?.orderDetails || selectedOrder.orderDetails) &&
-                (fullOrderDetail?.orderDetails || selectedOrder.orderDetails).length > 0 && (
+                (fullOrderDetail?.orderDetails || selectedOrder.orderDetails)
+                  .length > 0 && (
                   <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
                     <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
                       Chi tiết sản phẩm
@@ -875,9 +954,13 @@ const OrderManagement: React.FC = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {(fullOrderDetail?.orderDetails || selectedOrder.orderDetails).map((item: any, idx: number) => {
-                          const productColor = productDetails[item.productColorId];
-                          
+                        {(
+                          fullOrderDetail?.orderDetails ||
+                          selectedOrder.orderDetails
+                        ).map((item: any, idx: number) => {
+                          const productColor =
+                            productDetails[item.productColorId];
+
                           return (
                             <div
                               key={idx}
@@ -887,19 +970,24 @@ const OrderManagement: React.FC = () => {
                               {productColor && (
                                 <div className="flex-shrink-0">
                                   <img
-                                    src={productColor.images[0]?.image || productColor.product.thumbnailImage}
+                                    src={
+                                      productColor.images[0]?.image ||
+                                      productColor.product.thumbnailImage
+                                    }
                                     alt={productColor.product.name}
                                     className="h-20 w-20 rounded-lg object-cover"
                                   />
                                 </div>
                               )}
-                              
+
                               {/* Product Info */}
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {productColor ? productColor.product.name : `Sản phẩm #${item.productColorId}`}
+                                  {productColor
+                                    ? productColor.product.name
+                                    : `Sản phẩm #${item.productColorId}`}
                                 </div>
-                                
+
                                 {productColor && (
                                   <>
                                     <div className="flex items-center gap-2 mt-1">
@@ -909,20 +997,23 @@ const OrderManagement: React.FC = () => {
                                       <div className="flex items-center gap-1">
                                         <div
                                           className="h-4 w-4 rounded-full border border-gray-300"
-                                          style={{ backgroundColor: productColor.color.hexCode }}
+                                          style={{
+                                            backgroundColor:
+                                              productColor.color.hexCode,
+                                          }}
                                         />
                                         <span className="text-xs text-gray-700 dark:text-gray-300">
                                           {productColor.color.colorName}
                                         </span>
                                       </div>
                                     </div>
-                                    
+
                                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                       Mã SP: {productColor.product.code}
                                     </div>
                                   </>
                                 )}
-                                
+
                                 <div className="flex items-center justify-between mt-2">
                                   <span className="text-xs text-gray-600 dark:text-gray-400">
                                     SL: {item.quantity}

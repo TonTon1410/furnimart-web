@@ -23,16 +23,12 @@ export const managerNav = (): RoleNav => ({
     {
       icon: <ClipboardCheck />,
       name: "Orders",
-      subItems: [
-        { name: "Approve Orders", path: DP("orders/approval") },
-      ],
+      subItems: [{ name: "Approve Orders", path: DP("orders/approval") }],
     },
     {
       icon: <Truck />,
       name: "Deliveries",
-      subItems: [
-        { name: "Assign Delivery", path: DP("deliveries/assign") },
-      ],
+      subItems: [{ name: "Assign Delivery", path: DP("deliveries/assign") }],
     },
   ],
   others: [
