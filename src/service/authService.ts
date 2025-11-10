@@ -193,18 +193,18 @@ export const authService = {
   logout: (clearRememberMe = false) => {
     const rememberEmail = localStorage.getItem("app:remember_email");
     const rememberMeFlag = localStorage.getItem("app:remember_me");
-    
+
     // Clear auth tokens
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(ROLE_KEY);
-    
+
     // Xóa Authorization header khỏi axios instance
     delete axiosClient.defaults.headers.common.Authorization;
-    
+
     // Clear sessionStorage
     sessionStorage.clear();
-    
+
     // Nếu clearRememberMe = true, xóa hết (ví dụ: user tự logout)
     // Nếu false, giữ lại remember me (ví dụ: token hết hạn tự động)
     if (clearRememberMe) {
@@ -220,18 +220,18 @@ export const authService = {
       }
     }
   },
-  
+
   // Utility: Clear auth cache - GIỮ remember me
   clearAuthCache: () => {
     const rememberEmail = localStorage.getItem("app:remember_email");
     const rememberMeFlag = localStorage.getItem("app:remember_me");
-    
+
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(ROLE_KEY);
     sessionStorage.clear();
     delete axiosClient.defaults.headers.common.Authorization;
-    
+
     // Restore remember me
     if (rememberEmail) {
       localStorage.setItem("app:remember_email", rememberEmail);
@@ -239,11 +239,11 @@ export const authService = {
     if (rememberMeFlag) {
       localStorage.setItem("app:remember_me", rememberMeFlag);
     }
-    
+
     // Clear browser cache (chỉ hoạt động với Service Worker)
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name));
       });
     }
   },
@@ -256,7 +256,7 @@ export const authService = {
   getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
   },
-  
+
   // Remember Me helpers
   saveRememberMe: (email: string, remember: boolean) => {
     if (remember) {
@@ -267,7 +267,7 @@ export const authService = {
       localStorage.removeItem("app:remember_me");
     }
   },
-  
+
   getRememberedEmail: () => {
     const remember = localStorage.getItem("app:remember_me");
     if (remember === "true") {
@@ -275,7 +275,7 @@ export const authService = {
     }
     return "";
   },
-  
+
   isRememberMe: () => {
     return localStorage.getItem("app:remember_me") === "true";
   },

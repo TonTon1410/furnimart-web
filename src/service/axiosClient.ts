@@ -17,8 +17,8 @@ const axiosClient = axios.create({
   headers: {
     "Content-Type": "application/json",
     "Cache-Control": "no-cache, no-store, must-revalidate",
-    "Pragma": "no-cache",
-    "Expires": "0",
+    Pragma: "no-cache",
+    Expires: "0",
   },
   withCredentials: true,
   timeout: 15000,
@@ -65,17 +65,17 @@ axiosClient.interceptors.request.use(
 
     // Xóa Authorization cũ trước khi thêm mới (tránh conflict)
     delete config.headers.Authorization;
-    
+
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // Thêm headers chống cache cho mọi request
     config.headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
     config.headers["Pragma"] = "no-cache";
     config.headers["Expires"] = "0";
-    
+
     return config;
   },
   (error) => {
