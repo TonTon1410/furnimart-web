@@ -65,6 +65,36 @@ interface ProductResponse {
   data: Product;
 }
 
+export interface ProductColor {
+  id: string;
+  product: Product;
+  color: {
+    id: string;
+    colorName: string;
+    hexCode: string;
+  };
+  images: {
+    id: string;
+    image: string;
+  }[];
+  models3D: {
+    image3d: string;
+    status: string;
+    modelUrl: string;
+    format: string;
+    sizeInMb: number;
+    previewImage: string;
+  }[];
+  status: string;
+}
+
+interface ProductColorResponse {
+  status: number;
+  message: string;
+  data: ProductColor;
+  timestamp: string;
+}
+
 export const productService = {
   getById: (id: string) => {
     return axios.get<ProductResponse>(`${BASE_URL}/products/${id}`);
@@ -79,5 +109,8 @@ export const productService = {
     return axios.get<ProductResponse>(
       `${BASE_URL}/products/category/${categoryId}`
     );
+  },
+  getProductColorById: (id: string) => {
+    return axios.get<ProductColorResponse>(`${BASE_URL}/product-colors/${id}`);
   },
 };

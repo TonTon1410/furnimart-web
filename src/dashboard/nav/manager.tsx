@@ -5,7 +5,8 @@ import {
   BarChart3,
   MessageSquare,
   Warehouse,
-  Package
+  Package,
+  ShoppingCart,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -18,6 +19,7 @@ export const managerNav = (): RoleNav => ({
   main: [
     { icon: <Warehouse />, name: "Quản lí kho hàng", path: DP("warehouses") },
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
+    { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
     {
       icon: <ClipboardCheck />,
       name: "Orders",

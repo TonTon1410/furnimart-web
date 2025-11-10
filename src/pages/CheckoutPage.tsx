@@ -17,7 +17,7 @@ const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("COD");
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const { showToast, ToastComponent } = useToastRadix();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,7 +100,6 @@ const CheckoutPage: React.FC = () => {
         onCheckout={handleCheckout}
         loading={loading}
       />
-      <ToastComponent />
     </div>
   );
 };

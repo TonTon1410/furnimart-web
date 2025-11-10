@@ -11,7 +11,8 @@ export type OrderStatus =
 
 export interface OrderDetail {
   id: number
-  productId: string
+  productId?: string  // Legacy field
+  productColorId?: string  // New field - ID của product color
   quantity: number
   price: number
 }
@@ -25,6 +26,7 @@ export interface OrderItem {
   quantity: number
   price: number
   status: OrderStatus
+  rawStatus?: string      // Status gốc từ API (PENDING, MANAGER_ACCEPT, etc.)
   orderDate: string
   deliveryDate?: string
   material?: string
@@ -35,11 +37,14 @@ export interface OrderItem {
   
   // Thêm các field từ API
   address?: string
+  phone?: string           // Số điện thoại khách hàng
   paymentMethod?: string
   paymentStatus?: string
   transactionCode?: string
   note?: string | null
   orderDetails?: OrderDetail[]
+  storeId?: string | null  // Để check xem đã assign hay chưa
+  isAssigned?: boolean     // Helper field để dễ check trong UI
 }
 
 export interface OrderFilters {
