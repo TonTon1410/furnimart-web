@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, type Variants } from "framer-motion"
 import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
@@ -137,11 +137,23 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>("")
   const [success, setSuccess] = useState<string>("") // Added success state
+  const [rememberMe, setRememberMe] = useState(false)
 
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
   })
+  
+  // Load remembered email khi component mount
+  useEffect(() => {
+    const savedEmail = authService.getRememberedEmail();
+    const isRemembered = authService.isRememberMe();
+    
+    if (savedEmail && isRemembered) {
+      setLoginData(prev => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const [registerData, setRegisterData] = useState({
     fullName: "",
@@ -240,6 +252,9 @@ export default function Login() {
     try {
       // Sử dụng authService thay vì gọi trực tiếp axiosClient
       const response = await authService.login(loginData)
+      
+      // Lưu remember me
+      authService.saveRememberMe(loginData.email, rememberMe);
 
       console.log("Đăng nhập thành công:", response.data)
       navigate("/")
@@ -439,7 +454,19 @@ export default function Login() {
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:ring-cyan-500 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          Ghi nhớ đăng nhập
+                        </span>
+                      </label>
+                      
                       <Link
                         to="/forgot-password"
                         className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline"

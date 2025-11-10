@@ -235,7 +235,7 @@ export default function AddressPage() {
     } catch (error: any) {
       console.error("Fetch addresses error:", error);
       if (error.message?.includes('đăng nhập')) {
-        authService.logout();
+        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
         window.location.href = "/login";
         return;
       }
