@@ -196,7 +196,7 @@ export default function UserProfile() {
 
       if (axiosError.response?.status === 401) {
         console.log("🔓 Unauthorized - clearing tokens and redirecting");
-        authService.logout();
+        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
         window.location.href = "/login";
         return;
       }

@@ -113,7 +113,7 @@ const AppHeader: React.FC = () => {
       )}&background=0ea5e9&color=fff&size=128`;
 
   const logout = () => {
-    authService.logout();
+    authService.logout(true); // true = xóa cả remember me khi user tự logout
     setUser(null);
     setOpenUser(false);
   };
