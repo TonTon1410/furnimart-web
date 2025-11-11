@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { userService } from "@/service/userService" 
-import axios from "axios"
+import type React from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { userService } from "@/service/userService";
+import axios from "axios";
 import {
   MapPin,
   Plus,
@@ -20,27 +20,34 @@ import {
   Star,
   MapIcon,
   Clock,
-  TrendingUp
-} from "lucide-react"
-import { authService } from "@/service/authService"
-import { addressService, type Address } from "@/service/addressService"
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet"
-import "leaflet/dist/leaflet.css"
-import L from "leaflet"
+  TrendingUp,
+} from "lucide-react";
+import { authService } from "@/service/authService";
+import { addressService, type Address } from "@/service/addressService";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
 // Fix Leaflet icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-})
+});
 
 // Animation variants
-const fadeUp = { 
-  hidden: { opacity: 0, y: 20 }, 
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-}
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+};
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -50,13 +57,13 @@ const staggerContainer = {
       staggerChildren: 0.1,
     },
   },
-}
+};
 
 const slideIn = {
   hidden: { opacity: 0, x: -20 },
   show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } }
-}
+  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } },
+};
 
 // Interfaces
 interface Province {
@@ -78,7 +85,7 @@ interface Ward {
 
 interface Toast {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   message: string;
   duration?: number;
 }
@@ -93,7 +100,10 @@ interface LoadingState {
 const TOAST_DURATION = 5000;
 
 // Map Components
-function LocationMarker({ onSelect, position }: { 
+function LocationMarker({
+  onSelect,
+  position,
+}: {
   onSelect: (lat: number, lng: number) => void;
   position: [number, number];
 }) {
@@ -118,24 +128,24 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 
 export default function AddressPage() {
   // Core state
-  const [addresses, setAddresses] = useState<Address[]>([])
-  const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([])
-  
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
+
   // UI state
-  const [isCreating, setIsCreating] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [toasts, setToasts] = useState<Toast[]>([])
-  
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
   // Loading states
   const [loading, setLoading] = useState<LoadingState>({
     fetch: true,
     create: false,
     update: false,
-    delete: false
-  })
-  
+    delete: false,
+  });
+
   // Search state
-  const [searchKeyword, setSearchKeyword] = useState("")
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   // Form state
   const [createForm, setCreateForm] = useState({
@@ -148,8 +158,8 @@ export default function AddressPage() {
     addressLine: "",
     isDefault: false,
     latitude: 21.0278,
-    longitude: 105.8342
-  })
+    longitude: 105.8342,
+  });
 
   const [editForm, setEditForm] = useState({
     name: "",
@@ -161,60 +171,73 @@ export default function AddressPage() {
     addressLine: "",
     isDefault: false,
     latitude: 21.0278,
-    longitude: 105.8342
-  })
+    longitude: 105.8342,
+  });
 
   // Province/District/Ward data
-  const [provinces, setProvinces] = useState<Province[]>([])
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null)
-  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null)
-  const [selectedWard, setSelectedWard] = useState<Ward | null>(null)
-  
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
+    null
+  );
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(
+    null
+  );
+  const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
+
   // Edit mode province/district/ward
-  const [editProvince, setEditProvince] = useState<Province | null>(null)
-  const [editDistrict, setEditDistrict] = useState<District | null>(null)
-  const [editWard, setEditWard] = useState<Ward | null>(null)
+  const [editProvince, setEditProvince] = useState<Province | null>(null);
+  const [editDistrict, setEditDistrict] = useState<District | null>(null);
+  const [editWard, setEditWard] = useState<Ward | null>(null);
 
   // Toast management
-  const showToast = useCallback((type: Toast['type'], message: string, duration = TOAST_DURATION) => {
-    const id = `${Date.now()}-${Math.random()}`
-    const toast: Toast = { id, type, message, duration }
-    
-    setToasts(prev => [...prev, toast])
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, duration)
-  }, [])
+  const showToast = useCallback(
+    (type: Toast["type"], message: string, duration = TOAST_DURATION) => {
+      const id = `${Date.now()}-${Math.random()}`;
+      const toast: Toast = { id, type, message, duration };
+
+      setToasts((prev) => [...prev, toast]);
+
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, duration);
+    },
+    []
+  );
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // Loading state helpers
-  const setLoadingState = useCallback((key: keyof LoadingState, value: boolean) => {
-    setLoading(prev => ({ ...prev, [key]: value }))
-  }, [])
+  const setLoadingState = useCallback(
+    (key: keyof LoadingState, value: boolean) => {
+      setLoading((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   // Memoized filtered addresses
   const memoizedFilteredAddresses = useMemo(() => {
-    let filtered = [...addresses]
+    let filtered = [...addresses];
 
     if (searchKeyword.trim()) {
-      filtered = addressService.filterAddressesByKeyword(filtered, searchKeyword)
+      filtered = addressService.filterAddressesByKeyword(
+        filtered,
+        searchKeyword
+      );
     }
 
-    return filtered
-  }, [addresses, searchKeyword])
+    return filtered;
+  }, [addresses, searchKeyword]);
 
   useEffect(() => {
-    setFilteredAddresses(memoizedFilteredAddresses)
-  }, [memoizedFilteredAddresses])
+    setFilteredAddresses(memoizedFilteredAddresses);
+  }, [memoizedFilteredAddresses]);
 
   // Fetch functions
   const fetchAddresses = useCallback(async () => {
     try {
-      setLoadingState('fetch', true);
+      setLoadingState("fetch", true);
 
       const profile = await authService.getProfile();
       const userId = profile?.id || authService.getUserId();
@@ -227,83 +250,95 @@ export default function AddressPage() {
 
       if (response?.data && Array.isArray(response.data)) {
         setAddresses(response.data);
-        showToast('success', `Đã tải ${response.data.length} địa chỉ`, 2000);
+        showToast("success", `Đã tải ${response.data.length} địa chỉ`, 2000);
       } else {
         setAddresses([]);
-        showToast('warning', 'Không có dữ liệu địa chỉ');
+        showToast("warning", "Không có dữ liệu địa chỉ");
       }
     } catch (error: any) {
       console.error("Fetch addresses error:", error);
-      if (error.message?.includes('đăng nhập')) {
-        authService.logout();
+      if (error.message?.includes("đăng nhập")) {
+        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
         window.location.href = "/login";
         return;
       }
-      showToast('error', error.message || "Không thể tải danh sách địa chỉ");
+      showToast("error", error.message || "Không thể tải danh sách địa chỉ");
       setAddresses([]);
     } finally {
-      setLoadingState('fetch', false);
+      setLoadingState("fetch", false);
     }
   }, [setLoadingState, showToast]);
 
   // Initialize component
   useEffect(() => {
-    const isAuth = authService.isAuthenticated()
+    const isAuth = authService.isAuthenticated();
     if (!isAuth) {
-      window.location.href = "/login"
-      return
+      window.location.href = "/login";
+      return;
     }
-    
+
     // Load provinces data
-    axios.get("https://provinces.open-api.vn/api/?depth=3").then((res) => {
-      setProvinces(res.data)
-    }).catch(err => {
-      console.error("Failed to load provinces:", err)
-      showToast('error', "Không thể tải dữ liệu tỉnh/thành phố")
-    })
-    
-    fetchAddresses()
-  }, [fetchAddresses, showToast])
+    axios
+      .get("https://provinces.open-api.vn/api/?depth=3")
+      .then((res) => {
+        setProvinces(res.data);
+      })
+      .catch((err) => {
+        console.error("Failed to load provinces:", err);
+        showToast("error", "Không thể tải dữ liệu tỉnh/thành phố");
+      });
+
+    fetchAddresses();
+  }, [fetchAddresses, showToast]);
 
   // Geocode address helper
-  const geocodeAddress = useCallback(async (city?: string, district?: string, ward?: string) => {
-    if (!city) return;
+  const geocodeAddress = useCallback(
+    async (city?: string, district?: string, ward?: string) => {
+      if (!city) return;
 
-    const clean = (s: string) =>
-      s.replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "").trim();
+      const clean = (s: string) =>
+        s
+          .replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "")
+          .trim();
 
-    let query = "";
-    if (city && district && ward) {
-      query = `${clean(ward)}, ${clean(district)}, ${clean(city)}, Việt Nam`;
-    } else if (city && district) {
-      query = `${clean(district)}, ${clean(city)}, Việt Nam`;
-    } else if (city) {
-      query = `${clean(city)}, Việt Nam`;
-    }
-
-    if (!query) return;
-
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&countrycodes=VN&limit=1`
-      );
-      const data = await res.json();
-      if (data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        
-        if (isCreating) {
-          setCreateForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
-        } else if (editingId) {
-          setEditForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
-        }
+      let query = "";
+      if (city && district && ward) {
+        query = `${clean(ward)}, ${clean(district)}, ${clean(city)}, Việt Nam`;
+      } else if (city && district) {
+        query = `${clean(district)}, ${clean(city)}, Việt Nam`;
+      } else if (city) {
+        query = `${clean(city)}, Việt Nam`;
       }
-    } catch (e) {
-      console.error("Lỗi geocode:", e);
-    }
-  }, [isCreating, editingId])
+
+      if (!query) return;
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            query
+          )}&countrycodes=VN&limit=1`
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+
+          if (isCreating) {
+            setCreateForm((prev) => ({
+              ...prev,
+              latitude: lat,
+              longitude: lng,
+            }));
+          } else if (editingId) {
+            setEditForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+          }
+        }
+      } catch (e) {
+        console.error("Lỗi geocode:", e);
+      }
+    },
+    [isCreating, editingId]
+  );
 
   // Form helpers
   const resetCreateForm = useCallback(() => {
@@ -317,172 +352,189 @@ export default function AddressPage() {
       addressLine: "",
       isDefault: false,
       latitude: 21.0278,
-      longitude: 105.8342
-    })
-    setSelectedProvince(null)
-    setSelectedDistrict(null)
-    setSelectedWard(null)
-  }, [])
+      longitude: 105.8342,
+    });
+    setSelectedProvince(null);
+    setSelectedDistrict(null);
+    setSelectedWard(null);
+  }, []);
 
   // CRUD operations
   const handleCreate = useCallback(async () => {
-    if (!createForm.name.trim() || !createForm.phone.trim() || !createForm.addressLine.trim()) {
-      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
-      return
+    if (
+      !createForm.name.trim() ||
+      !createForm.phone.trim() ||
+      !createForm.addressLine.trim()
+    ) {
+      showToast("error", "Vui lòng điền đầy đủ thông tin bắt buộc");
+      return;
     }
 
     try {
-      setLoadingState('create', true)
+      setLoadingState("create", true);
       const profile = await authService.getProfile();
       const userId = profile?.id || authService.getUserId();
-      
+
       const response = await addressService.createAddress({
         ...createForm,
-        userId: userId || undefined
-      })
-      
+        userId: userId || undefined,
+      });
+
       if (response?.data) {
-        await fetchAddresses()
-        resetCreateForm()
-        setIsCreating(false)
-        showToast('success', "Thêm địa chỉ thành công!")
+        await fetchAddresses();
+        resetCreateForm();
+        setIsCreating(false);
+        showToast("success", "Thêm địa chỉ thành công!");
       }
     } catch (error: any) {
-      showToast('error', error.message || "Thêm địa chỉ thất bại")
+      showToast("error", error.message || "Thêm địa chỉ thất bại");
     } finally {
-      setLoadingState('create', false)
+      setLoadingState("create", false);
     }
-  }, [createForm, setLoadingState, showToast, fetchAddresses, resetCreateForm])
+  }, [createForm, setLoadingState, showToast, fetchAddresses, resetCreateForm]);
 
-  const handleEdit = useCallback((address: Address) => {
-    if (!address?.id) {
-      showToast('error', "Thông tin địa chỉ không hợp lệ")
-      return
-    }
-
-    setEditingId(address.id)
-    setEditForm({
-      name: address.name || "",
-      phone: address.phone || "",
-      city: address.city || "",
-      district: address.district || "",
-      ward: address.ward || "",
-      street: address.street || "",
-      addressLine: address.addressLine || "",
-      isDefault: Boolean(address.isDefault),
-      latitude: 21.0278,
-      longitude: 105.8342
-    })
-
-    // Set edit provinces/districts/wards
-    const prov = provinces.find(p => p.name === address.city)
-    setEditProvince(prov || null)
-    
-    if (prov) {
-      const dist = prov.districts.find(d => d.name === address.district)
-      setEditDistrict(dist || null)
-      
-      if (dist) {
-        const ward = dist.wards.find(w => w.name === address.ward)
-        setEditWard(ward || null)
+  const handleEdit = useCallback(
+    (address: Address) => {
+      if (!address?.id) {
+        showToast("error", "Thông tin địa chỉ không hợp lệ");
+        return;
       }
-    }
-  }, [provinces, showToast])
 
-  const handleUpdate = useCallback(async () => {
-    if (!editingId) return
+      setEditingId(address.id);
+      setEditForm({
+        name: address.name || "",
+        phone: address.phone || "",
+        city: address.city || "",
+        district: address.district || "",
+        ward: address.ward || "",
+        street: address.street || "",
+        addressLine: address.addressLine || "",
+        isDefault: Boolean(address.isDefault),
+        latitude: 21.0278,
+        longitude: 105.8342,
+      });
 
-    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.addressLine.trim()) {
-      showToast('error', "Vui lòng điền đầy đủ thông tin bắt buộc")
-      return
-    }
+      // Set edit provinces/districts/wards
+      const prov = provinces.find((p) => p.name === address.city);
+      setEditProvince(prov || null);
 
-    try {
-      setLoadingState('update', true)
-      
-      const profile = await authService.getProfile();
-      const userId = profile?.id || authService.getUserId();
-      
-      const response = await addressService.updateAddress(editingId, {
-        ...editForm,
-        userId: userId || undefined
-      })
-      
-      if (response?.data) {
-        await fetchAddresses()
-        setEditingId(null)
-        showToast('success', "Cập nhật địa chỉ thành công!")
-      }
-    } catch (error: any) {
-      showToast('error', error.message || "Cập nhật địa chỉ thất bại")
-    } finally {
-      setLoadingState('update', false)
-    }
-  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses])
+      if (prov) {
+        const dist = prov.districts.find((d) => d.name === address.district);
+        setEditDistrict(dist || null);
 
-  const handleDelete = useCallback(async (id: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return
-
-    try {
-      setLoadingState('delete', true)
-      
-      await addressService.deleteAddress(id)
-      await fetchAddresses()
-      showToast('success', "Xóa địa chỉ thành công!")
-    } catch (error: any) {
-      showToast('error', error.message || "Xóa địa chỉ thất bại")
-    } finally {
-      setLoadingState('delete', false)
-    }
-  }, [setLoadingState, showToast, fetchAddresses])
-
-  const handleSetDefault = useCallback(async (id: number) => {
-    try {
-      setLoadingState('update', true)
-      
-      const response = await addressService.setDefaultAddress(id)
-      
-      if (response?.data) {
-        const defaultAddress = response.data
-        const formattedAddress = addressService.formatAddress(defaultAddress)
-        
-        try {
-          const profile = await authService.getProfile()
-          await userService.updateProfile({ 
-            fullName: profile?.fullName || "",
-            address: formattedAddress 
-          })
-          showToast('success', "Đã đặt làm địa chỉ mặc định!")
-        } catch (error) {
-          showToast('warning', "Đã đặt mặc định nhưng chưa cập nhật profile")
+        if (dist) {
+          const ward = dist.wards.find((w) => w.name === address.ward);
+          setEditWard(ward || null);
         }
       }
-      
-      await fetchAddresses()
-    } catch (error: any) {
-      showToast('error', error.message || "Đặt địa chỉ mặc định thất bại")
-    } finally {
-      setLoadingState('update', false)
+    },
+    [provinces, showToast]
+  );
+
+  const handleUpdate = useCallback(async () => {
+    if (!editingId) return;
+
+    if (
+      !editForm.name.trim() ||
+      !editForm.phone.trim() ||
+      !editForm.addressLine.trim()
+    ) {
+      showToast("error", "Vui lòng điền đầy đủ thông tin bắt buộc");
+      return;
     }
-  }, [setLoadingState, showToast, fetchAddresses])
+
+    try {
+      setLoadingState("update", true);
+
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
+
+      const response = await addressService.updateAddress(editingId, {
+        ...editForm,
+        userId: userId || undefined,
+      });
+
+      if (response?.data) {
+        await fetchAddresses();
+        setEditingId(null);
+        showToast("success", "Cập nhật địa chỉ thành công!");
+      }
+    } catch (error: any) {
+      showToast("error", error.message || "Cập nhật địa chỉ thất bại");
+    } finally {
+      setLoadingState("update", false);
+    }
+  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses]);
+
+  const handleDelete = useCallback(
+    async (id: number) => {
+      if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return;
+
+      try {
+        setLoadingState("delete", true);
+
+        await addressService.deleteAddress(id);
+        await fetchAddresses();
+        showToast("success", "Xóa địa chỉ thành công!");
+      } catch (error: any) {
+        showToast("error", error.message || "Xóa địa chỉ thất bại");
+      } finally {
+        setLoadingState("delete", false);
+      }
+    },
+    [setLoadingState, showToast, fetchAddresses]
+  );
+
+  const handleSetDefault = useCallback(
+    async (id: number) => {
+      try {
+        setLoadingState("update", true);
+
+        const response = await addressService.setDefaultAddress(id);
+
+        if (response?.data) {
+          const defaultAddress = response.data;
+          const formattedAddress = addressService.formatAddress(defaultAddress);
+
+          try {
+            const profile = await authService.getProfile();
+            await userService.updateProfile({
+              fullName: profile?.fullName || "",
+              address: formattedAddress,
+            });
+            showToast("success", "Đã đặt làm địa chỉ mặc định!");
+          } catch (error) {
+            showToast("warning", "Đã đặt mặc định nhưng chưa cập nhật profile");
+          }
+        }
+
+        await fetchAddresses();
+      } catch (error: any) {
+        showToast("error", error.message || "Đặt địa chỉ mặc định thất bại");
+      } finally {
+        setLoadingState("update", false);
+      }
+    },
+    [setLoadingState, showToast, fetchAddresses]
+  );
 
   const formatAddress = useCallback((address: Address) => {
-    if (!address) return ""
-    return addressService.formatAddress(address)
-  }, [])
+    if (!address) return "";
+    return addressService.formatAddress(address);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
-    await fetchAddresses()
-  }, [fetchAddresses])
+    await fetchAddresses();
+  }, [fetchAddresses]);
 
   const handleCancelCreate = useCallback(() => {
-    setIsCreating(false)
-    resetCreateForm()
-  }, [resetCreateForm])
+    setIsCreating(false);
+    resetCreateForm();
+  }, [resetCreateForm]);
 
   const handleCancelEdit = useCallback(() => {
-    setEditingId(null)
-  }, [])
+    setEditingId(null);
+  }, []);
 
   // Toast component
   const ToastContainer = () => (
@@ -496,17 +548,20 @@ export default function AddressPage() {
             animate="show"
             exit="exit"
             className={`max-w-sm p-4 rounded-lg shadow-lg border flex items-start gap-3 ${
-              toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-              toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-              toast.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-              'bg-blue-50 border-blue-200 text-blue-800'
+              toast.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : toast.type === "error"
+                ? "bg-red-50 border-red-200 text-red-800"
+                : toast.type === "warning"
+                ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+                : "bg-blue-50 border-blue-200 text-blue-800"
             }`}
           >
             <div className="flex-shrink-0 mt-0.5">
-              {toast.type === 'success' && <CheckCircle className="h-4 w-4" />}
-              {toast.type === 'error' && <AlertCircle className="h-4 w-4" />}
-              {toast.type === 'warning' && <AlertCircle className="h-4 w-4" />}
-              {toast.type === 'info' && <AlertCircle className="h-4 w-4" />}
+              {toast.type === "success" && <CheckCircle className="h-4 w-4" />}
+              {toast.type === "error" && <AlertCircle className="h-4 w-4" />}
+              {toast.type === "warning" && <AlertCircle className="h-4 w-4" />}
+              {toast.type === "info" && <AlertCircle className="h-4 w-4" />}
             </div>
             <div className="flex-1 text-sm font-medium">{toast.message}</div>
             <button
@@ -519,37 +574,51 @@ export default function AddressPage() {
         ))}
       </AnimatePresence>
     </div>
-  )
+  );
 
   if (loading.fetch) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto mb-6"></div>
-          <p className="text-foreground text-lg font-medium">Đang tải danh sách địa chỉ...</p>
+          <p className="text-foreground text-lg font-medium">
+            Đang tải danh sách địa chỉ...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <>
       <ToastContainer />
-      
-      <motion.div initial="hidden" animate="show" variants={staggerContainer} className="space-y-6">
+
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer}
+        className="space-y-6"
+      >
         {/* Header */}
         <motion.div variants={fadeUp} className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
               <MapPin className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground">Địa chỉ giao hàng</h1>
+            <h1 className="text-4xl font-bold text-foreground">
+              Địa chỉ giao hàng
+            </h1>
           </div>
-          <p className="text-muted-foreground text-lg">Quản lý địa chỉ giao hàng của bạn</p>
+          <p className="text-muted-foreground text-lg">
+            Quản lý địa chỉ giao hàng của bạn
+          </p>
         </motion.div>
 
         {/* Toolbar */}
-        <motion.div variants={fadeUp} className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+        <motion.div
+          variants={fadeUp}
+          className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4"
+        >
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -571,7 +640,9 @@ export default function AddressPage() {
                 disabled={loading.fetch}
                 className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 ${loading.fetch ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${loading.fetch ? "animate-spin" : ""}`}
+                />
                 <span className="hidden sm:inline">Làm mới</span>
               </button>
             </div>
@@ -623,7 +694,9 @@ export default function AddressPage() {
                   <input
                     type="text"
                     value={createForm.name}
-                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, name: e.target.value })
+                    }
                     disabled={loading.create}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                     placeholder="Nhập họ và tên"
@@ -637,7 +710,9 @@ export default function AddressPage() {
                   <input
                     type="tel"
                     value={createForm.phone}
-                    onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, phone: e.target.value })
+                    }
                     disabled={loading.create}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                     placeholder="Nhập số điện thoại"
@@ -651,12 +726,19 @@ export default function AddressPage() {
                   <select
                     value={selectedProvince?.code || ""}
                     onChange={(e) => {
-                      const prov = provinces.find((p) => p.code === Number(e.target.value));
+                      const prov = provinces.find(
+                        (p) => p.code === Number(e.target.value)
+                      );
                       setSelectedProvince(prov || null);
                       setSelectedDistrict(null);
                       setSelectedWard(null);
                       if (prov) {
-                        setCreateForm({ ...createForm, city: prov.name, district: "", ward: "" });
+                        setCreateForm({
+                          ...createForm,
+                          city: prov.name,
+                          district: "",
+                          ward: "",
+                        });
                       }
                     }}
                     disabled={loading.create}
@@ -678,11 +760,17 @@ export default function AddressPage() {
                   <select
                     value={selectedDistrict?.code || ""}
                     onChange={(e) => {
-                      const dist = selectedProvince?.districts.find((d) => d.code === Number(e.target.value));
+                      const dist = selectedProvince?.districts.find(
+                        (d) => d.code === Number(e.target.value)
+                      );
                       setSelectedDistrict(dist || null);
                       setSelectedWard(null);
                       if (dist) {
-                        setCreateForm({ ...createForm, district: dist.name, ward: "" });
+                        setCreateForm({
+                          ...createForm,
+                          district: dist.name,
+                          ward: "",
+                        });
                       }
                     }}
                     disabled={loading.create || !selectedProvince}
@@ -704,11 +792,17 @@ export default function AddressPage() {
                   <select
                     value={selectedWard?.code || ""}
                     onChange={(e) => {
-                      const ward = selectedDistrict?.wards.find((w) => w.code === Number(e.target.value));
+                      const ward = selectedDistrict?.wards.find(
+                        (w) => w.code === Number(e.target.value)
+                      );
                       setSelectedWard(ward || null);
                       if (ward) {
                         setCreateForm({ ...createForm, ward: ward.name });
-                        geocodeAddress(selectedProvince?.name, selectedDistrict?.name, ward.name);
+                        geocodeAddress(
+                          selectedProvince?.name,
+                          selectedDistrict?.name,
+                          ward.name
+                        );
                       }
                     }}
                     disabled={loading.create || !selectedDistrict}
@@ -730,7 +824,9 @@ export default function AddressPage() {
                   <input
                     type="text"
                     value={createForm.street}
-                    onChange={(e) => setCreateForm({ ...createForm, street: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, street: e.target.value })
+                    }
                     disabled={loading.create}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                     placeholder="Nhập tên đường/phố"
@@ -744,7 +840,12 @@ export default function AddressPage() {
                 </label>
                 <textarea
                   value={createForm.addressLine}
-                  onChange={(e) => setCreateForm({ ...createForm, addressLine: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      addressLine: e.target.value,
+                    })
+                  }
                   rows={3}
                   disabled={loading.create}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
@@ -768,16 +869,27 @@ export default function AddressPage() {
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <RecenterMap lat={createForm.latitude} lng={createForm.longitude} />
+                    <RecenterMap
+                      lat={createForm.latitude}
+                      lng={createForm.longitude}
+                    />
                     <LocationMarker
                       position={[createForm.latitude, createForm.longitude]}
                       onSelect={(lat, lng) => {
-                        setCreateForm({ ...createForm, latitude: lat, longitude: lng });
+                        setCreateForm({
+                          ...createForm,
+                          latitude: lat,
+                          longitude: lng,
+                        });
                       }}
                     />
                   </MapContainer>
                 </div>
-                <p className="mt-2 text-xs text-gray-500">Click vào bản đồ để chọn vị trí chính xác. Tọa độ: {createForm.latitude.toFixed(6)}, {createForm.longitude.toFixed(6)}</p>
+                <p className="mt-2 text-xs text-gray-500">
+                  Click vào bản đồ để chọn vị trí chính xác. Tọa độ:{" "}
+                  {createForm.latitude.toFixed(6)},{" "}
+                  {createForm.longitude.toFixed(6)}
+                </p>
               </div>
 
               <div className="mt-4">
@@ -785,11 +897,18 @@ export default function AddressPage() {
                   <input
                     type="checkbox"
                     checked={createForm.isDefault}
-                    onChange={(e) => setCreateForm({ ...createForm, isDefault: e.target.checked })}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        isDefault: e.target.checked,
+                      })
+                    }
                     disabled={loading.create}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                   />
-                  <span className="text-sm font-medium text-gray-700">Đặt làm địa chỉ mặc định</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Đặt làm địa chỉ mặc định
+                  </span>
                 </label>
               </div>
 
@@ -830,10 +949,14 @@ export default function AddressPage() {
             <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-200">
               <MapIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {searchKeyword ? 'Không tìm thấy địa chỉ nào' : 'Chưa có địa chỉ nào'}
+                {searchKeyword
+                  ? "Không tìm thấy địa chỉ nào"
+                  : "Chưa có địa chỉ nào"}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchKeyword ? 'Thử thay đổi từ khóa tìm kiếm' : 'Thêm địa chỉ giao hàng để thuận tiện cho việc mua sắm'}
+                {searchKeyword
+                  ? "Thử thay đổi từ khóa tìm kiếm"
+                  : "Thêm địa chỉ giao hàng để thuận tiện cho việc mua sắm"}
               </p>
               {!isCreating && !searchKeyword && (
                 <button
@@ -882,7 +1005,12 @@ export default function AddressPage() {
                             <input
                               type="text"
                               value={editForm.name}
-                              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  name: e.target.value,
+                                })
+                              }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             />
@@ -895,7 +1023,12 @@ export default function AddressPage() {
                             <input
                               type="tel"
                               value={editForm.phone}
-                              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  phone: e.target.value,
+                                })
+                              }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             />
@@ -908,12 +1041,19 @@ export default function AddressPage() {
                             <select
                               value={editProvince?.code || ""}
                               onChange={(e) => {
-                                const prov = provinces.find((p) => p.code === Number(e.target.value));
+                                const prov = provinces.find(
+                                  (p) => p.code === Number(e.target.value)
+                                );
                                 setEditProvince(prov || null);
                                 setEditDistrict(null);
                                 setEditWard(null);
                                 if (prov) {
-                                  setEditForm({ ...editForm, city: prov.name, district: "", ward: "" });
+                                  setEditForm({
+                                    ...editForm,
+                                    city: prov.name,
+                                    district: "",
+                                    ward: "",
+                                  });
                                 }
                               }}
                               disabled={loading.update}
@@ -935,11 +1075,17 @@ export default function AddressPage() {
                             <select
                               value={editDistrict?.code || ""}
                               onChange={(e) => {
-                                const dist = editProvince?.districts.find((d) => d.code === Number(e.target.value));
+                                const dist = editProvince?.districts.find(
+                                  (d) => d.code === Number(e.target.value)
+                                );
                                 setEditDistrict(dist || null);
                                 setEditWard(null);
                                 if (dist) {
-                                  setEditForm({ ...editForm, district: dist.name, ward: "" });
+                                  setEditForm({
+                                    ...editForm,
+                                    district: dist.name,
+                                    ward: "",
+                                  });
                                 }
                               }}
                               disabled={loading.update || !editProvince}
@@ -961,11 +1107,17 @@ export default function AddressPage() {
                             <select
                               value={editWard?.code || ""}
                               onChange={(e) => {
-                                const ward = editDistrict?.wards.find((w) => w.code === Number(e.target.value));
+                                const ward = editDistrict?.wards.find(
+                                  (w) => w.code === Number(e.target.value)
+                                );
                                 setEditWard(ward || null);
                                 if (ward) {
                                   setEditForm({ ...editForm, ward: ward.name });
-                                  geocodeAddress(editProvince?.name, editDistrict?.name, ward.name);
+                                  geocodeAddress(
+                                    editProvince?.name,
+                                    editDistrict?.name,
+                                    ward.name
+                                  );
                                 }
                               }}
                               disabled={loading.update || !editDistrict}
@@ -987,7 +1139,12 @@ export default function AddressPage() {
                             <input
                               type="text"
                               value={editForm.street}
-                              onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  street: e.target.value,
+                                })
+                              }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             />
@@ -1000,7 +1157,12 @@ export default function AddressPage() {
                           </label>
                           <textarea
                             value={editForm.addressLine}
-                            onChange={(e) => setEditForm({ ...editForm, addressLine: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                addressLine: e.target.value,
+                              })
+                            }
                             rows={3}
                             disabled={loading.update}
                             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
@@ -1023,16 +1185,30 @@ export default function AddressPage() {
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                               />
-                              <RecenterMap lat={editForm.latitude} lng={editForm.longitude} />
+                              <RecenterMap
+                                lat={editForm.latitude}
+                                lng={editForm.longitude}
+                              />
                               <LocationMarker
-                                position={[editForm.latitude, editForm.longitude]}
+                                position={[
+                                  editForm.latitude,
+                                  editForm.longitude,
+                                ]}
                                 onSelect={(lat, lng) => {
-                                  setEditForm({ ...editForm, latitude: lat, longitude: lng });
+                                  setEditForm({
+                                    ...editForm,
+                                    latitude: lat,
+                                    longitude: lng,
+                                  });
                                 }}
                               />
                             </MapContainer>
                           </div>
-                          <p className="mt-2 text-xs text-gray-500">Click vào bản đồ để chọn vị trí chính xác. Tọa độ: {editForm.latitude.toFixed(6)}, {editForm.longitude.toFixed(6)}</p>
+                          <p className="mt-2 text-xs text-gray-500">
+                            Click vào bản đồ để chọn vị trí chính xác. Tọa độ:{" "}
+                            {editForm.latitude.toFixed(6)},{" "}
+                            {editForm.longitude.toFixed(6)}
+                          </p>
                         </div>
 
                         <div className="mt-4">
@@ -1040,11 +1216,18 @@ export default function AddressPage() {
                             <input
                               type="checkbox"
                               checked={editForm.isDefault}
-                              onChange={(e) => setEditForm({ ...editForm, isDefault: e.target.checked })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  isDefault: e.target.checked,
+                                })
+                              }
                               disabled={loading.update}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                             />
-                            <span className="text-sm font-medium text-gray-700">Đặt làm địa chỉ mặc định</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Đặt làm địa chỉ mặc định
+                            </span>
                           </label>
                         </div>
 
@@ -1099,7 +1282,9 @@ export default function AddressPage() {
                               </div>
                               <div className="flex items-start gap-2">
                                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">{formatAddress(address)}</span>
+                                <span className="text-sm">
+                                  {formatAddress(address)}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -1142,11 +1327,21 @@ export default function AddressPage() {
                           <div className="flex items-center justify-between text-xs text-gray-500">
                             <div className="flex items-center gap-2">
                               <Clock className="h-3 w-3" />
-                              <span>Tạo: {new Date(address.createdAt).toLocaleDateString('vi-VN')}</span>
+                              <span>
+                                Tạo:{" "}
+                                {new Date(address.createdAt).toLocaleDateString(
+                                  "vi-VN"
+                                )}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <TrendingUp className="h-3 w-3" />
-                              <span>Cập nhật: {new Date(address.updatedAt).toLocaleDateString('vi-VN')}</span>
+                              <span>
+                                Cập nhật:{" "}
+                                {new Date(address.updatedAt).toLocaleDateString(
+                                  "vi-VN"
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1160,5 +1355,5 @@ export default function AddressPage() {
         </motion.div>
       </motion.div>
     </>
-  )
+  );
 }

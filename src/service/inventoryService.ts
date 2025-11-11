@@ -144,7 +144,7 @@ const inventoryService = {
 
   // 📈 Tổng tồn kho khả dụng (THAY ĐỔI: dùng endpoint và query param mới)
   getTotalAvailable: async (productColorId: string) => {
-    const url = `/api/inventories/stock/total-available`;
+    const url = `/inventories/stock/total-available`;
     return axiosClient.get(url, { params: { productColorId } });
   },
 

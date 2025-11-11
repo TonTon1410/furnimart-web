@@ -5,7 +5,8 @@ import {
   BarChart3,
   MessageSquare,
   Warehouse,
-  Package
+  Package,
+  ShoppingCart,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -18,19 +19,16 @@ export const managerNav = (): RoleNav => ({
   main: [
     { icon: <Warehouse />, name: "Quản lí kho hàng", path: DP("warehouses") },
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
+    { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
     {
       icon: <ClipboardCheck />,
       name: "Orders",
-      subItems: [
-        { name: "Approve Orders", path: DP("orders/approval") },
-      ],
+      subItems: [{ name: "Approve Orders", path: DP("orders/approval") }],
     },
     {
       icon: <Truck />,
       name: "Deliveries",
-      subItems: [
-        { name: "Assign Delivery", path: DP("deliveries/assign") },
-      ],
+      subItems: [{ name: "Assign Delivery", path: DP("deliveries/assign") }],
     },
   ],
   others: [

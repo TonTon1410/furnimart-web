@@ -91,17 +91,18 @@ export default function UserProfile() {
   useEffect(() => {
     console.log("🔍 UserProfile component mounted");
 
+    // ✅ Check authentication TRƯỚC
     const isAuth = authService.isAuthenticated();
-    fetchUserProfile();
-    fetchDefaultAddress();
-
+    
     if (!isAuth) {
       console.log("❌ Not authenticated, redirecting to login");
       window.location.href = "/login";
       return;
     }
 
+    // ✅ Chỉ gọi MỘT LẦN sau khi đã xác thực
     fetchUserProfile();
+    fetchDefaultAddress();
   }, []);
 
   const fetchDefaultAddress = async () => {
@@ -196,7 +197,7 @@ export default function UserProfile() {
 
       if (axiosError.response?.status === 401) {
         console.log("🔓 Unauthorized - clearing tokens and redirecting");
-        authService.logout();
+        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
         window.location.href = "/login";
         return;
       }

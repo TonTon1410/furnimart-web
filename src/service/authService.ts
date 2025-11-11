@@ -56,8 +56,8 @@ const ROLE_KEY = "app:role";
  */
 let DEV_FORCE_ROLE: RoleKey | null = null;
 // DEV_FORCE_ROLE = "seller";
-// DEV_FORCE_ROLE = "admin";
-DEV_FORCE_ROLE = "manager";
+ //DEV_FORCE_ROLE = "admin";
+ DEV_FORCE_ROLE = "manager";
 // DEV_FORCE_ROLE = "delivery";
 
 /** ====== Helpers: decode JWT an toàn & suy ra role ====== */
@@ -189,10 +189,63 @@ export const authService = {
     }
   },
 
-  logout: () => {
+  // Logout - GIỮ remember me data
+  logout: (clearRememberMe = false) => {
+    const rememberEmail = localStorage.getItem("app:remember_email");
+    const rememberMeFlag = localStorage.getItem("app:remember_me");
+
+    // Clear auth tokens
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(ROLE_KEY);
+
+    // Xóa Authorization header khỏi axios instance
+    delete axiosClient.defaults.headers.common.Authorization;
+
+    // Clear sessionStorage
+    sessionStorage.clear();
+
+    // Nếu clearRememberMe = true, xóa hết (ví dụ: user tự logout)
+    // Nếu false, giữ lại remember me (ví dụ: token hết hạn tự động)
+    if (clearRememberMe) {
+      localStorage.removeItem("app:remember_email");
+      localStorage.removeItem("app:remember_me");
+    } else {
+      // Restore remember me data
+      if (rememberEmail) {
+        localStorage.setItem("app:remember_email", rememberEmail);
+      }
+      if (rememberMeFlag) {
+        localStorage.setItem("app:remember_me", rememberMeFlag);
+      }
+    }
+  },
+
+  // Utility: Clear auth cache - GIỮ remember me
+  clearAuthCache: () => {
+    const rememberEmail = localStorage.getItem("app:remember_email");
+    const rememberMeFlag = localStorage.getItem("app:remember_me");
+
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(ROLE_KEY);
+    sessionStorage.clear();
+    delete axiosClient.defaults.headers.common.Authorization;
+
+    // Restore remember me
+    if (rememberEmail) {
+      localStorage.setItem("app:remember_email", rememberEmail);
+    }
+    if (rememberMeFlag) {
+      localStorage.setItem("app:remember_me", rememberMeFlag);
+    }
+
+    // Clear browser cache (chỉ hoạt động với Service Worker)
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name));
+      });
+    }
   },
 
   isAuthenticated: () => {
@@ -202,6 +255,29 @@ export const authService = {
 
   getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
+  },
+
+  // Remember Me helpers
+  saveRememberMe: (email: string, remember: boolean) => {
+    if (remember) {
+      localStorage.setItem("app:remember_email", email);
+      localStorage.setItem("app:remember_me", "true");
+    } else {
+      localStorage.removeItem("app:remember_email");
+      localStorage.removeItem("app:remember_me");
+    }
+  },
+
+  getRememberedEmail: () => {
+    const remember = localStorage.getItem("app:remember_me");
+    if (remember === "true") {
+      return localStorage.getItem("app:remember_email") || "";
+    }
+    return "";
+  },
+
+  isRememberMe: () => {
+    return localStorage.getItem("app:remember_me") === "true";
   },
 
   // New: call server to get current user profile (async)

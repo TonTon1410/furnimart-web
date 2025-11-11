@@ -127,7 +127,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    authService.logout();
+    authService.logout(true); // true = xóa cả remember me khi user tự logout
     setUser(null);
     setUserMenuOpen(false);
   };
