@@ -3,6 +3,7 @@
 import axiosClient from "./axiosClient";
 import type { OrderItem, OrderStatus, OrderFilters } from "../types/order";
 import type { AxiosResponse } from "axios";
+import { authService } from "./authService";
 
 export interface ApiResponse<T> {
   status: number;
@@ -150,12 +151,18 @@ class OrderService {
     }
   }
 
-  // GET /orders/search - For admin/manager (search all orders)
+  // GET /orders/search/store/{storeId} - For manager (search orders by store)
   async searchAllOrders(
     filters: OrderFilters = {}
   ): Promise<OrderSearchResponse> {
     try {
-      console.log("🔍 Searching all orders:", filters);
+      console.log("🔍 Searching orders by store:", filters);
+
+      // Get storeId from token
+      const storeId = authService.getStoreId();
+      if (!storeId) {
+        throw new Error("Không tìm thấy thông tin cửa hàng trong token");
+      }
 
       const params: Record<string, string> = {};
 
@@ -165,7 +172,7 @@ class OrderService {
       }
 
       const response: AxiosResponse<ApiResponse<any>> = await axiosClient.get(
-        "/orders/search",
+        `/orders/search/store/${storeId}`,
         { params }
       );
 

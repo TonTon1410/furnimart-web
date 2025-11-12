@@ -1,5 +1,5 @@
 // src/components/CartDrawer.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LogIn } from "lucide-react";
 import { useCartStore } from "@/store/cart";
@@ -13,17 +13,55 @@ type Props = {
 
 const fmtVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
-const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
+const CartDrawerComponent: React.FC<Props> = ({ open, onClose }) => {
   const { items, remove, updateQty, total, fetch, loading, error } =
     useCartStore();
   const isAuthed = authService.isAuthenticated();
   const navigate = useNavigate();
+  const hasFetchedRef = useRef(false);
+
+  // Debug log để track lifecycle
+  console.log(
+    "🎨 [CartDrawer] Render - open:",
+    open,
+    "isAuthed:",
+    isAuthed,
+    "hasFetched:",
+    hasFetchedRef.current
+  );
+
+  // Track component mount/unmount
+  useEffect(() => {
+    console.log("🚀 [CartDrawer] Component MOUNTED");
+    return () => {
+      console.log("� [CartDrawer] Component UNMOUNTED");
+    };
+  }, []);
 
   useEffect(() => {
-    if (open && isAuthed) {
+    console.log(
+      "�🔄 [CartDrawer] useEffect triggered - open:",
+      open,
+      "isAuthed:",
+      isAuthed,
+      "hasFetched:",
+      hasFetchedRef.current
+    );
+
+    // Chỉ fetch 1 lần khi drawer mở và user đã đăng nhập
+    if (open && isAuthed && !hasFetchedRef.current) {
+      console.log("📡 [CartDrawer] Calling fetch()...");
       fetch();
+      hasFetchedRef.current = true;
     }
-  }, [open, isAuthed, fetch]);
+
+    // Reset flag khi đóng drawer để fetch lại khi mở lần sau
+    if (!open) {
+      console.log("🔒 [CartDrawer] Drawer closed - resetting hasFetched flag");
+      hasFetchedRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isAuthed]);
 
   const handleCheckout = () => {
     onClose();
@@ -31,11 +69,12 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {open && (
         <>
           {/* overlay */}
           <motion.div
+            key="cart-overlay"
             className="fixed inset-0 z-40 bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -45,6 +84,7 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
 
           {/* panel */}
           <motion.div
+            key="cart-panel"
             className="fixed right-0 top-0 z-50 flex h-full w-80 max-w-full flex-col bg-white shadow-xl"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -92,10 +132,15 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
                       <img
                         src={i.image}
                         alt={i.title}
-                        className="h-16 w-16 rounded-lg object-cover"
+                        className="h-16 w-16 rounded-lg object-cover bg-gray-100"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "/placeholder.png";
+                          const img = e.currentTarget as HTMLImageElement;
+                          // Chỉ set placeholder 1 lần để tránh infinite loop
+                          if (!img.src.includes("ui-avatars.com")) {
+                            img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              i.title || "Product"
+                            )}&background=e5e7eb&color=6b7280&size=128`;
+                          }
                         }}
                       />
                       <div className="flex-1">
@@ -177,5 +222,8 @@ const CartDrawer: React.FC<Props> = ({ open, onClose }) => {
     </AnimatePresence>
   );
 };
+
+// Memoize component để tránh re-render không cần thiết
+const CartDrawer = memo(CartDrawerComponent);
 
 export default CartDrawer;

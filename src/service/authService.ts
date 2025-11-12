@@ -54,10 +54,11 @@ const ROLE_KEY = "app:role";
  *  - Mặc định = null (không override, dùng role thật từ token/localStorage)
  *  - Khi cần test: bỏ comment 1 dòng dưới để ép role mong muốn rồi refresh trang.
  */
+// eslint-disable-next-line prefer-const
 let DEV_FORCE_ROLE: RoleKey | null = null;
 // DEV_FORCE_ROLE = "seller";
- //DEV_FORCE_ROLE = "admin";
- DEV_FORCE_ROLE = "manager";
+//  DEV_FORCE_ROLE = "admin";
+//  DEV_FORCE_ROLE = "manager";
 // DEV_FORCE_ROLE = "delivery";
 
 /** ====== Helpers: decode JWT an toàn & suy ra role ====== */
@@ -103,6 +104,22 @@ function inferRoleFromToken(token: string): RoleKey | null {
       : undefined);
 
   return mapBackendRoleToKey(rawRole);
+}
+
+/** Lấy storeId từ token */
+function getStoreIdFromToken(token: string): string | null {
+  const p = safeDecodeJwt(token);
+
+  // Backend có thể trả storeId hoặc storeIds (array)
+  if (p?.storeId) {
+    return p.storeId;
+  }
+
+  if (Array.isArray(p?.storeId) && p.storeId.length > 0) {
+    return p.storeId[0]; // Lấy storeId đầu tiên
+  }
+
+  return null;
 }
 
 export const authService = {
@@ -189,6 +206,44 @@ export const authService = {
     }
   },
 
+  // Google OAuth Login
+  loginWithGoogle: async (accessToken: string) => {
+    try {
+      const res = await axiosClient.post<LoginResponse>("/auth/google/login", {
+        accessToken,
+      });
+      if (res.data.status === 200 && res.data.data) {
+        const { token, refreshToken } = res.data.data;
+
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(REFRESH_KEY, refreshToken);
+
+        // Suy ra role từ JWT (nếu có claim)
+        const role = inferRoleFromToken(token);
+        if (role) localStorage.setItem(ROLE_KEY, role);
+
+        return res;
+      }
+      throw new Error(
+        res.data.message || "Google login response không đúng format"
+      );
+    } catch (error: any) {
+      if (error.response) {
+        const message =
+          error.response.data?.message ||
+          error.response.data?.error ||
+          `Server error: ${error.response.status}`;
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến server. Kiểm tra server có đang chạy?"
+        );
+      } else {
+        throw new Error(error.message || "Có lỗi xảy ra");
+      }
+    }
+  },
+
   // Logout - GIỮ remember me data
   logout: (clearRememberMe = false) => {
     const rememberEmail = localStorage.getItem("app:remember_email");
@@ -240,10 +295,19 @@ export const authService = {
       localStorage.setItem("app:remember_me", rememberMeFlag);
     }
 
-    // Clear browser cache (chỉ hoạt động với Service Worker)
+    // Clear browser cache (chỉ xóa cache của app, GIỮ Google OAuth cache)
     if ("caches" in window) {
       caches.keys().then((names) => {
-        names.forEach((name) => caches.delete(name));
+        names.forEach((name) => {
+          // Chỉ xóa cache của app, không xóa cache của Google/third-party
+          if (
+            name.includes("workbox") ||
+            name.includes("furnimart") ||
+            name.includes("app")
+          ) {
+            caches.delete(name);
+          }
+        });
       });
     }
   },
@@ -255,6 +319,13 @@ export const authService = {
 
   getToken: () => {
     return localStorage.getItem(TOKEN_KEY);
+  },
+
+  // Get storeId from current token
+  getStoreId: (): string | null => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    return getStoreIdFromToken(token);
   },
 
   // Remember Me helpers
@@ -336,7 +407,6 @@ export const authService = {
       const EMPLOYEE_API_BASES = [
         (import.meta.env.VITE_EMPLOYEE_API_BASE as string) ||
           "http://152.53.227.115:8080/api",
-        "http://152.53.227.115:8086/api",
       ];
 
       for (const base of EMPLOYEE_API_BASES) {

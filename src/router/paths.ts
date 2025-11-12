@@ -1,7 +1,7 @@
 // src/router/paths.ts
 export const DASHBOARD_BASE = "/dashboard";
 
-export type RoleKey = "admin" | "seller" | "manager" | "delivery";
+export type RoleKey = "admin" | "seller" | "manager" | "delivery" | "customer";
 
 // helper: tạo path tương đối trong dashboard
 export const DP = (p = "") =>
@@ -15,6 +15,7 @@ const ROLE_MAP: Record<string, RoleKey> = {
   DELIVERY: "delivery",
   BRANCH_MANAGER: "manager",
   STAFF: "seller",
+  CUSTOMER: "customer",
 };
 
 export function mapBackendRoleToKey(raw?: string): RoleKey | null {
@@ -24,7 +25,5 @@ export function mapBackendRoleToKey(raw?: string): RoleKey | null {
     .toString()
     .replace(/^ROLE_/i, "")
     .toUpperCase();
-  // CUSTOMER has no dashboard role in the front-end
-  if (normalized === "CUSTOMER") return null;
   return ROLE_MAP[normalized] ?? null;
 }

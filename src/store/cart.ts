@@ -32,6 +32,9 @@ type CartState = {
   addLocal: (item: Omit<CartItem, "qty" | "id">, qty?: number) => void;
 };
 
+// Debounce timers cho updateQty - lưu theo productColorId
+const updateTimers = new Map<string, NodeJS.Timeout>();
+
 const mapFromDTO = (data: CartDTO) => {
   const items: CartItem[] = data.items.map((i) => ({
     id: i.productColorId, // Sử dụng productColorId làm key duy nhất
@@ -64,12 +67,19 @@ export const useCartStore = create<CartState>((set, get) => ({
   error: undefined,
 
   fetch: async () => {
+    console.log("🛒 [Cart] Fetching cart data...");
     set({ loading: true, error: undefined });
     try {
       const data = await cartService.getMyCart();
       const mapped = mapFromDTO(data);
       set({ items: mapped.items, total: mapped.total, count: mapped.count });
+      console.log(
+        "✅ [Cart] Fetched successfully:",
+        mapped.items.length,
+        "items"
+      );
     } catch (e: any) {
+      console.error("❌ [Cart] Fetch failed:", e);
       set({ error: e?.response?.data?.message || "Không thể tải giỏ hàng" });
     } finally {
       set({ loading: false });
@@ -83,21 +93,47 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQty: async (productColorId: string, qty: number) => {
-    set({ error: undefined });
     const minQty = Math.max(1, qty);
+
+    console.log(`🔄 [Cart] Update quantity for ${productColorId}:`, minQty);
+
+    // Cập nhật UI ngay lập tức (optimistic update)
     const prevItems = get().items;
     const nextItems = prevItems.map((it) =>
       it.productColorId === productColorId ? { ...it, qty: minQty } : it
     );
     set(recompute(nextItems));
-    try {
-      await cartService.update(productColorId, minQty);
-    } catch (e: any) {
-      set({
-        ...recompute(prevItems),
-        error: e?.response?.data?.message || "Cập nhật số lượng thất bại",
-      });
+
+    // Clear timer cũ nếu có
+    if (updateTimers.has(productColorId)) {
+      clearTimeout(updateTimers.get(productColorId)!);
+      console.log(`⏱️  [Cart] Cleared previous timer for ${productColorId}`);
     }
+
+    // Debounce API call - chỉ gọi sau 500ms không có thay đổi
+    const timer = setTimeout(async () => {
+      console.log(
+        `📡 [Cart] Sending update request for ${productColorId}:`,
+        minQty
+      );
+      set({ error: undefined });
+      try {
+        await cartService.update(productColorId, minQty);
+        console.log(`✅ [Cart] Update successful for ${productColorId}`);
+        // Không cần fetch lại vì đã update optimistically
+      } catch (e: any) {
+        console.error(`❌ [Cart] Update failed for ${productColorId}:`, e);
+        // Rollback nếu lỗi
+        set({
+          ...recompute(prevItems),
+          error: e?.response?.data?.message || "Cập nhật số lượng thất bại",
+        });
+      } finally {
+        updateTimers.delete(productColorId);
+      }
+    }, 500); // Đợi 500ms sau lần thay đổi cuối cùng
+
+    updateTimers.set(productColorId, timer);
   },
 
   // Xoá 1 biến thể sản phẩm (optimistic)

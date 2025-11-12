@@ -152,7 +152,8 @@ const AdminUsersPage: React.FC = () => {
           alt={name || "User"}
           onError={() => setBroken(true)}
           className="rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
-          style={{ width: size, height: size }}
+          width={size}
+          height={size}
         />
       );
     }

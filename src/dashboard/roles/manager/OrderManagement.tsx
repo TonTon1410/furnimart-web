@@ -896,10 +896,7 @@ const OrderManagement: React.FC = () => {
                                 </div>
                                 {index <
                                   fullOrderDetail.processOrders.length - 1 && (
-                                  <div
-                                    className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1"
-                                    style={{ minHeight: "20px" }}
-                                  />
+                                  <div className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1 min-h-[20px]" />
                                 )}
                               </div>
 
