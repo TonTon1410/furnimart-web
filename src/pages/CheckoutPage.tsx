@@ -64,7 +64,8 @@ const CheckoutPage: React.FC = () => {
       if (paymentMethod === "VNPAY") {
         window.location.href = res.redirectUrl;
       } else {
-        navigate("/order-confirmation", { state: { order: res.data } });
+        // navigate("/order-confirmation", { state: { order: res.data } });
+        window.location.href = res.redirectUrl;
       }
     } catch (error: any) {
       showToast({

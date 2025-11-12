@@ -7,6 +7,7 @@ import { motion, type Variants } from "framer-motion";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "@/service/authService";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 
@@ -257,7 +258,18 @@ export default function Login() {
       authService.saveRememberMe(loginData.email, rememberMe);
 
       console.log("Đăng nhập thành công:", response.data);
-      navigate("/");
+
+      // Lấy role từ authService
+      const role = authService.getRole();
+
+      // Redirect dựa trên role
+      if (role && role !== "customer") {
+        // Các role khác (admin, manager, seller, delivery) → dashboard
+        navigate("/dashboard");
+      } else {
+        // CUSTOMER hoặc không có role → trang chủ
+        navigate("/");
+      }
 
       // Redirect hoặc cập nhật UI sau khi đăng nhập thành công
       // window.location.href = "/dashboard" // hoặc sử dụng navigate từ react-router
@@ -279,9 +291,54 @@ export default function Login() {
     }
   };
 
-  const handleGoogleAuth = () => {
-    console.log("Google auth attempt");
-  };
+  const handleGoogleAuth = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        // Call backend API with access token
+        const response = await authService.loginWithGoogle(
+          tokenResponse.access_token
+        );
+
+        console.log("Đăng nhập Google thành công:", response.data);
+
+        // Lấy role từ authService
+        const role = authService.getRole();
+
+        // Redirect dựa trên role
+        if (role && role !== "customer") {
+          // Các role khác (admin, manager, seller, delivery) → dashboard
+          navigate("/dashboard");
+        } else {
+          // CUSTOMER hoặc không có role → trang chủ
+          navigate("/");
+        }
+      } catch (error: any) {
+        console.error("Lỗi đăng nhập Google:", error);
+
+        if (error.response?.data?.message) {
+          setError(error.response.data.message);
+        } else if (error.response?.status === 401) {
+          setError("Xác thực Google không thành công");
+        } else if (error.response?.status >= 500) {
+          setError("Lỗi server, vui lòng thử lại sau");
+        } else {
+          setError("Không thể kết nối đến server");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      setError("Đăng nhập Google thất bại");
+    },
+    // Cấu hình để tránh hỏi lại mật khẩu
+    flow: "implicit", // Sử dụng implicit flow cho web app
+    scope: "openid email profile", // Chỉ yêu cầu các quyền cơ bản
+    // Không dùng 'prompt: consent' để tránh hỏi lại mỗi lần
+  });
 
   return (
     <main className="min-h-screen flex">
@@ -609,7 +666,9 @@ export default function Login() {
                             birthDay: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
+                        title="Ngày sinh"
+                        placeholder="Chọn ngày sinh"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         required
                         disabled={isLoading}
                       />
@@ -710,7 +769,7 @@ export default function Login() {
               </div>
 
               <button
-                onClick={handleGoogleAuth}
+                onClick={() => handleGoogleAuth()}
                 disabled={isLoading}
                 className="mt-4 w-full py-3 border border-gray-300 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-md active:scale-95 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >

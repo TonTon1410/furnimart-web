@@ -1,5 +1,5 @@
 // src/pages/Cart.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useCartStore } from "@/store/cart";
 import { useNavigate } from "react-router-dom";
 
@@ -9,10 +9,17 @@ const Cart: React.FC = () => {
   const { items, remove, clear, total, fetch, loading, error, updateQty } =
     useCartStore();
   const navigate = useNavigate();
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    // Chỉ fetch 1 lần khi component mount
+    // Không thêm 'fetch' vào dependency để tránh infinite loop
+    if (!hasFetchedRef.current) {
+      fetch();
+      hasFetchedRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - chỉ chạy 1 lần khi mount
 
   const handleCheckout = () => {
     navigate("/checkout");
@@ -36,10 +43,15 @@ const Cart: React.FC = () => {
                 <img
                   src={i.image}
                   alt={i.title || "Cart item"}
-                  className="h-16 w-16 rounded-lg object-cover"
+                  className="h-16 w-16 rounded-lg object-cover bg-gray-100"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      "/placeholder.png";
+                    const img = e.currentTarget as HTMLImageElement;
+                    // Chỉ set placeholder 1 lần để tránh infinite loop
+                    if (!img.src.includes("ui-avatars.com")) {
+                      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        i.title || "Product"
+                      )}&background=e5e7eb&color=6b7280&size=128`;
+                    }
                   }}
                 />
                 <div className="flex-1">
