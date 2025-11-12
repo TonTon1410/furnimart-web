@@ -54,18 +54,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         open={open}
         onOpenChange={setOpen}
         duration={4000}
-        className={`rounded-md px-4 py-3 shadow-md border ${colorClass}`}
+        // 👇 ĐÃ THAY ĐỔI: Tăng kích thước lên max-w-md và padding px-8 py-5
+        className={`rounded-xl max-w-md w-full px-8 py-5 shadow-2xl border ${colorClass}`}
       >
-        <Toast.Title className="font-semibold">{toastData.title}</Toast.Title>
+        {/* 👇 ĐÃ THAY ĐỔI: Tăng font size lên text-xl */}
+        <Toast.Title className="font-bold text-xl">{toastData.title}</Toast.Title>
         {toastData.description && (
-          <Toast.Description className="text-sm opacity-90">
+          // 👇 ĐÃ THAY ĐỔI: Tăng font size lên text-lg
+          <Toast.Description className="text-lg opacity-95 mt-1">
             {toastData.description}
           </Toast.Description>
         )}
       </Toast.Root>
 
       {/* ✅ BƯỚC 2: Thêm Viewport để toast có nơi hiển thị */}
-      <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 outline-none" />
+      <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" />
 
     </Toast.Provider>
   );

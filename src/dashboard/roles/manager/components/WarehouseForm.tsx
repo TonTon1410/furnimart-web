@@ -1,3 +1,4 @@
+// file: WarehouseForm.tsx
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/warehouses/WarehouseForm.tsx
@@ -34,11 +35,16 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
 }) => {
   const { showToast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    warehouseName: string;
+    status: "ACTIVE" | "INACTIVE";
+    capacity: number | string; // ✅ CẬP NHẬT: Cho phép string để giữ ô trống
+    storeId: string;
+  }>({
     warehouseName: "",
     status: "ACTIVE",
-    capacity: 0, // Giá trị khởi tạo là số
-    storeId: storeId, // Luôn khởi tạo với storeId từ props
+    capacity: "", // ✅ CẬP NHẬT: Khởi tạo là chuỗi rỗng
+    storeId: storeId,
   });
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -64,7 +70,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             setFormData({
               warehouseName: data.warehouseName || "",
               status: data.status || "ACTIVE",
-              capacity: data.capacity || 0, // Đảm bảo là số
+              capacity: data.capacity === 0 ? 0 : data.capacity || "", // ✅ CẬP NHẬT: Nếu là 0 thì vẫn để 0, nếu là null/undefined thì để "", ngược lại là giá trị
               storeId: data.store?.id || storeId,
             });
           }
@@ -81,7 +87,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
       setFormData({
         warehouseName: "",
         status: "ACTIVE",
-        capacity: 0,
+        capacity: "", // ✅ CẬP NHẬT: Khởi tạo là chuỗi rỗng
         storeId: storeId,
       });
     }
@@ -93,8 +99,8 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
 
     if (name === "capacity") {
       if (value === "") {
-        // Nếu người dùng xóa hết, set giá trị về 0
-        setFormData({ ...formData, [name]: 0 });
+        // Cho phép để trống
+        setFormData({ ...formData, [name]: "" }); // ✅ CẬP NHẬT: Set là chuỗi rỗng
       } else {
         const numValue = parseInt(value, 10);
         // Chỉ cập nhật state nếu là số hợp lệ và không âm
@@ -110,9 +116,45 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
 
   // Gửi yêu cầu tạo hoặc cập nhật
   const handleConfirmSubmit = async () => {
+    // ✅ THÊM: Kiểm tra bắt buộc trường capacity phải được nhập và >= 0
+    let finalCapacity: number;
+    if (formData.capacity === "") {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Sức chứa hợp lệ (>= 0).",
+        });
+        return;
+    } else {
+        finalCapacity = Number(formData.capacity);
+        if (finalCapacity < 0) {
+            showToast({
+                type: "error",
+                title: "Lỗi",
+                description: "Sức chứa không được là số âm.",
+            });
+            return;
+        }
+    }
+
+    // ✅ THÊM: Kiểm tra tên kho hàng bắt buộc
+    if (!formData.warehouseName.trim()) {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Tên kho hàng.",
+        });
+        return;
+    }
+
     try {
+      const payload = {
+        ...formData,
+        capacity: finalCapacity, // Gửi lên API là kiểu số
+      };
+
       if (mode === "create") {
-        await warehousesService.createWarehouse(formData.storeId, formData);
+        await warehousesService.createWarehouse(payload.storeId, payload);
         showToast({
           type: "success",
           title: "Thành công",
@@ -120,9 +162,9 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
         });
       } else if (mode === "edit" && warehouseId) {
         await warehousesService.updateWarehouseInfo(
-          formData.storeId,
+          payload.storeId,
           warehouseId,
-          formData
+          payload
         );
         showToast({
           type: "success",
@@ -267,18 +309,20 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
               value={formData.warehouseName}
               onChange={handleChange}
               fullWidth
+              required // ✅ Bắt buộc
             />
           </Grid>
 
           {/* Sửa trường Sức chứa */}
           <Grid item xs={12}>
             <TextField
-              label="Sức chứa"
+              label="Sức chứa (Capacity)"
               name="capacity"
               type="number"
-              value={formData.capacity}
+              value={formData.capacity} // ✅ Dùng value là string hoặc number
               onChange={handleChange}
               fullWidth
+              required // ✅ Bắt buộc
               InputProps={{
                 inputProps: { 
                   min: 0 
@@ -312,7 +356,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
                 color={formData.status === "ACTIVE" ? "error" : "success"}
                 onClick={handleToggleConfirm}
               >
-                {formData.status === "ACTIVE" ? "Vô hiệu" : "Ho động"}
+                {formData.status === "ACTIVE" ? "Vô hiệu" : "Hoạt động"}
               </Button>
 
               <Button

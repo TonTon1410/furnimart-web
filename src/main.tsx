@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
 import { handleStaleToken } from "./utils/corsHandler";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Check và clear stale token khi app khởi động
 handleStaleToken();
@@ -13,10 +14,21 @@ handleStaleToken();
 const el = document.getElementById("root");
 if (!el) throw new Error("Root element #root not found");
 
+const queryClient = new QueryClient({
+  defaultOptions: { // Tùy chọn, thiết lập cấu hình mặc định
+    queries: {
+      refetchOnWindowFocus: false, 
+      retry: 1, 
+    },
+  },
+});
+
 createRoot(el).render(
   <BrowserRouter>
     <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
       <App />
+      </QueryClientProvider>
     </ThemeProvider>
   </BrowserRouter>
 );
