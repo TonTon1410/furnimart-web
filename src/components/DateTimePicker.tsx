@@ -29,10 +29,16 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   // Close popups when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target as Node)
+      ) {
         setShowDatePicker(false);
       }
-      if (timePickerRef.current && !timePickerRef.current.contains(event.target as Node)) {
+      if (
+        timePickerRef.current &&
+        !timePickerRef.current.contains(event.target as Node)
+      ) {
         setShowTimePicker(false);
       }
     };
@@ -51,7 +57,11 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   const handleDateSelect = (date: Date) => {
     const dateStr = date.toISOString().slice(0, 10);
-    const timeStr = value?.slice(11, 16) || `${String(selectedTime.hour).padStart(2, "0")}:${String(selectedTime.minute).padStart(2, "0")}`;
+    const timeStr =
+      value?.slice(11, 16) ||
+      `${String(selectedTime.hour).padStart(2, "0")}:${String(
+        selectedTime.minute
+      ).padStart(2, "0")}`;
     onChange(`${dateStr}T${timeStr}`);
     setShowDatePicker(false);
   };
@@ -59,7 +69,10 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   const handleTimeSelect = (hour: number, minute: number) => {
     const date = selectedDate || new Date();
     const dateStr = date.toISOString().slice(0, 10);
-    const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(
+      2,
+      "0"
+    )}`;
     onChange(`${dateStr}T${timeStr}`);
   };
 
@@ -111,100 +124,104 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
           {showDatePicker && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-sm rounded-2xl border-2 border-purple-200 bg-white p-4 shadow-2xl dark:border-purple-800 dark:bg-gray-900 max-h-[90vh] overflow-y-auto">
-              {/* Month Navigation */}
-              <div className="mb-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newMonth = new Date(currentMonth);
-                    newMonth.setMonth(newMonth.getMonth() - 1);
-                    setCurrentMonth(newMonth);
-                  }}
-                  aria-label="Tháng trước"
-                  className="rounded-lg p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30"
-                >
-                  <ChevronLeft className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </button>
-                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newMonth = new Date(currentMonth);
-                    newMonth.setMonth(newMonth.getMonth() + 1);
-                    setCurrentMonth(newMonth);
-                  }}
-                  aria-label="Tháng sau"
-                  className="rounded-lg p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30"
-                >
-                  <ChevronRight className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </button>
-              </div>
-
-              {/* Weekday Headers */}
-              <div className="mb-2 grid grid-cols-7 gap-1">
-                {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-xs font-semibold text-gray-600 dark:text-gray-400"
+                {/* Month Navigation */}
+                <div className="mb-4 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newMonth = new Date(currentMonth);
+                      newMonth.setMonth(newMonth.getMonth() - 1);
+                      setCurrentMonth(newMonth);
+                    }}
+                    aria-label="Tháng trước"
+                    className="rounded-lg p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30"
                   >
-                    {day}
+                    <ChevronLeft className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </button>
+                  <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                    Tháng {currentMonth.getMonth() + 1},{" "}
+                    {currentMonth.getFullYear()}
                   </div>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newMonth = new Date(currentMonth);
+                      newMonth.setMonth(newMonth.getMonth() + 1);
+                      setCurrentMonth(newMonth);
+                    }}
+                    aria-label="Tháng sau"
+                    className="rounded-lg p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                  >
+                    <ChevronRight className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </button>
+                </div>
 
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
-                {(() => {
-                  const year = currentMonth.getFullYear();
-                  const month = currentMonth.getMonth();
-                  const firstDay = new Date(year, month, 1).getDay();
-                  const daysInMonth = new Date(year, month + 1, 0).getDate();
-                  const days = [];
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const minDateObj = minDate ? new Date(minDate) : null;
-                  if (minDateObj) minDateObj.setHours(0, 0, 0, 0);
+                {/* Weekday Headers */}
+                <div className="mb-2 grid grid-cols-7 gap-1">
+                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-xs font-semibold text-gray-600 dark:text-gray-400"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-                  // Empty cells for days before month starts
-                  for (let i = 0; i < firstDay; i++) {
-                    days.push(<div key={`empty-${i}`} />);
-                  }
+                {/* Calendar Days */}
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                  {(() => {
+                    const year = currentMonth.getFullYear();
+                    const month = currentMonth.getMonth();
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const days = [];
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const minDateObj = minDate ? new Date(minDate) : null;
+                    if (minDateObj) minDateObj.setHours(0, 0, 0, 0);
 
-                  // Days of the month
-                  for (let day = 1; day <= daysInMonth; day++) {
-                    const date = new Date(year, month, day);
-                    const isSelected =
-                      selectedDate &&
-                      date.toDateString() === selectedDate.toDateString();
-                    const isPast = minDateObj ? date < minDateObj : date < today;
-                    const isToday = date.toDateString() === today.toDateString();
+                    // Empty cells for days before month starts
+                    for (let i = 0; i < firstDay; i++) {
+                      days.push(<div key={`empty-${i}`} />);
+                    }
 
-                    days.push(
-                      <button
-                        key={day}
-                        type="button"
-                        disabled={isPast}
-                        onClick={() => handleDateSelect(date)}
-                        className={`relative rounded-lg p-1.5 sm:p-2 text-xs sm:text-sm font-medium transition-all ${
-                          isPast
-                            ? "cursor-not-allowed text-gray-300 dark:text-gray-700"
-                            : isSelected
-                            ? "bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-md"
-                            : isToday
-                            ? "border-2 border-purple-400 text-purple-600 dark:text-purple-400"
-                            : "hover:bg-purple-100 text-gray-700 dark:text-gray-300 dark:hover:bg-purple-900/30"
-                        }`}
-                      >
-                        {day}
-                      </button>
-                    );
-                  }
+                    // Days of the month
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const date = new Date(year, month, day);
+                      const isSelected =
+                        selectedDate &&
+                        date.toDateString() === selectedDate.toDateString();
+                      const isPast = minDateObj
+                        ? date < minDateObj
+                        : date < today;
+                      const isToday =
+                        date.toDateString() === today.toDateString();
 
-                  return days;
-                })()}
-              </div>
+                      days.push(
+                        <button
+                          key={day}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() => handleDateSelect(date)}
+                          className={`relative rounded-lg p-1.5 sm:p-2 text-xs sm:text-sm font-medium transition-all ${
+                            isPast
+                              ? "cursor-not-allowed text-gray-300 dark:text-gray-700"
+                              : isSelected
+                              ? "bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-md"
+                              : isToday
+                              ? "border-2 border-purple-400 text-purple-600 dark:text-purple-400"
+                              : "hover:bg-purple-100 text-gray-700 dark:text-gray-300 dark:hover:bg-purple-900/30"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    }
+
+                    return days;
+                  })()}
+                </div>
               </div>
             </div>
           )}
@@ -227,7 +244,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
               <Clock className="h-4 w-4 text-indigo-700 dark:text-indigo-300" />
             </div>
             <span className="flex-1 text-left">
-              {`${String(selectedTime.hour).padStart(2, "0")}:${String(selectedTime.minute).padStart(2, "0")}`}
+              {`${String(selectedTime.hour).padStart(2, "0")}:${String(
+                selectedTime.minute
+              ).padStart(2, "0")}`}
             </span>
           </button>
 
@@ -292,58 +311,58 @@ const TimePickerPopup: React.FC<TimePickerPopupProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-        {/* Hours */}
-        <div>
-          <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
-            Giờ
+          {/* Hours */}
+          <div>
+            <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Giờ
+            </div>
+            <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:p-2 dark:border-gray-700">
+              {Array.from({ length: 24 }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setLocalTime({ ...localTime, hour: i });
+                    onTimeChange(i, localTime.minute);
+                  }}
+                  className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    localTime.hour === i
+                      ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
+                      : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
+                  }`}
+                >
+                  {String(i).padStart(2, "0")}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:p-2 dark:border-gray-700">
-            {Array.from({ length: 24 }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setLocalTime({ ...localTime, hour: i });
-                  onTimeChange(i, localTime.minute);
-                }}
-                className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                  localTime.hour === i
-                    ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
-                    : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
-                }`}
-              >
-                {String(i).padStart(2, "0")}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Minutes */}
-        <div>
-          <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
-            Phút
-          </div>
-          <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:p-2 dark:border-gray-700">
-            {Array.from({ length: 60 }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setLocalTime({ ...localTime, minute: i });
-                  onTimeChange(localTime.hour, i);
-                }}
-                className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                  localTime.minute === i
-                    ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
-                    : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
-                }`}
-              >
-                {String(i).padStart(2, "0")}
-              </button>
-            ))}
+          {/* Minutes */}
+          <div>
+            <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Phút
+            </div>
+            <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:p-2 dark:border-gray-700">
+              {Array.from({ length: 60 }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setLocalTime({ ...localTime, minute: i });
+                    onTimeChange(localTime.hour, i);
+                  }}
+                  className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    localTime.minute === i
+                      ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
+                      : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
+                  }`}
+                >
+                  {String(i).padStart(2, "0")}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
         <button
           type="button"

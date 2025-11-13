@@ -163,9 +163,8 @@ const OrderManagement: React.FC = () => {
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [assigningDelivery, setAssigningDelivery] = useState(false);
-  
-  // DateTime picker states
 
+  // DateTime picker states
 
   // Fetch orders - Lấy tất cả đơn hàng 1 lần để filter phía client
   useEffect(() => {
@@ -345,7 +344,7 @@ const OrderManagement: React.FC = () => {
       // Since datetime-local doesn't include timezone, the Date object assumes local timezone
       // We just use toISOString() which converts to UTC correctly
       const utcDateTime = localDateTime.toISOString();
-      
+
       await orderService.assignDelivery({
         orderId: Number(orderId),
         storeId: storeId,
