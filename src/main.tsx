@@ -6,6 +6,11 @@ import "leaflet/dist/leaflet.css";
 import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
 import { handleStaleToken } from "./utils/corsHandler";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+// Google OAuth Client ID
+const GOOGLE_CLIENT_ID =
+  "274860327369-kta4kv3ld1qlff5trusfft5elq0vgbsk.apps.googleusercontent.com";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Check và clear stale token khi app khởi động
@@ -24,11 +29,11 @@ const queryClient = new QueryClient({
 });
 
 createRoot(el).render(
-  <BrowserRouter>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-      <App />
-      </QueryClientProvider>
-    </ThemeProvider>
-  </BrowserRouter>
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <BrowserRouter>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
+  </GoogleOAuthProvider>
 );

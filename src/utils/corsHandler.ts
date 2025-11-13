@@ -1,6 +1,9 @@
 /**
  * CORS Handler Utility
  * Giải quyết vấn đề CORS cache trong browser
+ *
+ * ⚠️ LƯU Ý: Các hàm clear cache chỉ xóa cache của APP,
+ * KHÔNG xóa cache/cookies của Google OAuth để tránh hỏi lại mật khẩu
  */
 
 // Keys cho remember me
@@ -31,16 +34,23 @@ export const clearAuthCache = () => {
   // Clear sessionStorage
   sessionStorage.clear();
 
-  // Clear Service Worker cache (nếu có)
+  // Clear Service Worker cache (chỉ cache của app, KHÔNG xóa Google OAuth cache)
   if ("caches" in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        caches.delete(name);
+        // Chỉ xóa cache của app, bỏ qua cache của Google/third-party
+        if (
+          name.includes("workbox") ||
+          name.includes("furnimart") ||
+          name.includes("app")
+        ) {
+          caches.delete(name);
+        }
       });
     });
   }
 
-  console.log("✅ Cleared auth cache (kept remember me data)");
+  console.log("✅ Cleared auth cache (kept remember me data & Google session)");
 };
 
 /**
@@ -54,10 +64,18 @@ export const clearAllAuthData = () => {
   localStorage.removeItem(REMEMBER_ME_KEY);
   sessionStorage.clear();
 
+  // Clear Service Worker cache (chỉ cache của app)
   if ("caches" in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        caches.delete(name);
+        // Chỉ xóa cache của app
+        if (
+          name.includes("workbox") ||
+          name.includes("furnimart") ||
+          name.includes("app")
+        ) {
+          caches.delete(name);
+        }
       });
     });
   }
@@ -117,4 +135,34 @@ export const clearCacheAndReload = () => {
   setTimeout(() => {
     window.location.reload();
   }, 100);
+};
+
+/**
+ * Kiểm tra xem có Google OAuth session không
+ * Dùng để debug khi Google hỏi lại mật khẩu
+ */
+export const checkGoogleSession = () => {
+  if ("caches" in window) {
+    caches.keys().then((names) => {
+      console.log("📦 All cache names:", names);
+      const googleCaches = names.filter(
+        (name) =>
+          name.includes("google") ||
+          name.includes("oauth") ||
+          name.includes("accounts")
+      );
+      console.log("🔑 Google-related caches:", googleCaches);
+    });
+  }
+
+  // Check cookies
+  const cookies = document.cookie.split(";");
+  const googleCookies = cookies.filter(
+    (c) =>
+      c.includes("google") ||
+      c.includes("oauth") ||
+      c.includes("SAPISID") || // Google auth cookie
+      c.includes("SSID") // Google session cookie
+  );
+  console.log("🍪 Google-related cookies:", googleCookies);
 };

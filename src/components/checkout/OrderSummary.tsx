@@ -24,10 +24,16 @@ const OrderSummary: React.FC<Props> = ({ cart, onCheckout, loading }) => {
             <img
               src={item.image}
               alt={item.productName}
-              className="h-14 w-14 rounded-lg object-cover"
-              onError={(e) =>
-                ((e.target as HTMLImageElement).src = "/placeholder.png")
-              }
+              className="h-14 w-14 rounded-lg object-cover bg-gray-100"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                // Chỉ set placeholder 1 lần để tránh infinite loop
+                if (!img.src.includes("ui-avatars.com")) {
+                  img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    item.productName || "Product"
+                  )}&background=e5e7eb&color=6b7280&size=128`;
+                }
+              }}
             />
             <div className="flex-1">
               <p className="font-medium text-gray-800">{item.productName}</p>
