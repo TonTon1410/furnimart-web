@@ -337,19 +337,17 @@ const OrderManagement: React.FC = () => {
     setAssigningDelivery(true);
 
     try {
-      // Convert local datetime to UTC properly
-      // The input type="datetime-local" gives us a string like "2025-11-15T05:00"
-      // We need to treat this as Vietnam time (UTC+7) and convert to UTC
-      const localDateTime = new Date(estimatedDeliveryDate);
-      // Since datetime-local doesn't include timezone, the Date object assumes local timezone
-      // We just use toISOString() which converts to UTC correctly
-      const utcDateTime = localDateTime.toISOString();
+      // Send the datetime as-is to backend
+      // The DateTimePicker gives us a string like "2025-11-14T08:00"
+      // Backend will handle timezone conversion if needed
+      const [datePart, timePart] = estimatedDeliveryDate.split("T");
+      const dateTimeString = `${datePart}T${timePart}:00.000Z`;
 
       await orderService.assignDelivery({
         orderId: Number(orderId),
         storeId: storeId,
         deliveryStaffId: selectedDeliveryStaff,
-        estimatedDeliveryDate: utcDateTime,
+        estimatedDeliveryDate: dateTimeString,
         notes: deliveryNotes || undefined,
       });
 
