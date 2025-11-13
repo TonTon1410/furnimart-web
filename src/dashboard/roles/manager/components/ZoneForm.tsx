@@ -1,3 +1,4 @@
+// file: ZoneForm.tsx
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
@@ -35,11 +36,18 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
 }) => {
   const { showToast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    zoneName: string;
+    description: string;
+    zoneCode: string;
+    quantity: number | string; // ✅ CẬP NHẬT: Cho phép string để giữ ô trống
+    status: "ACTIVE" | "INACTIVE";
+    warehouseId: string;
+  }>({
     zoneName: "",
     description: "",
     zoneCode: "",
-    quantity: 0,
+    quantity: "", // ✅ CẬP NHẬT: Khởi tạo là chuỗi rỗng
     status: "ACTIVE",
     warehouseId,
   });
@@ -91,7 +99,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
               zoneName: data.zoneName || "",
               description: data.description || "",
               zoneCode: data.zoneCode || "",
-              quantity: data.quantity || 0,
+              quantity: data.quantity === 0 ? 0 : data.quantity || "", // ✅ CẬP NHẬT: Giá trị số
               status: data.status || "ACTIVE",
               warehouseId: data.warehouse?.id || warehouseId,
             });
@@ -115,7 +123,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
         zoneName: "",
         description: "",
         zoneCode: "",
-        quantity: 0,
+        quantity: "", // ✅ CẬP NHẬT: Khởi tạo là chuỗi rỗng
         status: "ACTIVE",
         warehouseId,
       });
@@ -123,16 +131,62 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
   }, [zoneId, mode]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "quantity") {
+        if (value === "") {
+            // Cho phép để trống
+            setFormData({ ...formData, [name]: "" });
+        } else {
+            const numValue = parseInt(value, 10);
+            // Chỉ cập nhật state nếu là số nguyên hợp lệ và không âm
+            if (!isNaN(numValue) && numValue >= 0) {
+                setFormData({ ...formData, [name]: numValue });
+            }
+        }
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   // Xử lý xác nhận tạo / cập nhật
   const handleConfirmSubmit = async () => {
+    // ✅ THÊM: Kiểm tra bắt buộc trường quantity và chuyển về number/0
+    let finalQuantity: number;
+    if (formData.quantity === "") {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Sức chứa hợp lệ (>= 0).",
+        });
+        return;
+    } else {
+        finalQuantity = Number(formData.quantity);
+        if (finalQuantity < 0) {
+            showToast({
+                type: "error",
+                title: "Lỗi",
+                description: "Sức chứa không được là số âm.",
+            });
+            return;
+        }
+    }
+
+    // ✅ THÊM: Kiểm tra các trường text bắt buộc
+    if (!formData.zoneName.trim() || !formData.zoneCode.trim()) {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Tên khu vực và Mã khu vực.",
+        });
+        return;
+    }
+
     try {
       // ép kiểu quantity về number để đúng định dạng backend yêu cầu
       const payload = {
         ...formData,
-        quantity: Number(formData.quantity),
+        quantity: finalQuantity, // Gửi lên API là kiểu số
       };
 
       if (mode === "create") {
@@ -278,6 +332,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
               value={formData.zoneName}
               onChange={handleChange}
               fullWidth
+              required // ✅ Bắt buộc
             />
           </Grid>
 
@@ -298,17 +353,29 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
               value={formData.zoneCode}
               onChange={handleChange}
               fullWidth
+              required // ✅ Bắt buộc
             />
           </Grid>
 
           <Grid item>
             <TextField
-              label="Sức chứa"
+              label="Sức chứa (Quantity)"
               name="quantity"
               type="number"
-              value={formData.quantity}
+              value={formData.quantity} // ✅ Dùng value là string hoặc number
               onChange={handleChange}
               fullWidth
+              required // ✅ Bắt buộc
+              InputProps={{ 
+                inputProps: { 
+                  min: 0 
+                } 
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
             />
           </Grid>
 

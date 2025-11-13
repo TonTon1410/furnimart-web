@@ -1,17 +1,39 @@
 /* eslint-disable @typescript-eslint/prefer-as-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
-import { 
-  Modal, Box, Typography, IconButton, Paper, Table, 
-  TableContainer, TableHead, TableRow, TableCell, TableBody, 
-  CircularProgress, Alert, Button, Tooltip, Stack 
-} from '@mui/material';
-import { X, Box as BoxIcon, Settings } from 'lucide-react';
-import inventoryService from '@/service/inventoryService'; 
-import InventoryAdjustmentModal from './InventoryAdjustmentModal'; 
+import React from "react";
+import {
+  Modal,
+  Box,
+  Typography,
+  IconButton,
+  CircularProgress,
+  Stack,
+  TableContainer,
+  Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "@mui/material";
+import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query"; 
+import inventoryService from "@/service/inventoryService";
 
-type EntityType = 'WAREHOUSE' | 'ZONE' | 'LOCATION';
+// Khai báo kiểu dữ liệu cho Entity Type (Đã có trong file gốc)
+type EntityType = "WAREHOUSE" | "ZONE" | "LOCATION";
+
+// Kiểu dữ liệu cho một Phiếu Kho (Inventory Document)
+interface InventoryDocument {
+  id: number;
+  employeeId: string;
+  type: "IMPORT" | "EXPORT" | "TRANSFER" | "ADJUSTMENT" | "RESERVE" | "RELEASE";
+  purpose: string;
+  date: string;
+  note: string;
+  warehouseName: string;
+  warehouseId: string;
+}
 
 interface InventoryTableListModalProps {
   open: boolean;
@@ -21,154 +43,140 @@ interface InventoryTableListModalProps {
   entityType: EntityType;
 }
 
-const style = {
-  position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: { xs: '95%', md: 800 },
-  maxHeight: '90vh',
-  bgcolor: 'background.paper',
-  boxShadow: 24,
+const modalStyle = {
+  position: "absolute" as "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: { xs: "90%", md: 800 },
+  bgcolor: "background.paper",
   borderRadius: 2,
+  boxShadow: 24,
   p: 4,
-  overflowY: 'auto',
+  maxHeight: "90vh",
+  overflowY: "auto",
 };
 
-const InventoryTableListModal: React.FC<InventoryTableListModalProps> = ({ 
-  open, 
-  onClose, 
-  entityId, 
-  entityName, 
-  entityType 
+const InventoryTableListModal: React.FC<InventoryTableListModalProps> = ({
+  open,
+  onClose,
+  entityId,
+  entityName,
+  entityType,
 }) => {
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // State cho Modal Điều chỉnh tồn kho
-  const [openAdjustmentModal, setOpenAdjustmentModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-
+  // Hàm gọi API dựa trên entityType
   const fetchInventory = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let response;
-      switch (entityType) {
-        // case 'LOCATION':
-        //   // ✅ API mới theo đề xuất: Lấy tồn kho theo Location Item ID
-        //   response = await inventoryService.getInventoryByLocationItem(entityId); 
-        //   break;
-        case 'ZONE':
-          response = await inventoryService.getInventoryByZone(entityId);
-          break;
-        case 'WAREHOUSE':
-          // Giả định có API: Lấy tồn kho theo Warehouse ID
-          response = await inventoryService.getInventoryByWarehouse(entityId); 
-          break;
-        default:
-          throw new Error("Invalid entity type");
-      }
-      setInventoryList(response.data || []);
-    } catch (err) {
-      setError("Không thể tải dữ liệu tồn kho. Vui lòng thử lại.");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    switch (entityType) {
+      case "WAREHOUSE":
+        return inventoryService.getInventoryByWarehouse(entityId);
+      case "ZONE":
+        return inventoryService.getInventoryByZone(entityId);
+      case "LOCATION":
+        // API inventoryService.getInventoryByLocationItem đã bị loại bỏ theo inventoryService.ts
+        // Giả lập trả về mảng rỗng hoặc xử lý lỗi đặc biệt.
+        console.warn("API for LOCATION inventory is not available.");
+        return { data: [] }; // Trả về cấu trúc giả định rỗng
+      default:
+        return { data: [] };
     }
   };
 
-  useEffect(() => {
-    if (open && entityId) {
-      fetchInventory();
+  // Sử dụng react-query để fetch data
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["inventoryDocuments", entityType, entityId],
+    queryFn: fetchInventory,
+    enabled: open,
+    // 💡 ĐÃ SỬA LỖI: Thêm .data để truy cập vào mảng phiếu kho
+    select: (res: any) => res.data.data as InventoryDocument[], 
+});
+
+  const inventoryDocuments = data || [];
+
+  const getTitle = () => {
+    switch (entityType) {
+      case "WAREHOUSE":
+        return `Danh sách Phiếu Kho tại Kho: ${entityName}`;
+      case "ZONE":
+        return `Danh sách Phiếu Kho tại Khu vực: ${entityName}`;
+      case "LOCATION":
+        return `Danh sách Phiếu Kho tại Vị trí: ${entityName} (API đã bị loại bỏ)`;
+      default:
+        return "Danh sách Phiếu Kho";
     }
-  }, [open, entityId, entityType]);
-
-  const handleOpenAdjustment = (inventoryItem: any) => {
-    setSelectedProduct(inventoryItem);
-    setOpenAdjustmentModal(true);
   };
-
-  const entityTypeLabel = 
-    entityType === 'WAREHOUSE' ? 'Kho hàng' : 
-    entityType === 'ZONE' ? 'Khu vực' : 'Vị trí';
 
   return (
-    <>
-      <Modal open={open} onClose={onClose}>
-        <Box sx={style}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" component="h2">
-              <BoxIcon size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-              Tồn kho của {entityTypeLabel}: **{entityName}**
-            </Typography>
-            <IconButton onClick={onClose}>
-              <X />
-            </IconButton>
-          </Stack>
+    <Modal open={open} onClose={onClose} aria-labelledby="inventory-modal-title">
+      <Box sx={modalStyle}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography id="inventory-modal-title" variant="h6" component="h2">
+            {getTitle()}
+          </Typography>
+          <IconButton onClick={onClose}>
+            <X />
+          </IconButton>
+        </Stack>
+        
+        {isLoading && (
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress />
+          </Box>
+        )}
 
-          {loading && <Box textAlign="center" py={4}><CircularProgress /></Box>}
-          {error && <Alert severity="error">{error}</Alert>}
-          
-          {!loading && !error && (
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: '#f4f4f4' }}>
-                    <TableCell>Sản phẩm (Mã/Tên)</TableCell>
-                    <TableCell align="right">Tồn Vật lý</TableCell>
-                    <TableCell align="right">Dự trữ</TableCell>
-                    <TableCell align="right">Khả dụng</TableCell>
-                    {entityType === 'LOCATION' && <TableCell align="center">Thao tác</TableCell>}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {inventoryList.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} align="center">Không có tồn kho tại {entityTypeLabel} này.</TableCell></TableRow>
-                  ) : (
-                    inventoryList.map((item) => (
-                      <TableRow key={item.productColorId}>
-                        <TableCell>{item.productName || 'N/A'} ({item.productSku || item.productColorId})</TableCell>
-                        <TableCell align="right">{item.physicalQty}</TableCell>
-                        <TableCell align="right">{item.reservedQty}</TableCell>
-                        <TableCell align="right">{item.availableQty}</TableCell>
-                        {entityType === 'LOCATION' && (
-                          <TableCell align="center">
-                            <Tooltip title="Điều chỉnh tồn kho">
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="primary"
-                                startIcon={<Settings size={16} />}
-                                onClick={() => handleOpenAdjustment(item)}
-                              >
-                                Điều chỉnh
-                              </Button>
-                            </Tooltip>
-                          </TableCell>
-                        )}
+        {isError && (
+          <Typography color="error" textAlign="center" py={4}>
+            Đã xảy ra lỗi khi tải dữ liệu phiếu kho.
+          </Typography>
+        )}
+
+        {!isLoading && !isError && (
+          <>
+            {inventoryDocuments.length === 0 ? (
+              <Typography textAlign="center" py={4} color="text.secondary">
+                Không tìm thấy phiếu kho nào.
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} elevation={1}>
+                <Table size="small" aria-label="inventory documents table">
+                  <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                    <TableRow>
+                      <TableCell>ID</TableCell>
+                      <TableCell>Loại</TableCell>
+                      <TableCell>Mục đích</TableCell>
+                      <TableCell>Ngày</TableCell>
+                      <TableCell>Ghi chú</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {inventoryDocuments.map((doc) => (
+                      <TableRow
+                        key={doc.id}
+                        sx={{
+                          "&:last-child td, &:last-child th": { border: 0 },
+                        }}
+                      >
+                        <TableCell component="th" scope="row">
+                          {doc.id}
+                        </TableCell>
+                        <TableCell>{doc.type}</TableCell>
+                        <TableCell>{doc.purpose}</TableCell>
+                        <TableCell>{doc.date}</TableCell>
+                        <TableCell>{doc.note || "N/A"}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Box>
-      </Modal>
-
-      {/* Modal Điều chỉnh tồn kho */}
-      {selectedProduct && (
-        <InventoryAdjustmentModal
-          open={openAdjustmentModal}
-          onClose={() => setOpenAdjustmentModal(false)}
-          inventoryItem={selectedProduct}
-          locationName={entityName} // Truyền tên vị trí
-          onSuccess={fetchInventory} // Refresh list sau khi điều chỉnh
-        />
-      )}
-    </>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </>
+        )}
+      </Box>
+    </Modal>
   );
 };
 

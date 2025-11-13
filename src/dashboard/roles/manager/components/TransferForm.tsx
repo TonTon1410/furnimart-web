@@ -2,93 +2,168 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Grid, Button, CircularProgress, Alert, Divider, Paper } from '@mui/material';
 import { RefreshCw, ArrowRight } from 'lucide-react';
-// Import các components chung
-import InventoryBaseFormFields, { ProductSelector } from './InventoryBaseFormFields';
-// Giả định service đã tồn tại
-import inventoryService from '@/service/inventoryService'; 
+import WarehouseZoneLocationSelector from './WarehouseZoneLocationSelector';
+import ProductSelector from './ProductSelector';
+
+import inventoryService from '@/service/inventoryService';
+// ✅ THÊM: Import useToast
+import { useToast } from '@/context/ToastContext';
 
 interface TransferFormProps {
   onSuccess: () => void;
 }
 
 const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
+  // ✅ THÊM: Sử dụng useToast
+  const { showToast } = useToast();
+  
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ❌ ĐÃ SỬA/XÓA: Dùng errorMessage cho validation thay vì error
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // States cho VỊ TRÍ NGUỒN (FROM)
   const [fromWhId, setFromWhId] = useState<string | null>(null);
   const [fromZoneId, setFromZoneId] = useState<string | null>(null);
   const [fromLocationItemId, setFromLocationItemId] = useState<string | null>(null);
-  
+
   // States cho VỊ TRÍ ĐÍCH (TO)
   const [toWhId, setToWhId] = useState<string | null>(null);
   const [toZoneId, setToZoneId] = useState<string | null>(null);
   const [toLocationItemId, setToLocationItemId] = useState<string | null>(null);
-  
+
   // States cho Sản phẩm và Số lượng
   const [productColorId, setProductColorId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [note, setNote] = useState<string>(''); // Ghi chú không được gửi lên API transfer
+  const [quantity, setQuantity] = useState<number | string>(""); 
+  const [note, setNote] = useState<string>('');
+
+  // ✅ HÀM MỚI: Xử lý thay đổi số lượng
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      setQuantity("");
+    } else {
+      const numValue = parseInt(value, 10);
+      // Chỉ cập nhật nếu là số hợp lệ và không âm
+      if (!isNaN(numValue) && numValue >= 0) {
+        setQuantity(numValue);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // ✅ CẬP NHẬT: Kiểm tra bắt buộc các ID Kho hàng và Vị trí chi tiết nhất
-    if (
-        !fromWhId || 
-        !toWhId || 
-        !productColorId || 
-        quantity <= 0 ||
-        // Kiểm tra Vị trí Nguồn hoặc Vị trí Đích phải được chọn ở cấp cao nhất có thể
-        (!fromZoneId && !fromLocationItemId) ||
-        (!toZoneId && !toLocationItemId) 
-    ) {
-      setError("Vui lòng điền đầy đủ thông tin: Kho hàng Nguồn/Đích, Sản phẩm và Số lượng hợp lệ. Cần chọn ít nhất Khu vực hoặc Vị trí cho mỗi bên.");
+
+    setErrorMessage(null); // Reset lỗi validation
+
+    // ✅ CẬP NHẬT: Kiểm tra số lượng và dùng Toast
+    let finalQuantity: number;
+    if (quantity === "" || Number(quantity) <= 0) {
+      setErrorMessage("Vui lòng nhập Số lượng chuyển hợp lệ (lớn hơn 0).");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng nhập Số lượng chuyển hợp lệ (lớn hơn 0)." });
+      return;
+    } else {
+      finalQuantity = Number(quantity);
+    }
+
+    // Kiểm tra bắt buộc các ID Kho hàng và Vị trí chi tiết nhất
+    // 1. Kiểm tra Kho hàng Nguồn
+    if (!fromWhId) {
+      setErrorMessage("Vui lòng chọn **Kho hàng Nguồn**.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Kho hàng Nguồn." });
       return;
     }
-    
-    // Kiểm tra trùng lặp (chỉ cần kiểm tra Location Item nếu cả hai được chọn)
+
+    // 2. Kiểm tra Kho hàng Đích
+    if (!toWhId) {
+      setErrorMessage("Vui lòng chọn **Kho hàng Đích**.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Kho hàng Đích." });
+      return;
+    }
+
+    // 3. Kiểm tra Sản phẩm
+    if (!productColorId) {
+      setErrorMessage("Vui lòng chọn **Sản phẩm**.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Sản phẩm." });
+      return;
+    }
+
+    // 4. Kiểm tra Vị trí Nguồn: Cần chọn ít nhất fromZoneId HOẶC fromLocationItemId.
+    if (!fromZoneId && !fromLocationItemId) {
+      setErrorMessage("Kho hàng Nguồn cần chọn ít nhất **Khu vực** hoặc **Vị trí**.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Kho hàng Nguồn cần chọn ít nhất Khu vực hoặc Vị trí." });
+      return;
+    }
+
+    // 5. Kiểm tra Vị trí Đích: Cần chọn ít nhất toZoneId HOẶC toLocationItemId.
+    if (!toZoneId && !toLocationItemId) {
+      setErrorMessage("Kho hàng Đích cần chọn ít nhất **Khu vực** hoặc **Vị trí**.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Kho hàng Đích cần chọn ít nhất Khu vực hoặc Vị trí." });
+      return;
+    }
+
+    // 6. Kiểm tra trùng lặp (chỉ cần kiểm tra Location Item nếu cả hai được chọn)
     if (fromLocationItemId && toLocationItemId && fromLocationItemId === toLocationItemId) {
-        setError("Vị trí Nguồn và Vị trí Đích phải khác nhau.");
-        return;
+      setErrorMessage("Vị trí Nguồn và Vị trí Đích phải khác nhau.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vị trí Nguồn và Vị trí Đích phải khác nhau." });
+      return;
     }
 
     setLoading(true);
-    setError(null);
+    // ❌ ĐÃ XÓA: setError(null);
 
     try {
-      // ✅ CẬP NHẬT: Xây dựng payload đầy đủ theo InventoryTransferData
       const transferData = {
         productColorId: productColorId,
-        quantity: quantity,
-        
+        quantity: finalQuantity, // Sử dụng finalQuantity (number)
+
         // VỊ TRÍ NGUỒN (FROM)
         fromWarehouseId: fromWhId,
-        // Chỉ thêm vào nếu có giá trị (vì interface cho phép optional)
         ...(fromZoneId && { fromZoneId: fromZoneId }),
         ...(fromLocationItemId && { fromLocationItemId: fromLocationItemId }),
 
         // VỊ TRÍ ĐÍCH (TO)
         toWarehouseId: toWhId,
-        // Chỉ thêm vào nếu có giá trị (vì interface cho phép optional)
         ...(toZoneId && { toZoneId: toZoneId }),
         ...(toLocationItemId && { toLocationItemId: toLocationItemId }),
-        
-        // Ghi chú bị loại bỏ để khớp với service.ts mới (nếu service không nhận note)
-        // note: note // Bỏ đi để khớp với interface mới không có 'note' trong POST
+        // ✅ THÊM: Ghi chú nếu có
+        ...(note.trim() && { note: note.trim() }),
       };
 
-      // Gọi API chuyển kho
       await inventoryService.transferInventory(transferData);
-      
+
+      // ✅ CẬP NHẬT: Toast thành công
+      showToast({
+          type: "success",
+          title: "Chuyển kho Thành công!",
+          description: `Đã chuyển ${finalQuantity} sản phẩm.`,
+      });
+
       onSuccess();
-      // Reset Số lượng và Ghi chú
-      setQuantity(1);
-      setNote('');
       
+      // ✅ THÊM: Reset toàn bộ form
+      setQuantity("");
+      setNote('');
+      setProductColorId(null);
+      
+      // Reset Vị trí Nguồn
+      setFromWhId(null);
+      setFromZoneId(null);
+      setFromLocationItemId(null);
+      
+      // Reset Vị trí Đích
+      setToWhId(null);
+      setToZoneId(null);
+      setToLocationItemId(null);
+
     } catch (err) {
-      setError("Lỗi khi tạo giao dịch chuyển kho. Vui lòng kiểm tra Tồn kho Khả dụng tại vị trí nguồn và sức chứa tại vị trí đích.");
       console.error(err);
+      // ✅ CẬP NHẬT: Toast lỗi
+      showToast({
+          type: "error",
+          title: "Lỗi khi Chuyển kho",
+          description: "Không thể tạo giao dịch chuyển kho. Vui lòng kiểm tra Tồn kho Khả dụng tại nguồn và sức chứa tại đích.",
+      });
+      // ❌ ĐÃ XÓA: setError("Lỗi khi tạo giao dịch chuyển kho. Vui lòng kiểm tra Tồn kho Khả dụng tại vị trí nguồn và sức chứa tại vị trí đích.");
     } finally {
       setLoading(false);
     }
@@ -100,12 +175,12 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
         Thực hiện chuyển hàng hóa giữa các Vị trí trong cùng một Kho hoặc khác Kho.
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      
-      {/* 1. Sản phẩm */}
-      <ProductSelector 
-        onSelectProduct={setProductColorId}
-        selectedProductColorId={productColorId}
+      {/* ✅ CẬP NHẬT: Dùng errorMessage */}
+      {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
+
+      {/* 1. Sản phẩm (Sử dụng ProductSelector mới) */}
+      <ProductSelector
+        onProductColorSelect={setProductColorId}
       />
 
       {/* 2. Số lượng và Ghi chú */}
@@ -116,13 +191,19 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
             type="number"
             fullWidth
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={handleQuantityChange}
             required
-            InputProps={{ inputProps: { min: 1 } }}
+            InputProps={{
+              inputProps: { min: 0 },
+            }}
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                e.preventDefault();
+              }
+            }}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          {/* Ghi chú vẫn giữ trên UI nhưng không gửi qua API transferInventory để khớp với service.ts */}
           <TextField
             label="Ghi chú/Lý do chuyển (Lưu nội bộ)"
             fullWidth
@@ -131,14 +212,14 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
           />
         </Grid>
       </Grid>
-      
+
       <Divider sx={{ my: 3 }}>
-          <ArrowRight size={24} color="#1976d2" />
+        <ArrowRight size={24} color="#1976d2" />
       </Divider>
 
       <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom>Vị trí Nguồn (FROM)</Typography>
-        <InventoryBaseFormFields 
+        <WarehouseZoneLocationSelector
           labelPrefix="Nguồn"
           onWarehouseChange={setFromWhId}
           onZoneChange={setFromZoneId}
@@ -148,10 +229,10 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
           selectedLocationId={fromLocationItemId}
         />
       </Paper>
-      
+
       <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom>Vị trí Đích (TO)</Typography>
-        <InventoryBaseFormFields 
+        <WarehouseZoneLocationSelector
           labelPrefix="Đích"
           onWarehouseChange={setToWhId}
           onZoneChange={setToZoneId}
@@ -165,7 +246,7 @@ const TransferForm: React.FC<TransferFormProps> = ({ onSuccess }) => {
       <Button
         type="submit"
         variant="contained"
-        color="warning" // Màu vàng/cam cho Chuyển kho
+        color="warning"
         fullWidth
         disabled={loading}
         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <RefreshCw size={20} />}
