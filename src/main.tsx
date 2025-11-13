@@ -7,11 +7,11 @@ import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
 import { handleStaleToken } from "./utils/corsHandler";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Google OAuth Client ID
 const GOOGLE_CLIENT_ID =
   "274860327369-kta4kv3ld1qlff5trusfft5elq0vgbsk.apps.googleusercontent.com";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Check và clear stale token khi app khởi động
 handleStaleToken();
@@ -22,8 +22,8 @@ if (!el) throw new Error("Root element #root not found");
 const queryClient = new QueryClient({
   defaultOptions: { // Tùy chọn, thiết lập cấu hình mặc định
     queries: {
-      refetchOnWindowFocus: false, 
-      retry: 1, 
+      refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
@@ -32,7 +32,9 @@ createRoot(el).render(
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <ThemeProvider>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </ThemeProvider>
     </BrowserRouter>
   </GoogleOAuthProvider>
