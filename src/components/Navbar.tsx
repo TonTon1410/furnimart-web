@@ -233,6 +233,13 @@ export default function Navbar() {
                     Ví của tôi{" "}
                   </Link>
                   <Link
+                    to="/mywallet"
+                    className="block px-4 py-2 text-sm hover:bg-gray-50"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    My Wallet{" "}
+                  </Link>
+                  <Link
                     to="/orders"
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
