@@ -9,8 +9,12 @@ import { productService, type ProductColor } from "@/service/productService";
 
 export default function DeliveryPickupPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(new Map());
-  const [productDetails, setProductDetails] = useState<Map<string, ProductColor>>(new Map());
+  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
+    new Map()
+  );
+  const [productDetails, setProductDetails] = useState<
+    Map<string, ProductColor>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,31 +34,47 @@ export default function DeliveryPickupPage() {
 
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
       // Chỉ lấy đơn có status = READY
-      const readyOrders = data.filter(assignment => assignment.status === "READY");
+      const readyOrders = data.filter(
+        (assignment) => assignment.status === "READY"
+      );
       setAssignments(readyOrders);
 
       // Fetch order details for each assignment
       const orderDetailsMap = new Map<number, OrderItem>();
       const productDetailsMap = new Map<string, ProductColor>();
-      
+
       await Promise.all(
         readyOrders.map(async (assignment) => {
           try {
-            const orderDetail = await orderService.getOrderById(assignment.orderId);
+            const orderDetail = await orderService.getOrderById(
+              assignment.orderId
+            );
             orderDetailsMap.set(assignment.orderId, orderDetail);
-            
+
             // Fetch product color details for each order detail
             if (orderDetail.orderDetails) {
               await Promise.all(
                 orderDetail.orderDetails.map(async (detail) => {
-                  if (detail.productColorId && !productDetailsMap.has(detail.productColorId)) {
+                  if (
+                    detail.productColorId &&
+                    !productDetailsMap.has(detail.productColorId)
+                  ) {
                     try {
-                      const productColorResponse = await productService.getProductColorById(detail.productColorId);
+                      const productColorResponse =
+                        await productService.getProductColorById(
+                          detail.productColorId
+                        );
                       if (productColorResponse?.data?.data) {
-                        productDetailsMap.set(detail.productColorId, productColorResponse.data.data);
+                        productDetailsMap.set(
+                          detail.productColorId,
+                          productColorResponse.data.data
+                        );
                       }
                     } catch (err) {
-                      console.error(`Error fetching product color ${detail.productColorId}:`, err);
+                      console.error(
+                        `Error fetching product color ${detail.productColorId}:`,
+                        err
+                      );
                     }
                   }
                 })
@@ -78,7 +98,7 @@ export default function DeliveryPickupPage() {
 
   const handlePickupOrder = async (assignmentId: number) => {
     if (!confirm("Xác nhận lấy hàng và bắt đầu giao?")) return;
-    
+
     try {
       await deliveryService.updateDeliveryStatus(assignmentId, "IN_TRANSIT");
       alert("Đã cập nhật trạng thái: Đang giao hàng");
@@ -107,7 +127,8 @@ export default function DeliveryPickupPage() {
   };
 
   const getStatusBadgeClass = (status: string) => {
-    const baseClasses = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium";
+    const baseClasses =
+      "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium";
     switch (status) {
       case "READY":
         return `${baseClasses} bg-green-100 text-green-800`;
@@ -172,12 +193,18 @@ export default function DeliveryPickupPage() {
         {assignments.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Không có đơn hàng nào sẵn sàng lấy</p>
+            <p className="text-gray-500 text-lg">
+              Không có đơn hàng nào sẵn sàng lấy
+            </p>
           </div>
         ) : (
           assignments.map((assignment) => {
             const order = orderDetails.get(assignment.orderId);
-            const totalQuantity = order?.orderDetails?.reduce((sum, detail) => sum + detail.quantity, 0) || 0;
+            const totalQuantity =
+              order?.orderDetails?.reduce(
+                (sum, detail) => sum + detail.quantity,
+                0
+              ) || 0;
 
             return (
               <div
@@ -211,7 +238,9 @@ export default function DeliveryPickupPage() {
                     </div>
                     <div className="flex items-start gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                      <span className="line-clamp-2">{order?.address || "N/A"}</span>
+                      <span className="line-clamp-2">
+                        {order?.address || "N/A"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -226,10 +255,17 @@ export default function DeliveryPickupPage() {
                         Sản phẩm ({order.orderDetails.length})
                       </h4>
                       {order.orderDetails.map((detail, idx) => {
-                        const productColor = detail.productColorId ? productDetails.get(detail.productColorId) : null;
-                        const productImage = productColor?.images?.[0]?.image || productColor?.product?.thumbnailImage;
+                        const productColor = detail.productColorId
+                          ? productDetails.get(detail.productColorId)
+                          : null;
+                        const productImage =
+                          productColor?.images?.[0]?.image ||
+                          productColor?.product?.thumbnailImage;
                         return (
-                          <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div
+                            key={idx}
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                          >
                             {productImage && (
                               <img
                                 src={productImage}
@@ -239,10 +275,12 @@ export default function DeliveryPickupPage() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-800 text-sm line-clamp-1">
-                                {productColor?.product?.name || `Sản phẩm #${idx + 1}`}
+                                {productColor?.product?.name ||
+                                  `Sản phẩm #${idx + 1}`}
                               </p>
                               <p className="text-xs text-gray-500 mt-0.5">
-                                {productColor?.color?.colorName || "N/A"} • SL: {detail.quantity}
+                                {productColor?.color?.colorName || "N/A"} • SL:{" "}
+                                {detail.quantity}
                               </p>
                               <p className="text-sm font-semibold text-green-600 mt-1">
                                 {formatCurrency(detail.price)}
@@ -263,7 +301,13 @@ export default function DeliveryPickupPage() {
                       </div>
                       <div className="flex items-center gap-1 text-gray-600">
                         <Clock className="h-4 w-4" />
-                        <span>{order?.orderDate ? new Date(order.orderDate).toLocaleDateString("vi-VN") : "N/A"}</span>
+                        <span>
+                          {order?.orderDate
+                            ? new Date(order.orderDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "N/A"}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">

@@ -123,7 +123,10 @@ export default function RoleRoutes() {
         <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
-        <Route path="delivery-management" element={<DeliveryManagementPage />} />
+        <Route
+          path="delivery-management"
+          element={<DeliveryManagementPage />}
+        />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />

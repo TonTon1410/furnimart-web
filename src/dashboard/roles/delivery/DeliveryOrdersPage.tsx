@@ -9,8 +9,12 @@ import { productService, type ProductColor } from "@/service/productService";
 
 export default function DeliveryOrders() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(new Map());
-  const [productDetails, setProductDetails] = useState<Map<string, ProductColor>>(new Map());
+  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
+    new Map()
+  );
+  const [productDetails, setProductDetails] = useState<
+    Map<string, ProductColor>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,23 +38,37 @@ export default function DeliveryOrders() {
       // Fetch order details for each assignment
       const orderDetailsMap = new Map<number, OrderItem>();
       const productDetailsMap = new Map<string, ProductColor>();
-      
+
       await Promise.all(
         data.map(async (assignment) => {
           try {
-            const orderDetail = await orderService.getOrderById(assignment.orderId);
+            const orderDetail = await orderService.getOrderById(
+              assignment.orderId
+            );
             orderDetailsMap.set(assignment.orderId, orderDetail);
-            
+
             // Fetch product color details for each order detail
             if (orderDetail.orderDetails) {
               await Promise.all(
                 orderDetail.orderDetails.map(async (detail) => {
-                  if (detail.productColorId && !productDetailsMap.has(detail.productColorId)) {
+                  if (
+                    detail.productColorId &&
+                    !productDetailsMap.has(detail.productColorId)
+                  ) {
                     try {
-                      const productColorResponse = await productService.getProductColorById(detail.productColorId);
-                      productDetailsMap.set(detail.productColorId, productColorResponse.data.data);
+                      const productColorResponse =
+                        await productService.getProductColorById(
+                          detail.productColorId
+                        );
+                      productDetailsMap.set(
+                        detail.productColorId,
+                        productColorResponse.data.data
+                      );
                     } catch (err) {
-                      console.error(`Failed to load product color ${detail.productColorId}:`, err);
+                      console.error(
+                        `Failed to load product color ${detail.productColorId}:`,
+                        err
+                      );
                     }
                   }
                 })
@@ -61,7 +79,7 @@ export default function DeliveryOrders() {
           }
         })
       );
-      
+
       setOrderDetails(orderDetailsMap);
       setProductDetails(productDetailsMap);
     } catch (err) {
@@ -121,10 +139,12 @@ export default function DeliveryOrders() {
   };
 
   const stats = {
-    assigned: assignments.filter(a => a.status === "ASSIGNED" || a.status === "READY").length,
-    inTransit: assignments.filter(a => a.status === "IN_TRANSIT").length,
-    delivered: assignments.filter(a => a.status === "DELIVERED").length,
-    today: assignments.filter(a => {
+    assigned: assignments.filter(
+      (a) => a.status === "ASSIGNED" || a.status === "READY"
+    ).length,
+    inTransit: assignments.filter((a) => a.status === "IN_TRANSIT").length,
+    delivered: assignments.filter((a) => a.status === "DELIVERED").length,
+    today: assignments.filter((a) => {
       const today = new Date().toDateString();
       return new Date(a.assignedAt).toDateString() === today;
     }).length,
@@ -135,7 +155,9 @@ export default function DeliveryOrders() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Đang tải...</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Đang tải...
+          </p>
         </div>
       </div>
     );
@@ -239,35 +261,48 @@ export default function DeliveryOrders() {
       {/* Active Orders - Mobile-optimized cards */}
       <div className="space-y-3">
         <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white px-1">
-          {assignments.filter(a => a.status === "IN_TRANSIT" || a.status === "READY").length > 0
+          {assignments.filter(
+            (a) => a.status === "IN_TRANSIT" || a.status === "READY"
+          ).length > 0
             ? "Đơn hàng đang giao"
             : "Danh sách đơn hàng"}
         </h2>
-        
+
         {assignments.length === 0 ? (
           <div className="rounded-lg bg-white p-8 shadow dark:bg-gray-800 text-center">
             <Package className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400">Chưa có đơn hàng nào</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Chưa có đơn hàng nào
+            </p>
           </div>
         ) : (
           assignments
-            .filter(a => a.status !== "DELIVERED" && a.status !== "CANCELLED")
+            .filter((a) => a.status !== "DELIVERED" && a.status !== "CANCELLED")
             .map((assignment) => {
               const order = orderDetails.get(assignment.orderId);
               return (
-                <div key={assignment.id} className="rounded-lg bg-white shadow dark:bg-gray-800 overflow-hidden">
-                  <div className={`bg-gradient-to-r ${getGradientColor(assignment.status)} p-3 sm:p-4`}>
+                <div
+                  key={assignment.id}
+                  className="rounded-lg bg-white shadow dark:bg-gray-800 overflow-hidden"
+                >
+                  <div
+                    className={`bg-gradient-to-r ${getGradientColor(
+                      assignment.status
+                    )} p-3 sm:p-4`}
+                  >
                     <div className="flex items-start justify-between text-white">
                       <div>
                         <p className="text-xs opacity-90">Đơn hàng</p>
-                        <p className="text-lg sm:text-xl font-bold">#{assignment.orderId}</p>
+                        <p className="text-lg sm:text-xl font-bold">
+                          #{assignment.orderId}
+                        </p>
                       </div>
                       <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-1 text-xs font-medium whitespace-nowrap">
                         {getStatusText(assignment.status)}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="p-3 sm:p-4 space-y-3">
                     {/* Tên khách hàng */}
                     <div className="flex items-start gap-2 text-sm">
@@ -277,7 +312,9 @@ export default function DeliveryOrders() {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Khách hàng</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Khách hàng
+                        </p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
                           {order?.shopName || "Chưa có tên"}
                         </p>
@@ -301,7 +338,7 @@ export default function DeliveryOrders() {
                         {order?.phone || "Chưa có SĐT"}
                       </span>
                     </div>
-                    
+
                     {/* Thông tin sản phẩm */}
                     {order?.orderDetails && order.orderDetails.length > 0 && (
                       <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
@@ -310,51 +347,71 @@ export default function DeliveryOrders() {
                         </p>
                         <div className="space-y-2">
                           {order.orderDetails.map((detail, index) => {
-                            const productColor = detail.productColorId ? productDetails.get(detail.productColorId) : null;
-                            const productImage = productColor?.images?.[0]?.image || productColor?.product?.thumbnailImage;
+                            const productColor = detail.productColorId
+                              ? productDetails.get(detail.productColorId)
+                              : null;
+                            const productImage =
+                              productColor?.images?.[0]?.image ||
+                              productColor?.product?.thumbnailImage;
                             return (
-                              <div key={index} className="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-lg">
+                              <div
+                                key={index}
+                                className="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-lg"
+                              >
                                 <div className="flex gap-2">
                                   {/* Product Image */}
                                   {productImage && (
                                     <img
                                       src={productImage}
-                                      alt={productColor?.product?.name || "Product"}
+                                      alt={
+                                        productColor?.product?.name || "Product"
+                                      }
                                       className="w-12 h-12 object-cover rounded flex-shrink-0"
                                     />
                                   )}
-                                  
+
                                   <div className="flex-1 min-w-0">
                                     {/* Product Name & Code */}
                                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                      {productColor?.product?.name || `Sản phẩm #${index + 1}`}
+                                      {productColor?.product?.name ||
+                                        `Sản phẩm #${index + 1}`}
                                     </p>
                                     {productColor?.product?.code && (
                                       <p className="text-xs text-gray-500 dark:text-gray-400">
                                         Mã: {productColor.product.code}
                                       </p>
                                     )}
-                                    
+
                                     {/* Product Details */}
                                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
                                       <span>SL: {detail.quantity}</span>
                                       <span className="text-gray-400">•</span>
-                                      <span>{detail.price.toLocaleString()}đ/sp</span>
+                                      <span>
+                                        {detail.price.toLocaleString()}đ/sp
+                                      </span>
                                     </div>
-                                    
+
                                     {/* Material & Color */}
                                     {productColor && (
                                       <div className="flex flex-wrap gap-1 mt-1">
-                                        {productColor.product?.materials && productColor.product.materials.length > 0 && (
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                            {productColor.product.materials[0].materialName}
-                                          </span>
-                                        )}
+                                        {productColor.product?.materials &&
+                                          productColor.product.materials
+                                            .length > 0 && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                              {
+                                                productColor.product
+                                                  .materials[0].materialName
+                                              }
+                                            </span>
+                                          )}
                                         {productColor.color && (
                                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                                             <span
                                               className="w-2 h-2 rounded-full border border-gray-300"
-                                              style={{ backgroundColor: productColor.color.hexCode }}
+                                              style={{
+                                                backgroundColor:
+                                                  productColor.color.hexCode,
+                                              }}
                                             />
                                             {productColor.color.colorName}
                                           </span>
@@ -362,11 +419,14 @@ export default function DeliveryOrders() {
                                       </div>
                                     )}
                                   </div>
-                                  
+
                                   {/* Subtotal */}
                                   <div className="text-right flex-shrink-0">
                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                      {(detail.price * detail.quantity).toLocaleString()}đ
+                                      {(
+                                        detail.price * detail.quantity
+                                      ).toLocaleString()}
+                                      đ
                                     </p>
                                   </div>
                                 </div>

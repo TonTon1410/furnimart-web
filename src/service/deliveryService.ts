@@ -8,7 +8,13 @@ export interface DeliveryAssignment {
   assignedBy: string;
   assignedAt: string;
   estimatedDeliveryDate: string;
-  status: "ASSIGNED" | "PREPARING" | "READY" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  status:
+    | "ASSIGNED"
+    | "PREPARING"
+    | "READY"
+    | "IN_TRANSIT"
+    | "DELIVERED"
+    | "CANCELLED";
   notes: string;
   invoiceGenerated: boolean;
   invoiceGeneratedAt: string;
@@ -60,20 +66,32 @@ export interface PrepareProductsRequest {
 
 const deliveryService = {
   // Lấy danh sách phân công giao hàng theo nhân viên
-  getAssignmentsByStaff: async (deliveryStaffId: string): Promise<DeliveryAssignment[]> => {
-    const response = await axiosClient.get(`/delivery/assignments/staff/${deliveryStaffId}`);
+  getAssignmentsByStaff: async (
+    deliveryStaffId: string
+  ): Promise<DeliveryAssignment[]> => {
+    const response = await axiosClient.get(
+      `/delivery/assignments/staff/${deliveryStaffId}`
+    );
     return response.data.data;
   },
 
   // Lấy danh sách phân công theo cửa hàng (cho STAFF/BRANCH_MANAGER)
-  getAssignmentsByStore: async (storeId: string): Promise<DeliveryAssignment[]> => {
-    const response = await axiosClient.get(`/delivery/assignments/store/${storeId}`);
+  getAssignmentsByStore: async (
+    storeId: string
+  ): Promise<DeliveryAssignment[]> => {
+    const response = await axiosClient.get(
+      `/delivery/assignments/store/${storeId}`
+    );
     return response.data.data;
   },
 
   // Lấy phân công theo order ID
-  getAssignmentByOrder: async (orderId: number): Promise<DeliveryAssignment> => {
-    const response = await axiosClient.get(`/delivery/assignments/order/${orderId}`);
+  getAssignmentByOrder: async (
+    orderId: number
+  ): Promise<DeliveryAssignment> => {
+    const response = await axiosClient.get(
+      `/delivery/assignments/order/${orderId}`
+    );
     return response.data.data;
   },
 
@@ -98,31 +116,46 @@ const deliveryService = {
 
   // Quét mã QR
   scanQRCode: async (data: ScanQRRequest): Promise<DeliveryConfirmation> => {
-    const response = await axiosClient.post("/delivery-confirmations/scan-qr", data);
+    const response = await axiosClient.post(
+      "/delivery-confirmations/scan-qr",
+      data
+    );
     return response.data.data;
   },
 
   // Lấy xác nhận giao hàng theo order ID
-  getConfirmationByOrder: async (orderId: number): Promise<DeliveryConfirmation> => {
-    const response = await axiosClient.get(`/delivery-confirmations/order/${orderId}`);
+  getConfirmationByOrder: async (
+    orderId: number
+  ): Promise<DeliveryConfirmation> => {
+    const response = await axiosClient.get(
+      `/delivery-confirmations/order/${orderId}`
+    );
     return response.data.data;
   },
 
   // Lấy danh sách xác nhận theo nhân viên
-  getConfirmationsByStaff: async (deliveryStaffId: string): Promise<DeliveryConfirmation[]> => {
-    const response = await axiosClient.get(`/delivery-confirmations/staff/${deliveryStaffId}`);
+  getConfirmationsByStaff: async (
+    deliveryStaffId: string
+  ): Promise<DeliveryConfirmation[]> => {
+    const response = await axiosClient.get(
+      `/delivery-confirmations/staff/${deliveryStaffId}`
+    );
     return response.data.data;
   },
 
   // Chuẩn bị sản phẩm cho giao hàng (STAFF role)
-  prepareProducts: async (data: PrepareProductsRequest): Promise<DeliveryAssignment> => {
+  prepareProducts: async (
+    data: PrepareProductsRequest
+  ): Promise<DeliveryAssignment> => {
     const response = await axiosClient.post("/delivery/prepare-products", data);
     return response.data.data;
   },
 
   // Tạo hóa đơn cho đơn hàng (STAFF role)
   generateInvoice: async (orderId: number): Promise<DeliveryAssignment> => {
-    const response = await axiosClient.post(`/delivery/generate-invoice/${orderId}`);
+    const response = await axiosClient.post(
+      `/delivery/generate-invoice/${orderId}`
+    );
     return response.data.data;
   },
 };

@@ -13,7 +13,8 @@ export default function DeliveryPOD() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [selectedAssignment, setSelectedAssignment] = useState<DeliveryAssignment | null>(null);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<DeliveryAssignment | null>(null);
   const [orderDetail, setOrderDetail] = useState<OrderItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,9 @@ export default function DeliveryPOD() {
     const loadOrderDetail = async () => {
       if (selectedAssignment) {
         try {
-          const detail = await orderService.getOrderById(selectedAssignment.orderId);
+          const detail = await orderService.getOrderById(
+            selectedAssignment.orderId
+          );
           setOrderDetail(detail);
         } catch (err) {
           console.error("Failed to load order detail:", err);
@@ -60,7 +63,9 @@ export default function DeliveryPOD() {
         setSelectedAssignment(deliveredOrders[0]);
         // Load order detail for first delivered order
         try {
-          const detail = await orderService.getOrderById(deliveredOrders[0].orderId);
+          const detail = await orderService.getOrderById(
+            deliveredOrders[0].orderId
+          );
           setOrderDetail(detail);
         } catch (err) {
           console.error("Failed to load order detail:", err);
@@ -74,7 +79,9 @@ export default function DeliveryPOD() {
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -121,14 +128,16 @@ export default function DeliveryPOD() {
       alert("Vui lòng nhập URL ảnh");
       return;
     }
-    
+
     // Basic URL validation
     try {
       new URL(trimmedUrl);
       setPhotos((prev) => [...prev, trimmedUrl]);
       setPhotoUrl("");
     } catch {
-      alert("URL không hợp lệ. Vui lòng nhập URL đầy đủ (ví dụ: https://example.com/image.jpg)");
+      alert(
+        "URL không hợp lệ. Vui lòng nhập URL đầy đủ (ví dụ: https://example.com/image.jpg)"
+      );
     }
   };
 
@@ -153,7 +162,9 @@ export default function DeliveryPOD() {
       await deliveryService.createDeliveryConfirmation({
         orderId: selectedAssignment.orderId,
         deliveryPhotos: photos,
-        deliveryNotes: `${recipientName.trim()}${signature ? ` - ${signature}` : ""}${notes ? ` - ${notes}` : ""}`,
+        deliveryNotes: `${recipientName.trim()}${
+          signature ? ` - ${signature}` : ""
+        }${notes ? ` - ${notes}` : ""}`,
         deliveryLatitude: undefined, // TODO: Get from geolocation
         deliveryLongitude: undefined, // TODO: Get from geolocation
       });
@@ -229,7 +240,9 @@ export default function DeliveryPOD() {
           <select
             value={selectedAssignment?.id || ""}
             onChange={(e) => {
-              const assignment = assignments.find((a) => a.id.toString() === e.target.value);
+              const assignment = assignments.find(
+                (a) => a.id.toString() === e.target.value
+              );
               setSelectedAssignment(assignment || null);
             }}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -258,9 +271,7 @@ export default function DeliveryPOD() {
           </div>
           <div className="flex items-start gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
-            <span className="flex-1">
-              {orderDetail?.address || "N/A"}
-            </span>
+            <span className="flex-1">{orderDetail?.address || "N/A"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span className="font-medium">Số điện thoại:</span>
@@ -317,7 +328,7 @@ export default function DeliveryPOD() {
                 type="url"
                 value={photoUrl}
                 onChange={(e) => setPhotoUrl(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddPhotoUrl()}
+                onKeyPress={(e) => e.key === "Enter" && handleAddPhotoUrl()}
                 placeholder="https://example.com/image.jpg"
                 className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
@@ -338,7 +349,11 @@ export default function DeliveryPOD() {
                   key={index}
                   className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700"
                 >
-                  <img src={photo} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                  <img
+                    src={photo}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     onClick={() => removePhoto(index)}
                     aria-label="Xóa ảnh"

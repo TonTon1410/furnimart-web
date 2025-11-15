@@ -1,4 +1,10 @@
-import { Package, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import {
+  Package,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
@@ -8,7 +14,9 @@ import type { OrderItem } from "@/types/order";
 
 export default function DeliveryStatus() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(new Map());
+  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
@@ -23,17 +31,20 @@ export default function DeliveryStatus() {
       setError(null);
       const profile = await authService.getProfile();
       console.log("👤 Current profile:", profile);
-      
+
       if (!profile?.id) {
         setError("Không tìm thấy thông tin người dùng");
         return;
       }
-      
+
       console.log("🔄 Calling API: getAssignmentsByStaff(" + profile.id + ")");
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
       console.log("📦 API Response - Total assignments:", data.length);
       console.log("📦 All assignments:", data);
-      console.log("📦 Assignments statuses:", data.map(a => ({ id: a.id, orderId: a.orderId, status: a.status })));
+      console.log(
+        "📦 Assignments statuses:",
+        data.map((a) => ({ id: a.id, orderId: a.orderId, status: a.status }))
+      );
       setAssignments(data);
 
       // Fetch order details for each assignment
@@ -41,7 +52,9 @@ export default function DeliveryStatus() {
       await Promise.all(
         data.map(async (assignment) => {
           try {
-            const orderDetail = await orderService.getOrderById(assignment.orderId);
+            const orderDetail = await orderService.getOrderById(
+              assignment.orderId
+            );
             orderDetailsMap.set(assignment.orderId, orderDetail);
           } catch (err) {
             console.error(`Failed to load order ${assignment.orderId}:`, err);
@@ -57,7 +70,10 @@ export default function DeliveryStatus() {
     }
   };
 
-  const handleUpdateStatus = async (assignmentId: number, newStatus: DeliveryAssignment["status"]) => {
+  const handleUpdateStatus = async (
+    assignmentId: number,
+    newStatus: DeliveryAssignment["status"]
+  ) => {
     try {
       setUpdating(assignmentId);
       await deliveryService.updateDeliveryStatus(assignmentId, newStatus);
@@ -132,12 +148,15 @@ export default function DeliveryStatus() {
   };
 
   // Chỉ hiển thị đơn đang giao (IN_TRANSIT)
-  const activeOrders = assignments.filter(
-    (a) => a.status === "IN_TRANSIT"
-  );
+  const activeOrders = assignments.filter((a) => a.status === "IN_TRANSIT");
 
   console.log("🚚 IN_TRANSIT orders:", activeOrders);
-  console.log("📊 Total assignments:", assignments.length, "| IN_TRANSIT:", activeOrders.length);
+  console.log(
+    "📊 Total assignments:",
+    assignments.length,
+    "| IN_TRANSIT:",
+    activeOrders.length
+  );
 
   if (loading) {
     return (
@@ -177,9 +196,11 @@ export default function DeliveryStatus() {
             IN_TRANSIT orders: <strong>{activeOrders.length}</strong>
           </p>
           <details className="mt-2">
-            <summary className="text-sm text-yellow-800 cursor-pointer">Xem tất cả assignments</summary>
+            <summary className="text-sm text-yellow-800 cursor-pointer">
+              Xem tất cả assignments
+            </summary>
             <div className="mt-2 space-y-1 text-xs">
-              {assignments.map(a => (
+              {assignments.map((a) => (
                 <div key={a.id} className="bg-yellow-100 p-2 rounded">
                   Order #{a.orderId} - Status: <strong>{a.status}</strong>
                 </div>
@@ -199,15 +220,19 @@ export default function DeliveryStatus() {
             Bạn chưa có đơn hàng nào có trạng thái "Đang giao" (IN_TRANSIT)
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Tổng số assignments: {assignments.length} | IN_TRANSIT: {activeOrders.length}
+            Tổng số assignments: {assignments.length} | IN_TRANSIT:{" "}
+            {activeOrders.length}
           </p>
           {assignments.length > 0 && (
             <div className="mt-4 text-left bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Các đơn hàng khác:
               </p>
-              {assignments.map(a => (
-                <div key={a.id} className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+              {assignments.map((a) => (
+                <div
+                  key={a.id}
+                  className="text-xs text-gray-600 dark:text-gray-400 mb-1"
+                >
                   • Order #{a.orderId} - Status: <strong>{a.status}</strong>
                 </div>
               ))}
@@ -226,10 +251,17 @@ export default function DeliveryStatus() {
               className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden"
             >
               {/* Order Header */}
-              <div className={`p-4 border-l-4 ${statusInfo?.borderColor || "border-gray-200"}`}>
+              <div
+                className={`p-4 border-l-4 ${
+                  statusInfo?.borderColor || "border-gray-200"
+                }`}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <StatusIcon className={`${statusInfo?.color || "text-gray-500"}`} size={20} />
+                    <StatusIcon
+                      className={`${statusInfo?.color || "text-gray-500"}`}
+                      size={20}
+                    />
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       #{order?.id || assignment.orderId}
                     </h3>
@@ -257,10 +289,14 @@ export default function DeliveryStatus() {
                     {statuses
                       .filter((s) => {
                         // Show next possible statuses based on current status
-                        if (assignment.status === "ASSIGNED") return ["PREPARING", "CANCELLED"].includes(s.status);
-                        if (assignment.status === "PREPARING") return ["READY", "CANCELLED"].includes(s.status);
-                        if (assignment.status === "READY") return ["IN_TRANSIT", "CANCELLED"].includes(s.status);
-                        if (assignment.status === "IN_TRANSIT") return ["DELIVERED", "CANCELLED"].includes(s.status);
+                        if (assignment.status === "ASSIGNED")
+                          return ["PREPARING", "CANCELLED"].includes(s.status);
+                        if (assignment.status === "PREPARING")
+                          return ["READY", "CANCELLED"].includes(s.status);
+                        if (assignment.status === "READY")
+                          return ["IN_TRANSIT", "CANCELLED"].includes(s.status);
+                        if (assignment.status === "IN_TRANSIT")
+                          return ["DELIVERED", "CANCELLED"].includes(s.status);
                         return false;
                       })
                       .map((statusOption) => {
@@ -269,15 +305,24 @@ export default function DeliveryStatus() {
                         return (
                           <button
                             key={statusOption.status}
-                            onClick={() => handleUpdateStatus(assignment.id, statusOption.status)}
+                            onClick={() =>
+                              handleUpdateStatus(
+                                assignment.id,
+                                statusOption.status
+                              )
+                            }
                             disabled={isUpdating}
                             className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all text-left
                               ${statusOption.borderColor} ${statusOption.bgColor}
                               hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             <Icon className={statusOption.color} size={18} />
-                            <span className={`text-xs font-medium ${statusOption.color}`}>
-                              {isUpdating ? "Đang cập nhật..." : statusOption.label}
+                            <span
+                              className={`text-xs font-medium ${statusOption.color}`}
+                            >
+                              {isUpdating
+                                ? "Đang cập nhật..."
+                                : statusOption.label}
                             </span>
                           </button>
                         );
