@@ -28,6 +28,7 @@ import OwnBlog from "@/pages/OwnBlog";
 import ContactPage from "@/pages/ContactPage";
 import MyPaymentPage from "@/pages/MyPayment";
 import type { RoleKey } from "./paths";
+import MyWalletPage from "@/pages/MyWalletPage"
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? (
@@ -173,6 +174,14 @@ export default function AppRouter() {
         element={
           <ProtectCustomerRoutes>
             <MyPaymentPage />
+          </ProtectCustomerRoutes>
+        }
+      />
+       <Route
+        path="/mywallet"
+        element={
+          <ProtectCustomerRoutes>
+            <MyWalletPage />
           </ProtectCustomerRoutes>
         }
       />
