@@ -22,7 +22,7 @@ const InventoryManagement: React.FC = () => {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={value} onChange={handleChange} aria-label="inventory tabs">
             <Tab label="Xuất Nhập & Chuyển Kho" />
-            <Tab label="Lịch Sử Giao Dịch" />
+            <Tab label="Lịch Sử Tồn kho" />
           </Tabs>
         </Box>
         
@@ -33,7 +33,7 @@ const InventoryManagement: React.FC = () => {
           </Box>
         )}
 
-        {/* Tab 2: Lịch Sử Giao Dịch */}
+        {/* Tab 2: Lịch Sử Xuất nhập */}
         {value === 1 && (
           <Box sx={{ p: 3 }}>
             <TransactionHistory />

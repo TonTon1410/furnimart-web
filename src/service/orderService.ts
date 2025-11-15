@@ -367,6 +367,26 @@ class OrderService {
     }
   }
 
+  // Assign order to delivery staff
+  async assignDelivery(data: {
+    orderId: number;
+    storeId: string;
+    deliveryStaffId: string;
+    estimatedDeliveryDate: string;
+    notes?: string;
+  }): Promise<any> {
+    try {
+      const response = await axiosClient.post("/delivery/assign", data);
+      return response.data;
+    } catch (error: any) {
+      const message = this.handleError(
+        error,
+        "Không thể phân công nhân viên giao hàng"
+      );
+      throw new Error(message);
+    }
+  }
+
   private handleError(error: any, defaultMessage: string): string {
     if (error.response?.status === 401) {
       return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";

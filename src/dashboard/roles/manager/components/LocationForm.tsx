@@ -1,3 +1,4 @@
+// file: LocationForm.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
@@ -34,13 +35,21 @@ const LocationForm: React.FC<LocationFormProps> = ({
 }) => {
   const { showToast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    zoneId: string;
+    rowLabel: string;
+    columnNumber: number | string;
+    code: string;
+    quantity: number | string;
+    status: "ACTIVE" | "INACTIVE";
+    description: string;
+  }>({
     zoneId,
     rowLabel: "",
-    columnNumber: 0,
+    columnNumber: "",
     code: "",
-    quantity: 0,
-    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+    quantity: "",
+    status: "ACTIVE",
     description: "",
   });
 
@@ -56,15 +65,15 @@ const LocationForm: React.FC<LocationFormProps> = ({
     onConfirm: () => {},
   });
 
-  // ✅ Reset form khi zoneId thay đổi và load thông tin zone
+  // Reset form khi zoneId thay đổi và load thông tin zone
   useEffect(() => {
     if (zoneId) {
       setFormData({
         zoneId,
         rowLabel: "",
-        columnNumber: 0,
+        columnNumber: "",
         code: "",
-        quantity: 0,
+        quantity: "",
         status: "ACTIVE",
         description: "",
       });
@@ -100,9 +109,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
             setFormData({
               zoneId: data.zone?.id || zoneId,
               rowLabel: data.rowLabel || "",
-              columnNumber: data.columnNumber || 0,
+              columnNumber: data.columnNumber === 0 ? 0 : data.columnNumber || "",
               code: data.code || "",
-              quantity: data.quantity || 0,
+              quantity: data.quantity === 0 ? 0 : data.quantity || "",
               status: data.status || "ACTIVE",
               description: data.description || "",
             });
@@ -119,9 +128,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
       setFormData({
         zoneId,
         rowLabel: "",
-        columnNumber: 0,
+        columnNumber: "",
         code: "",
-        quantity: 0,
+        quantity: "",
         status: "ACTIVE",
         description: "",
       });
@@ -131,13 +140,22 @@ const LocationForm: React.FC<LocationFormProps> = ({
   // Xử lý thay đổi trong form
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]:
-        name === "columnNumber" || name === "quantity"
-          ? Number(value)
-          : value,
-    });
+
+    if (name === "columnNumber" || name === "quantity") {
+        if (value === "") {
+            // Cho phép để trống
+            setFormData({ ...formData, [name]: "" });
+        } else {
+            const numValue = parseInt(value, 10);
+            // Chỉ cập nhật state nếu là số nguyên hợp lệ và không âm
+            if (!isNaN(numValue) && numValue >= 0) {
+                setFormData({ ...formData, [name]: numValue });
+            }
+        }
+    } else {
+        // Xử lý cho các trường khác
+        setFormData({ ...formData, [name]: value });
+    }
   };
 
   // Xử lý xác nhận lưu form
@@ -150,8 +168,68 @@ const LocationForm: React.FC<LocationFormProps> = ({
       });
       return;
     }
+    
+    // Kiểm tra bắt buộc các trường số và chuyển về number/0
+    let finalColumnNumber: number = 0;
+    if (formData.columnNumber === "") {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Cột (Column Number) hợp lệ (>= 0).",
+        });
+        return;
+    } else {
+        finalColumnNumber = Number(formData.columnNumber);
+    }
 
-    const payload = { ...formData, quantity: formData.quantity ?? 0 };
+    let finalQuantity: number = 0;
+    if (formData.quantity === "") {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Số lượng (Quantity) hợp lệ (>= 0).",
+        });
+        return;
+    } else {
+        finalQuantity = Number(formData.quantity);
+    }
+    
+    // ✅ CHỈNH SỬA: Kiểm tra Mã vị trí (code) chỉ khi ở chế độ CHỈNH SỬA
+    // Giả định: Khi tạo mới (mode === "create"), Mã vị trí (code) được tự động sinh hoặc không bắt buộc nhập.
+    if (mode === "edit" && !formData.code.trim()) {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Mã vị trí không được để trống.",
+        });
+        return;
+    }
+    
+    // Kiểm tra Hàng (Row Label) bắt buộc
+    if (!formData.rowLabel.trim()) {
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Vui lòng nhập Hàng (Row Label).",
+        });
+        return;
+    }
+
+
+    const payload = { 
+        ...formData, 
+        columnNumber: finalColumnNumber,
+        quantity: finalQuantity 
+    };
+    
+    // ✅ CHỈNH SỬA: Thêm logic điền code tự động khi tạo (nếu cần)
+    // Nếu bạn cần Mã vị trí cho payload khi tạo, hãy điền nó ở đây:
+    if (mode === "create" && !payload.code.trim()) {
+        // Ví dụ: Tạo mã giả hoặc dựa vào server. 
+        // Nếu server tự sinh, bạn có thể bỏ qua bước này.
+        // payload.code = 'AUTO_' + Date.now(); 
+    }
+
 
     try {
       if (mode === "create") {
@@ -173,11 +251,11 @@ const LocationForm: React.FC<LocationFormProps> = ({
       setConfirmDialog((prev) => ({ ...prev, open: false }));
       onClose();
       onSuccess?.();
-    } catch {
+    } catch (error) {
       showToast({
         type: "error",
         title: "Lỗi",
-        description: "Không thể lưu thông tin vị trí",
+        description: "Không thể lưu thông tin vị trí. " + (error as any).message,
       });
     }
   };
@@ -288,15 +366,22 @@ const LocationForm: React.FC<LocationFormProps> = ({
         <Divider sx={{ mb: 2 }} />
 
         <Grid container spacing={2} direction="column">
-          <Grid item>
-            <TextField
-              label="Mã vị trí"
-              name="code"
-              value={formData.code}
-              onChange={handleChange}
-              fullWidth
-            />
-          </Grid>
+          {/* ✅ ĐIỀU CHỈNH: Ẩn khi tạo, Chỉ đọc khi chỉnh sửa */}
+          {mode === "edit" && (
+            <Grid item>
+              <TextField
+                label="Mã vị trí"
+                name="code"
+                value={formData.code}
+                onChange={handleChange}
+                fullWidth
+                required
+                InputProps={{ 
+                    readOnly: true // ✅ Thiết lập chỉ đọc
+                }} 
+              />
+            </Grid>
+          )}
 
           <Grid item>
             <TextField
@@ -305,6 +390,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
               value={formData.rowLabel}
               onChange={handleChange}
               fullWidth
+              required
             />
           </Grid>
 
@@ -316,6 +402,17 @@ const LocationForm: React.FC<LocationFormProps> = ({
               value={formData.columnNumber}
               onChange={handleChange}
               fullWidth
+              required
+              InputProps={{ 
+                inputProps: { 
+                  min: 0 
+                } 
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
             />
           </Grid>
 
@@ -327,6 +424,17 @@ const LocationForm: React.FC<LocationFormProps> = ({
               value={formData.quantity}
               onChange={handleChange}
               fullWidth
+              required
+              InputProps={{ 
+                inputProps: { 
+                  min: 0 
+                } 
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
             />
           </Grid>
 

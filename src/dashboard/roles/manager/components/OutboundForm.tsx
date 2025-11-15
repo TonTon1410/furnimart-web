@@ -1,11 +1,16 @@
+// file: OutboundForm.tsx
 import React, { useState } from 'react';
 import { 
   Box, Typography, TextField, Grid, Button, CircularProgress, Alert, 
   FormControl, InputLabel, Select, MenuItem 
 } from '@mui/material';
 import { Send } from 'lucide-react';
-import InventoryBaseFormFields, { ProductSelector } from './InventoryBaseFormFields';
+import WarehouseZoneLocationSelector from './WarehouseZoneLocationSelector'; 
+import ProductSelector from './ProductSelector'; 
+
 import inventoryService from '@/service/inventoryService'; 
+// ✅ THÊM: Import useToast
+import { useToast } from '@/context/ToastContext';
 
 interface OutboundFormProps {
   onSuccess: () => void;
@@ -18,8 +23,12 @@ const reasons = [
 ];
 
 const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
+  // ✅ THÊM: Sử dụng useToast
+  const { showToast } = useToast();
+  
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ❌ ĐÃ SỬA/XÓA: Dùng errorMessage cho validation thay vì error
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // States cho Vị trí xuất
   const [warehouseId, setWarehouseId] = useState<string | null>(null);
@@ -28,38 +37,101 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
   
   // States cho Sản phẩm và Số lượng
   const [productColorId, setProductColorId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<number | string>(""); 
   const [outboundReason, setOutboundReason] = useState<string>(''); 
-  const [reference, setReference] = useState<string>(''); // Ví dụ: Mã đơn hàng (SO)
+
+  // ✅ HÀM MỚI: Xử lý thay đổi số lượng
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      setQuantity("");
+    } else {
+      const numValue = parseInt(value, 10);
+      // Chỉ cập nhật nếu là số hợp lệ và không âm
+      if (!isNaN(numValue) && numValue >= 0) {
+        setQuantity(numValue);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!warehouseId || !locationItemId || !productColorId || quantity <= 0 || !outboundReason) {
-      setError("Vui lòng điền đầy đủ thông tin: Sản phẩm, Vị trí xuất, Số lượng và Lý do xuất.");
+    
+    setErrorMessage(null); // Reset lỗi validation
+
+    // ✅ CẬP NHẬT: Kiểm tra số lượng và dùng Toast
+    let finalQuantity: number;
+    if (quantity === "" || Number(quantity) <= 0) {
+        setErrorMessage("Vui lòng nhập Số lượng xuất hợp lệ (lớn hơn 0).");
+        showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng nhập Số lượng xuất hợp lệ (lớn hơn 0)." });
+        return;
+    } else {
+        finalQuantity = Number(quantity);
+    }
+    
+    // ✅ CẬP NHẬT: Kiểm tra các trường bắt buộc và dùng Toast
+    if (!warehouseId) {
+      setErrorMessage("Vui lòng chọn Kho hàng.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Kho hàng." });
       return;
     }
 
+    if (!locationItemId) {
+      setErrorMessage("Vui lòng chọn Vị trí xuất.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Vị trí xuất." });
+      return;
+    }
+
+    if (!productColorId) {
+      setErrorMessage("Vui lòng chọn Sản phẩm.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Sản phẩm." });
+      return;
+    }
+
+    if (!outboundReason) {
+      setErrorMessage("Vui lòng chọn Lý do xuất.");
+      showToast({ type: "error", title: "Lỗi Validation", description: "Vui lòng chọn Lý do xuất." });
+      return;
+    }
+
+
     setLoading(true);
-    setError(null);
+    // ❌ ĐÃ XÓA: setError(null);
 
     try {
       await inventoryService.exportStock(warehouseId, {
         locationItemId,
         productColorId,
-        quantity,
-        // outboundReason,
-        // reference,
-        // Thêm các trường khác: userId, ...
+        quantity: finalQuantity, // Sử dụng finalQuantity (number)
+        outboundReason, // Trường này cần được gửi nếu API yêu cầu
+      });
+      
+      // ✅ CẬP NHẬT: Toast thành công
+      showToast({
+          type: "success",
+          title: "Xuất kho Thành công!",
+          description: `Đã xuất ${finalQuantity} sản phẩm khỏi kho.`,
       });
       
       onSuccess();
-      // Reset form (giữ lại vị trí nếu cần xuất nhiều sản phẩm)
-      setQuantity(1);
-      setReference('');
+      
+      // ✅ THÊM: Reset toàn bộ form
+      setQuantity("");
+      setOutboundReason('');
+      setWarehouseId(null);
+      setZoneId(null);
+      setLocationItemId(null);
+      setProductColorId(null);
       
     } catch (err) {
-      setError("Lỗi khi tạo giao dịch xuất kho. Vui lòng kiểm tra Tồn kho Khả dụng.");
       console.error(err);
+      // ✅ CẬP NHẬT: Toast lỗi
+      showToast({
+          type: "error",
+          title: "Lỗi khi Xuất kho",
+          description: "Không thể tạo giao dịch xuất kho. Vui lòng kiểm tra Tồn kho Khả dụng tại vị trí đã chọn.",
+      });
+      // ❌ ĐÃ XÓA: setError("Lỗi khi tạo giao dịch xuất kho. Vui lòng kiểm tra Tồn kho Khả dụng.");
     } finally {
       setLoading(false);
     }
@@ -71,10 +143,11 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
         Sử dụng form này để ghi nhận hàng hóa rời khỏi Kho hàng.
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {/* ✅ CẬP NHẬT: Dùng errorMessage */}
+      {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
       
-      {/* 1. Vị trí Xuất */}
-      <InventoryBaseFormFields 
+      {/* 1. Vị trí Xuất (Sử dụng WarehouseZoneLocationSelector mới) */}
+      <WarehouseZoneLocationSelector 
         labelPrefix="Xuất từ"
         onWarehouseChange={setWarehouseId}
         onZoneChange={setZoneId}
@@ -84,33 +157,37 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
         selectedLocationId={locationItemId}
       />
 
-      {/* 2. Sản phẩm */}
+      {/* 2. Sản phẩm (Sử dụng ProductSelector mới) */}
       <ProductSelector 
-        onSelectProduct={setProductColorId}
-        selectedProductColorId={productColorId}
+        onProductColorSelect={setProductColorId} 
       />
 
       <Grid container spacing={2} mt={1}>
-        {/* 3. Số lượng */}
-        <Grid item xs={12} sm={4}>
+        {/* 3. Số lượng - Đã điều chỉnh chiều rộng */}
+        <Grid item xs={12} sm={6}>
           <TextField
             label="Số lượng xuất"
             type="number"
             fullWidth
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={handleQuantityChange} 
             required
-            InputProps={{ inputProps: { min: 1 } }}
+            InputProps={{ inputProps: { min: 0 } }}
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                e.preventDefault();
+              }
+            }}
           />
         </Grid>
-        {/* 4. Lý do Xuất */}
-        <Grid item xs={12} sm={4}>
+        {/* 4. Lý do Xuất - Đã điều chỉnh chiều rộng */}
+        <Grid item xs={12} sm={6}>
           <FormControl fullWidth required>
             <InputLabel>Lý do Xuất</InputLabel>
             <Select
               label="Lý do Xuất"
               value={outboundReason}
-              onChange={(e) => setOutboundReason(e.target.value)}
+              onChange={(e) => setOutboundReason(e.target.value as string)}
             >
               {reasons.map(r => (
                 <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>
@@ -118,21 +195,12 @@ const OutboundForm: React.FC<OutboundFormProps> = ({ onSuccess }) => {
             </Select>
           </FormControl>
         </Grid>
-        {/* 5. Tham chiếu */}
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Mã Tham chiếu (SO/Hủy)"
-            fullWidth
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-          />
-        </Grid>
       </Grid>
 
       <Button
         type="submit"
         variant="contained"
-        color="error" // Màu đỏ cho Xuất kho
+        color="error"
         sx={{ mt: 3 }}
         disabled={loading}
         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Send size={20} />}

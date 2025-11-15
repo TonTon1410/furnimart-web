@@ -70,75 +70,75 @@ export interface GetTransactionHistoryParams {
 const inventoryService = {
   // 🧾 Lấy tất cả inventory (phiếu kho)
   getInventoryList: async () => {
-    return axiosClient.get(`/api/inventories`);
+    return axiosClient.get(`/inventories`);
   },
 
   // 🔍 Lấy inventory (phiếu kho) theo ID
   getInventoryById: async (inventoryId: string) => {
-    return axiosClient.get(`/api/inventories/${inventoryId}`);
+    return axiosClient.get(`/inventories/${inventoryId}`);
   },
 
   // 🆕 Tạo hoặc cập nhật inventory (phiếu kho)
-  createOrUpdateInventory: async (data: any) => { // Cập nhật data type cho khớp schema trong Swagger POST /api/inventories
-    const url = `/api/inventories`;
+  createOrUpdateInventory: async (data: any) => { // Cập nhật data type cho khớp schema trong Swagger POST  /inventories
+    const url = `/inventories`;
     return axiosClient.post(url, data);
   },
 
   // 🔄 Chuyển kho (Tạo phiếu TRANSFER)
   transferInventory: async (data: InventoryTransferData) => {
-    const url = `/api/inventories/transfer`;
+    const url = `/inventories/transfer`;
     return axiosClient.post(url, data);
   },
 
   // ⬆️ Tạo phiếu nhập (IMPORT)
   importStock: async (warehouseId: string, data: ImportExportReserveReleaseData) => {
-    const url = `/api/inventories/${warehouseId}/import`;
+    const url = `/inventories/${warehouseId}/import`;
     return axiosClient.post(url, data);
   },
 
   // ⬇️ Tạo phiếu xuất (EXPORT)
   exportStock: async (warehouseId: string, data: ImportExportReserveReleaseData) => {
-    const url = `/api/inventories/${warehouseId}/export`;
+    const url = `/inventories/${warehouseId}/export`;
     return axiosClient.post(url, data);
   },
 
   // 🔒 Dự trữ tồn kho (Tạo phiếu RESERVE)
   reserveStock: async (data: ImportExportReserveReleaseData) => {
-    const url = `/api/inventories/reserve`;
+    const url = `/inventories/reserve`;
     return axiosClient.post(url, data);
   },
 
   // 🔓 Giải phóng tồn kho (Tạo phiếu RELEASE)
   releaseStock: async (data: ImportExportReserveReleaseData) => {
-    const url = `/api/inventories/release`;
+    const url = `/inventories/release`;
     return axiosClient.post(url, data);
   },
 
   // ➕ Thêm chi tiết Item vào Phiếu kho
   addItemToInventory: async (inventoryId: string | number, data: AddItemToInventoryData) => {
-    const url = `/api/inventories/inventory/${inventoryId}/items`;
+    const url = `/inventories/inventory/${inventoryId}/items`;
     return axiosClient.post(url, data);
   },
 
   // 🏷️ Lấy danh sách phiếu kho theo Zone ID
   getInventoryByZone: async (zoneId: string) => {
-    return axiosClient.get(`/api/inventories/zone/${zoneId}`);
+    return axiosClient.get(`/inventories/zone/${zoneId}`);
   },
 
   // 🏷️ Lấy danh sách phiếu kho theo Warehouse ID
   getInventoryByWarehouse: async (warehouseId: string) => {
-    return axiosClient.get(`/api/inventories/warehouse/${warehouseId}`);
+    return axiosClient.get(`/inventories/warehouse/${warehouseId}`);
   },
 
   // ⚖️ Kiểm tra sức chứa của Zone (THAY ĐỔI: thêm additionalQty là Query Param)
   checkZoneCapacity: async (zoneId: string, additionalQty: number) => {
-    const url = `/api/inventories/zone/${zoneId}/check-capacity`;
+    const url = `/inventories/zone/${zoneId}/check-capacity`;
     return axiosClient.get(url, { params: { additionalQty } });
   },
 
   // 📊 Tổng tồn kho vật lý (THAY ĐỔI: dùng query param `productColorId`)
   getTotalPhysical: async (productColorId: string) => {
-    const url = `/api/inventories/stock/total-physical`;
+    const url = `/inventories/stock/total-physical`;
     return axiosClient.get(url, { params: { productColorId } });
   },
 
@@ -150,29 +150,29 @@ const inventoryService = {
 
   // ✅ Kiểm tra tồn kho tại kho (THAY ĐỔI: dùng endpoint và query params mới)
   checkWarehouseStock: async ({ productColorId, warehouseId, requiredQty }: CheckWarehouseStockParams) => {
-    const url = `/api/inventories/stock/check-warehouse`;
+    const url = `/inventories/stock/check-warehouse`;
     return axiosClient.get(url, { params: { productColorId, warehouseId, requiredQty } });
   },
 
   // 🌍 Kiểm tra tồn kho toàn cục (THAY ĐỔI: dùng endpoint và query params mới)
   checkGlobalStock: async ({ productColorId, requiredQty }: CheckGlobalStockParams) => {
-    const url = `/api/inventories/stock/check-global`;
+    const url = `/inventories/stock/check-global`;
     return axiosClient.get(url, { params: { productColorId, requiredQty } });
   },
 
   // 📝 Lấy tất cả Chi Tiết Phiếu Kho
   getAllInventoryItems: async () => {
-    return axiosClient.get(`/api/inventories/items`);
+    return axiosClient.get(`/inventories/items`);
   },
 
   // 🎨 Lấy Chi Tiết Giao Dịch theo ProductColorId
   getInventoryItemsByProductColor: async (productColorId: string) => {
-    return axiosClient.get(`/api/inventories/items/product/${productColorId}`);
+    return axiosClient.get(`/inventories/items/product/${productColorId}`);
   },
 
   // 📜 Lịch sử giao dịch theo product + zone (THAY ĐỔI: dùng endpoint và query params mới)
   getTransactionHistory: async ({ productColorId, zoneId }: GetTransactionHistoryParams) => {
-    const url = `/api/inventories/items/history`;
+    const url = `/inventories/items/history`;
     return axiosClient.get(url, { params: { productColorId, zoneId } });
   },
   

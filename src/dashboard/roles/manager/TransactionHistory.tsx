@@ -40,7 +40,7 @@ const TransactionHistory: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h6" mb={2}>Lịch sử Giao dịch Tồn kho</Typography>
+      <Typography variant="h6" mb={2}>Lịch sử Tồn kho</Typography>
       
       {error && <Alert severity="error">{error}</Alert>}
       

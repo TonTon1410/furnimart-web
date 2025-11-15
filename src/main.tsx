@@ -7,6 +7,7 @@ import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
 import { handleStaleToken } from "./utils/corsHandler";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Google OAuth Client ID
 const GOOGLE_CLIENT_ID =
@@ -18,11 +19,22 @@ handleStaleToken();
 const el = document.getElementById("root");
 if (!el) throw new Error("Root element #root not found");
 
+const queryClient = new QueryClient({
+  defaultOptions: { // Tùy chọn, thiết lập cấu hình mặc định
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 createRoot(el).render(
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <ThemeProvider>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </ThemeProvider>
     </BrowserRouter>
   </GoogleOAuthProvider>
