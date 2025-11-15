@@ -6,6 +6,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 // import ResetPassword from "@/pages/ResetPassword"
 import NotFound from "@/pages/NotFound";
 import AppLayout from "@/dashboard/AppLayout";
+import DeliveryLayout from "@/dashboard/DeliveryLayout";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AllProducts from "@/pages/AllProducts";
 import ProductDetail from "@/pages/ProductDetail";
@@ -26,6 +27,7 @@ import BlogPage from "@/pages/BlogPage";
 import OwnBlog from "@/pages/OwnBlog";
 import ContactPage from "@/pages/ContactPage";
 import MyPaymentPage from "@/pages/MyPayment";
+import type { RoleKey } from "./paths";
 
 const RequireAuth = ({ children }: PropsWithChildren) => {
   return authService.isAuthenticated() ? (
@@ -33,6 +35,17 @@ const RequireAuth = ({ children }: PropsWithChildren) => {
   ) : (
     <Navigate to="/login" replace />
   );
+};
+
+const DashboardLayout = () => {
+  const role = authService.getRole?.() as RoleKey | null;
+  
+  // Use DeliveryLayout for DELIVERY role, AppLayout for others
+  if (role === "delivery") {
+    return <DeliveryLayout />;
+  }
+  
+  return <AppLayout />;
 };
 
 export default function AppRouter() {
@@ -172,7 +185,7 @@ export default function AppRouter() {
         element={
           <RequireAuth>
             <ScrollToTop>
-              <AppLayout />
+              <DashboardLayout />
             </ScrollToTop>
           </RequireAuth>
         }

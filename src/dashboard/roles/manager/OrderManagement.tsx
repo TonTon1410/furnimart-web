@@ -337,17 +337,17 @@ const OrderManagement: React.FC = () => {
     setAssigningDelivery(true);
 
     try {
-      // Send the datetime as-is to backend
-      // The DateTimePicker gives us a string like "2025-11-14T08:00"
-      // Backend will handle timezone conversion if needed
-      const [datePart, timePart] = estimatedDeliveryDate.split("T");
-      const dateTimeString = `${datePart}T${timePart}:00.000Z`;
+      // Don't add ":00.000Z" - just send the value as-is from DateTimePicker
+      // DateTimePicker gives us "YYYY-MM-DDTHH:mm" format
+      // Backend expects this exact format without extra transformations
+
+      console.log("Sending estimatedDeliveryDate:", estimatedDeliveryDate);
 
       await orderService.assignDelivery({
         orderId: Number(orderId),
         storeId: storeId,
         deliveryStaffId: selectedDeliveryStaff,
-        estimatedDeliveryDate: dateTimeString,
+        estimatedDeliveryDate: estimatedDeliveryDate,
         notes: deliveryNotes || undefined,
       });
 

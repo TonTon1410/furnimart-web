@@ -18,9 +18,7 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 // eslint-disable-next-line react-refresh/only-export-components
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider");
-  }
+  // Return undefined if not within provider (e.g., DeliveryLayout)
   return context;
 };
 

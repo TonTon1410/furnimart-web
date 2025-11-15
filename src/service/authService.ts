@@ -546,6 +546,13 @@ export const authService = {
     localStorage.removeItem(ROLE_KEY);
   },
 
+  /** ✅ Lấy toàn bộ decoded token payload */
+  getDecodedToken(): any {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    return safeDecodeJwt(token);
+  },
+
   // Debug tokens
   debugTokens: () => {
     const accessToken = localStorage.getItem(TOKEN_KEY);

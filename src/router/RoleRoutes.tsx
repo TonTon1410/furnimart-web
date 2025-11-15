@@ -18,6 +18,7 @@ const AdminDisputes = Placeholder("Admin • Disputes");
 
 import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
 import ColorManagementPage from "@/dashboard/roles/seller/ColorManagementPage";
+import DeliveryManagementPage from "@/dashboard/roles/seller/DeliveryManagementPage";
 import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
 import AdminEmployeesPage from "@/dashboard/roles/admin/AdminEmployeesPage";
 import AdminStoresPage from "@/dashboard/roles/admin/AdminStoresPage";
@@ -38,10 +39,10 @@ const ManagerPerformance = Placeholder("Manager • Performance Report");
 const ManagerDelivery = Placeholder("Manager • Delivery Report");
 const ManagerChat = Placeholder("Manager • Chat");
 
-const DeliveryOrders = Placeholder("Delivery • My Orders");
-const DeliveryPickup = Placeholder("Delivery • Pickup Confirm");
-const DeliveryStatus = Placeholder("Delivery • Update Status");
-const DeliveryPOD = Placeholder("Delivery • Proof of Delivery");
+import DeliveryOrdersPage from "@/dashboard/roles/delivery/DeliveryOrdersPage";
+import DeliveryPickupPage from "@/dashboard/roles/delivery/DeliveryPickupPage";
+import DeliveryStatusPage from "@/dashboard/roles/delivery/DeliveryStatusPage";
+import DeliveryPODPage from "@/dashboard/roles/delivery/DeliveryPODPage";
 const DeliveryHistory = Placeholder("Delivery • History");
 
 export default function RoleRoutes() {
@@ -104,10 +105,10 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("orders")} replace />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="orders" element={<DeliveryOrders />} />
-        <Route path="pickup" element={<DeliveryPickup />} />
-        <Route path="status" element={<DeliveryStatus />} />
-        <Route path="pod" element={<DeliveryPOD />} />
+        <Route path="orders" element={<DeliveryOrdersPage />} />
+        <Route path="pickup" element={<DeliveryPickupPage />} />
+        <Route path="status" element={<DeliveryStatusPage />} />
+        <Route path="pod" element={<DeliveryPODPage />} />
         <Route path="history" element={<DeliveryHistory />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
@@ -122,6 +123,7 @@ export default function RoleRoutes() {
         <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
+        <Route path="delivery-management" element={<DeliveryManagementPage />} />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />

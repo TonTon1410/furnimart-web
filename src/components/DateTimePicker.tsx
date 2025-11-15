@@ -21,7 +21,17 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(
-    value ? new Date(value) : new Date()
+    value
+      ? (() => {
+          // Parse the date string to get local date components
+          const parts = value.split("T")[0].split("-");
+          return new Date(
+            parseInt(parts[0]),
+            parseInt(parts[1]) - 1,
+            parseInt(parts[2])
+          );
+        })()
+      : new Date()
   );
   const datePickerRef = React.useRef<HTMLDivElement>(null);
   const timePickerRef = React.useRef<HTMLDivElement>(null);
@@ -47,16 +57,33 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const selectedDate = value ? new Date(value) : null;
+  // Parse value to get local date and time
+  const selectedDate = value
+    ? (() => {
+        const parts = value.split("T")[0].split("-");
+        return new Date(
+          parseInt(parts[0]),
+          parseInt(parts[1]) - 1,
+          parseInt(parts[2])
+        );
+      })()
+    : null;
+
   const selectedTime = value
-    ? {
-        hour: new Date(value).getHours(),
-        minute: new Date(value).getMinutes(),
-      }
+    ? (() => {
+        const timePart = value.split("T")[1];
+        const [hour, minute] = timePart.split(":").map(Number);
+        return { hour, minute };
+      })()
     : { hour: 9, minute: 0 };
 
   const handleDateSelect = (date: Date) => {
-    const dateStr = date.toISOString().slice(0, 10);
+    // Format date as YYYY-MM-DD without timezone conversion
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+
     const timeStr =
       value?.slice(11, 16) ||
       `${String(selectedTime.hour).padStart(2, "0")}:${String(
@@ -68,7 +95,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   const handleTimeSelect = (hour: number, minute: number) => {
     const date = selectedDate || new Date();
-    const dateStr = date.toISOString().slice(0, 10);
+    // Format date as YYYY-MM-DD without timezone conversion
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+
     const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(
       2,
       "0"
