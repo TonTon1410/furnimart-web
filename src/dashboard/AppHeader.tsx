@@ -61,7 +61,7 @@ const AppHeader: React.FC = () => {
   const isMobileOpen = sidebar?.isMobileOpen ?? false;
   const toggleSidebar = sidebar?.toggleSidebar ?? (() => {});
   const toggleMobileSidebar = sidebar?.toggleMobileSidebar ?? (() => {});
-  
+
   const [user, setUser] = useState<UserProfile | null>(null);
   const [roleKey, setRoleKey] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState(false);
@@ -158,9 +158,9 @@ const AppHeader: React.FC = () => {
           )}
 
           {/* Logo - always show on mobile or when no sidebar */}
-          <Link 
-            to={DP()} 
-            className={sidebar ? "lg:hidden" : ""} 
+          <Link
+            to={DP()}
+            className={sidebar ? "lg:hidden" : ""}
             aria-label="Dashboard"
           >
             <span className="text-xl font-extrabold text-gray-900 dark:text-white">

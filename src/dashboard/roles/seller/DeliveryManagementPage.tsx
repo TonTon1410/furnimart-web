@@ -1,4 +1,11 @@
-import { Package, FileText, CheckSquare, Users, Loader2, Search } from "lucide-react";
+import {
+  Package,
+  FileText,
+  CheckSquare,
+  Users,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
@@ -8,13 +15,19 @@ import { authService } from "@/service/authService";
 
 export default function DeliveryManagementPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(new Map());
+  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [processingInvoice, setProcessingInvoice] = useState<number | null>(null);
-  const [preparingProducts, setPreparingProducts] = useState<number | null>(null);
+  const [processingInvoice, setProcessingInvoice] = useState<number | null>(
+    null
+  );
+  const [preparingProducts, setPreparingProducts] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     loadAssignments();
@@ -24,16 +37,18 @@ export default function DeliveryManagementPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Lấy storeId từ decoded token
       const decodedToken = authService.getDecodedToken();
       console.log("Decoded Token:", decodedToken);
-      
+
       const storeId = decodedToken?.storeId;
-      
+
       if (!storeId) {
         console.warn("No storeId in token:", decodedToken);
-        setError(`Không tìm thấy thông tin cửa hàng trong token. Vui lòng đăng nhập lại.`);
+        setError(
+          `Không tìm thấy thông tin cửa hàng trong token. Vui lòng đăng nhập lại.`
+        );
         setLoading(false);
         return;
       }
@@ -49,18 +64,24 @@ export default function DeliveryManagementPage() {
       await Promise.all(
         data.map(async (assignment: DeliveryAssignment) => {
           try {
-            const orderDetail = await orderService.getOrderById(assignment.orderId);
+            const orderDetail = await orderService.getOrderById(
+              assignment.orderId
+            );
             orderDetailsMap.set(assignment.orderId, orderDetail);
           } catch (err) {
             console.error(`Failed to load order ${assignment.orderId}:`, err);
           }
         })
       );
-      
+
       setOrderDetails(orderDetailsMap);
     } catch (err) {
       console.error("Error loading assignments:", err);
-      setError(`Không thể tải danh sách đơn hàng: ${(err as Error).message || 'Lỗi không xác định'}`);
+      setError(
+        `Không thể tải danh sách đơn hàng: ${
+          (err as Error).message || "Lỗi không xác định"
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +109,10 @@ export default function DeliveryManagementPage() {
 
     try {
       setPreparingProducts(orderId);
-      await deliveryService.prepareProducts({ orderId, notes: notes || undefined });
+      await deliveryService.prepareProducts({
+        orderId,
+        notes: notes || undefined,
+      });
       alert("Chuẩn bị sản phẩm thành công! Trạng thái đã chuyển sang READY.");
       await loadAssignments(); // Reload
     } catch (err) {
@@ -101,32 +125,63 @@ export default function DeliveryManagementPage() {
 
   const getStatusInfo = (status: DeliveryAssignment["status"]) => {
     const statusMap = {
-      ASSIGNED: { label: "Đã phân công", color: "text-blue-700", bg: "bg-blue-100", border: "border-blue-200" },
-      PREPARING: { label: "Đang chuẩn bị", color: "text-yellow-700", bg: "bg-yellow-100", border: "border-yellow-200" },
-      READY: { label: "Sẵn sàng", color: "text-green-700", bg: "bg-green-100", border: "border-green-200" },
-      IN_TRANSIT: { label: "Đang giao", color: "text-purple-700", bg: "bg-purple-100", border: "border-purple-200" },
-      DELIVERED: { label: "Đã giao", color: "text-gray-700", bg: "bg-gray-100", border: "border-gray-200" },
-      CANCELLED: { label: "Đã hủy", color: "text-red-700", bg: "bg-red-100", border: "border-red-200" },
+      ASSIGNED: {
+        label: "Đã phân công",
+        color: "text-blue-700",
+        bg: "bg-blue-100",
+        border: "border-blue-200",
+      },
+      PREPARING: {
+        label: "Đang chuẩn bị",
+        color: "text-yellow-700",
+        bg: "bg-yellow-100",
+        border: "border-yellow-200",
+      },
+      READY: {
+        label: "Sẵn sàng",
+        color: "text-green-700",
+        bg: "bg-green-100",
+        border: "border-green-200",
+      },
+      IN_TRANSIT: {
+        label: "Đang giao",
+        color: "text-purple-700",
+        bg: "bg-purple-100",
+        border: "border-purple-200",
+      },
+      DELIVERED: {
+        label: "Đã giao",
+        color: "text-gray-700",
+        bg: "bg-gray-100",
+        border: "border-gray-200",
+      },
+      CANCELLED: {
+        label: "Đã hủy",
+        color: "text-red-700",
+        bg: "bg-red-100",
+        border: "border-red-200",
+      },
     };
     return statusMap[status] || statusMap.ASSIGNED;
   };
 
   const filteredAssignments = assignments.filter((assignment) => {
     const order = orderDetails.get(assignment.orderId);
-    const matchesSearch = 
+    const matchesSearch =
       assignment.orderId.toString().includes(searchTerm) ||
       order?.shopName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || assignment.status === filterStatus;
+    const matchesStatus =
+      filterStatus === "all" || assignment.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const stats = {
     total: assignments.length,
-    assigned: assignments.filter(a => a.status === "ASSIGNED").length,
-    preparing: assignments.filter(a => a.status === "PREPARING").length,
-    ready: assignments.filter(a => a.status === "READY").length,
-    needInvoice: assignments.filter(a => !a.invoiceGenerated).length,
-    needPreparation: assignments.filter(a => !a.productsPrepared).length,
+    assigned: assignments.filter((a) => a.status === "ASSIGNED").length,
+    preparing: assignments.filter((a) => a.status === "PREPARING").length,
+    ready: assignments.filter((a) => a.status === "READY").length,
+    needInvoice: assignments.filter((a) => !a.invoiceGenerated).length,
+    needPreparation: assignments.filter((a) => !a.productsPrepared).length,
   };
 
   if (loading) {
@@ -152,7 +207,7 @@ export default function DeliveryManagementPage() {
             Thử lại
           </button>
           <button
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => (window.location.href = "/dashboard")}
             className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             Về trang chủ
@@ -182,8 +237,12 @@ export default function DeliveryManagementPage() {
               <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Tổng đơn</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.total}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Tổng đơn
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.total}
+              </p>
             </div>
           </div>
         </div>
@@ -194,8 +253,12 @@ export default function DeliveryManagementPage() {
               <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Chưa HĐ</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.needInvoice}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Chưa HĐ
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.needInvoice}
+              </p>
             </div>
           </div>
         </div>
@@ -206,8 +269,12 @@ export default function DeliveryManagementPage() {
               <CheckSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Chưa CB</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.needPreparation}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Chưa CB
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.needPreparation}
+              </p>
             </div>
           </div>
         </div>
@@ -219,7 +286,9 @@ export default function DeliveryManagementPage() {
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Đã PC</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.assigned}</p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.assigned}
+              </p>
             </div>
           </div>
         </div>
@@ -230,8 +299,12 @@ export default function DeliveryManagementPage() {
               <Package className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Đang CB</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.preparing}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Đang CB
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.preparing}
+              </p>
             </div>
           </div>
         </div>
@@ -242,8 +315,12 @@ export default function DeliveryManagementPage() {
               <CheckSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Sẵn sàng</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.ready}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Sẵn sàng
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stats.ready}
+              </p>
             </div>
           </div>
         </div>
@@ -291,7 +368,7 @@ export default function DeliveryManagementPage() {
           filteredAssignments.map((assignment) => {
             const order = orderDetails.get(assignment.orderId);
             const statusInfo = getStatusInfo(assignment.status);
-            
+
             return (
               <div
                 key={assignment.id}
@@ -307,7 +384,9 @@ export default function DeliveryManagementPage() {
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                               Đơn hàng #{assignment.orderId}
                             </h3>
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}
+                            >
                               {statusInfo.label}
                             </span>
                           </div>
@@ -319,25 +398,33 @@ export default function DeliveryManagementPage() {
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-gray-500 dark:text-gray-400">Địa chỉ</p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Địa chỉ
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
                             {order?.address || "N/A"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-500 dark:text-gray-400">Số điện thoại</p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Số điện thoại
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
                             {order?.phone || "N/A"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-500 dark:text-gray-400">Tổng tiền</p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Tổng tiền
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
                             {order?.price?.toLocaleString("vi-VN")}đ
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-500 dark:text-gray-400">Số lượng SP</p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Số lượng SP
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
                             {order?.quantity || 0}
                           </p>
@@ -357,7 +444,7 @@ export default function DeliveryManagementPage() {
                             Chưa tạo hóa đơn
                           </span>
                         )}
-                        
+
                         {assignment.productsPrepared ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             <CheckSquare className="h-3 w-3" />
@@ -373,8 +460,12 @@ export default function DeliveryManagementPage() {
 
                       {assignment.notes && (
                         <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-3">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Ghi chú</p>
-                          <p className="text-sm text-gray-900 dark:text-white">{assignment.notes}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Ghi chú
+                          </p>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {assignment.notes}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -382,8 +473,13 @@ export default function DeliveryManagementPage() {
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2 sm:w-48">
                       <button
-                        onClick={() => handleGenerateInvoice(assignment.orderId)}
-                        disabled={assignment.invoiceGenerated || processingInvoice === assignment.orderId}
+                        onClick={() =>
+                          handleGenerateInvoice(assignment.orderId)
+                        }
+                        disabled={
+                          assignment.invoiceGenerated ||
+                          processingInvoice === assignment.orderId
+                        }
                         className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
                       >
                         {processingInvoice === assignment.orderId ? (
@@ -394,14 +490,21 @@ export default function DeliveryManagementPage() {
                         ) : (
                           <>
                             <FileText className="h-4 w-4" />
-                            {assignment.invoiceGenerated ? "Đã tạo HĐ" : "Tạo hóa đơn"}
+                            {assignment.invoiceGenerated
+                              ? "Đã tạo HĐ"
+                              : "Tạo hóa đơn"}
                           </>
                         )}
                       </button>
 
                       <button
-                        onClick={() => handlePrepareProducts(assignment.orderId)}
-                        disabled={assignment.productsPrepared || preparingProducts === assignment.orderId}
+                        onClick={() =>
+                          handlePrepareProducts(assignment.orderId)
+                        }
+                        disabled={
+                          assignment.productsPrepared ||
+                          preparingProducts === assignment.orderId
+                        }
                         className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
                       >
                         {preparingProducts === assignment.orderId ? (
@@ -412,7 +515,9 @@ export default function DeliveryManagementPage() {
                         ) : (
                           <>
                             <CheckSquare className="h-4 w-4" />
-                            {assignment.productsPrepared ? "Đã chuẩn bị" : "Chuẩn bị SP"}
+                            {assignment.productsPrepared
+                              ? "Đã chuẩn bị"
+                              : "Chuẩn bị SP"}
                           </>
                         )}
                       </button>

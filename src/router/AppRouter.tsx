@@ -40,12 +40,12 @@ const RequireAuth = ({ children }: PropsWithChildren) => {
 
 const DashboardLayout = () => {
   const role = authService.getRole?.() as RoleKey | null;
-  
+
   // Use DeliveryLayout for DELIVERY role, AppLayout for others
   if (role === "delivery") {
     return <DeliveryLayout />;
   }
-  
+
   return <AppLayout />;
 };
 
