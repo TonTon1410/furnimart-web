@@ -13,13 +13,38 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+
+          // UI libraries
+          "ui-vendor": [
+            "lucide-react",
+            "@radix-ui/react-toast",
+            "@radix-ui/react-dialog",
+          ],
+
+          // Maps (heavy library)
+          "leaflet-vendor": ["leaflet", "react-leaflet"],
+
+          // 3D models
+          "three-vendor": [
+            "three",
+            "@react-three/fiber",
+            "@react-three/drei",
+            "three-stdlib",
+          ],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase to 1000kb
+  },
   server: {
-    host: true, // cho phép truy cập từ ngoài
-    port: 5173, // bạn đang map ra 8000 ở docker-compose
-    allowedHosts: [
-      "furnimart.click", // 👈 thêm domain của bạn
-      "localhost",
-      "127.0.0.1"
-    ]
-  }
+    host: true,
+    port: 5173,
+    allowedHosts: ["furnimart.click", "localhost", "127.0.0.1"],
+  },
 });
