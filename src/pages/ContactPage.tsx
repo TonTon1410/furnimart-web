@@ -1,6 +1,5 @@
-
-import ContactForm from "@/components/contact/contactForm"
-import ContactInfo from "@/components/contact/ContactInfo"
+import ContactForm from "@/components/contact/ContactForm";
+import ContactInfo from "@/components/contact/ContactInfo";
 
 export default function ContactPage() {
   return (
@@ -19,5 +18,5 @@ export default function ContactPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
