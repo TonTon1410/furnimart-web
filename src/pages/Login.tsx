@@ -8,6 +8,7 @@ import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "@/service/authService";
 import { useGoogleLogin } from "@react-oauth/google";
+import noithatImg from "@/assets/noithat.jpg";
 
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 
@@ -344,7 +345,7 @@ export default function Login() {
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="src/assets/noithat.jpg"
+          src={noithatImg}
           alt="Nội thất hiện đại"
           className="w-full h-full object-cover"
         />
