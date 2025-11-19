@@ -1,13 +1,65 @@
 // src/router/RoleRoutes.tsx
+import { lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import type { RoleKey } from "./paths";
 import { authService } from "@/service/authService";
 import { DP } from "./paths";
 
-import AdminCategoriesPage from "@/dashboard/roles/admin/AdminCategoriesPage";
-import AdminMaterialsPage from "@/dashboard/roles/admin/AdminMaterialsPage";
-import UserProfile from "@/pages/UserProfile";
 const Placeholder = (t: string) => () => <div className="p-6 text-lg">{t}</div>;
+
+// Lazy load all dashboard pages
+const AdminCategoriesPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminCategoriesPage")
+);
+const AdminMaterialsPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminMaterialsPage")
+);
+const AdminUsersPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminUsersPage")
+);
+const AdminEmployeesPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminEmployeesPage")
+);
+const AdminStoresPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminStoresPage")
+);
+const UserProfile = lazy(() => import("@/pages/UserProfile"));
+
+const SellerProductsPage = lazy(
+  () => import("@/dashboard/roles/seller/SellerProductsPage")
+);
+const ColorManagementPage = lazy(
+  () => import("@/dashboard/roles/seller/ColorManagementPage")
+);
+const DeliveryManagementPage = lazy(
+  () => import("@/dashboard/roles/seller/DeliveryManagementPage")
+);
+
+const WarehouseManagement = lazy(
+  () => import("@/dashboard/roles/manager/WarehouseManagement")
+);
+const InventoryManagement = lazy(
+  () => import("@/dashboard/roles/manager/InventoryManagement")
+);
+const OrderManagement = lazy(
+  () => import("@/dashboard/roles/manager/OrderManagement")
+);
+const ManagerEmployeesPage = lazy(
+  () => import("@/dashboard/roles/manager/ManagerEmployeesPage")
+);
+
+const DeliveryOrdersPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryOrdersPage")
+);
+const DeliveryPickupPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryPickupPage")
+);
+const DeliveryStatusPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryStatusPage")
+);
+const DeliveryPODPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryPODPage")
+);
 
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
@@ -16,22 +68,11 @@ const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 
-import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
-import ColorManagementPage from "@/dashboard/roles/seller/ColorManagementPage";
-import DeliveryManagementPage from "@/dashboard/roles/seller/DeliveryManagementPage";
-import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
-import AdminEmployeesPage from "@/dashboard/roles/admin/AdminEmployeesPage";
-import AdminStoresPage from "@/dashboard/roles/admin/AdminStoresPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
 const SellerChat = Placeholder("Seller • Chat");
 
-import WarehouseManagement from "@/dashboard/roles/manager/WarehouseManagement";
-import InventoryManagement from "@/dashboard/roles/manager/InventoryManagement";
-import OrderManagement from "@/dashboard/roles/manager/OrderManagement";
-import ManagerEmployeesPage from "@/dashboard/roles/manager/ManagerEmployeesPage";
-// const ManagerInventory = Placeholder("Manager • Inventory");
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
 const ManagerRevenue = Placeholder("Manager • Revenue Report");
@@ -39,10 +80,6 @@ const ManagerPerformance = Placeholder("Manager • Performance Report");
 const ManagerDelivery = Placeholder("Manager • Delivery Report");
 const ManagerChat = Placeholder("Manager • Chat");
 
-import DeliveryOrdersPage from "@/dashboard/roles/delivery/DeliveryOrdersPage";
-import DeliveryPickupPage from "@/dashboard/roles/delivery/DeliveryPickupPage";
-import DeliveryStatusPage from "@/dashboard/roles/delivery/DeliveryStatusPage";
-import DeliveryPODPage from "@/dashboard/roles/delivery/DeliveryPODPage";
 const DeliveryHistory = Placeholder("Delivery • History");
 
 export default function RoleRoutes() {
