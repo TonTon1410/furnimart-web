@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ArrowUpRight, ArrowDownLeft, RefreshCw, Wallet as WalletIcon, TrendingUp, Clock } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownLeft, RefreshCw, Wallet as WalletIcon, TrendingUp, Clock, X } from 'lucide-react'
 import { walletService, type Wallet } from '@/service/walletService'
 import { authService } from '@/service/authService'
 import WalletCard from '@/components/mywallet/wallet-card'
@@ -21,6 +21,9 @@ export default function MyWalletPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'deposit' | 'withdraw' | 'transfer'>('deposit')
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newWalletCode, setNewWalletCode] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     loadWallets()
@@ -75,6 +78,27 @@ export default function MyWalletPage() {
       setRefreshing(false)
       toast.success('Đã cập nhật!', { duration: 2000 })
     }, 500)
+  }
+
+  const handleCreateWallet = async () => {
+    if (!newWalletCode.trim()) {
+      toast.error('Vui lòng nhập mã ví')
+      return
+    }
+
+    try {
+      setCreating(true)
+      await walletService.createMyWallet(newWalletCode.trim(), 0)
+      toast.success('Tạo ví thành công!')
+      setShowCreateModal(false)
+      setNewWalletCode('')
+      handleRefresh()
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || 'Không thể tạo ví'
+      toast.error(errorMsg)
+    } finally {
+      setCreating(false)
+    }
   }
 
   const handleOpenModal = (type: 'deposit' | 'withdraw' | 'transfer') => {
@@ -194,15 +218,18 @@ export default function MyWalletPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   Chưa có ví nào
                 </h3>
-                <p className="text-gray-600 mb-2">
-                  Bạn chưa có ví trong hệ thống. Vui lòng liên hệ với quản trị viên để được hỗ trợ tạo ví.
+                <p className="text-gray-600 mb-6">
+                  Bạn chưa có ví trong hệ thống. Tạo ví mới để bắt đầu quản lý tài chính của bạn.
                 </p>
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700 flex items-center justify-center gap-2">
-                    <span className="text-lg">💡</span>
-                    Chỉ quản trị viên mới có quyền tạo ví cho người dùng
-                  </p>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition shadow-lg"
+                >
+                  <Plus className="h-5 w-5" />
+                  Tạo ví mới
+                </motion.button>
               </div>
             </motion.div>
           ) : (
@@ -215,10 +242,21 @@ export default function MyWalletPage() {
             >
               {/* Wallets Grid */}
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <WalletIcon className="h-5 w-5 text-emerald-600" />
-                  Danh sách ví
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <WalletIcon className="h-5 w-5 text-emerald-600" />
+                    Danh sách ví
+                  </h2>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition shadow-md"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tạo ví mới
+                  </motion.button>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {wallets.map(wallet => (
                     <motion.div
@@ -300,7 +338,7 @@ export default function MyWalletPage() {
         </AnimatePresence>
       </div>
 
-      {/* Modal */}
+      {/* Transaction Modal */}
       {selectedWallet && (
         <ActionModal
           open={modalOpen}
@@ -314,6 +352,95 @@ export default function MyWalletPage() {
           }}
         />
       )}
+
+      {/* Create Wallet Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              onClick={() => !creating && setShowCreateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <button
+                  onClick={() => !creating && setShowCreateModal(false)}
+                  disabled={creating}
+                  className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+
+                <div className="mb-6">
+                  <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                    <WalletIcon className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">Tạo ví mới</h2>
+                  <p className="text-sm text-gray-600 mt-1">Nhập mã ví để tạo ví mới cho tài khoản của bạn</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mã ví <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newWalletCode}
+                      onChange={(e) => setNewWalletCode(e.target.value)}
+                      placeholder="VD: WALLET001, MY_WALLET"
+                      disabled={creating}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !creating) {
+                          handleCreateWallet()
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Mã ví phải là duy nhất và không trùng với các ví khác</p>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShowCreateModal(false)}
+                      disabled={creating}
+                      className="flex-1 px-4 py-3 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleCreateWallet}
+                      disabled={creating || !newWalletCode.trim()}
+                      className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                    >
+                      {creating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          Đang tạo...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          Tạo ví
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   )
 }

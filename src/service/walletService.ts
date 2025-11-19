@@ -34,7 +34,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const walletService = {
-  // ✅ Get wallets by user ID - FIX: Đảm bảo userId là string hợp lệ
+  // ✅ Get wallets by user ID - FIXED: Backend trả về single object, không phải array
   getMyWallets: async (userId: string) => {
     try {
       // Validate userId trước khi gọi API
@@ -61,31 +61,30 @@ export const walletService = {
         fullData: res.data
       })
 
-      // Xử lý linh hoạt - backend có thể trả về nhiều format khác nhau
+      // 🔥 FIX: Backend trả về { status: 200, message: "...", data: {single wallet object} }
       let wallets: Wallet[] = []
       
-      // Case 1: { status, message, data: [...] }
-      if (res.data?.data) {
-        if (Array.isArray(res.data.data)) {
-          wallets = res.data.data
-        } else if (typeof res.data.data === 'object') {
+      // Case 1: { data: {single wallet object} } - BACKEND CỦA BẠN
+      if (res.data?.data && typeof res.data.data === 'object' && !Array.isArray(res.data.data)) {
+        // Nếu data là object đơn và có các field của Wallet
+        if (res.data.data.id && res.data.data.code) {
           wallets = [res.data.data]
+        } else {
+          // Có thể data chứa nested structure
+          wallets = []
         }
       }
-      // Case 2: { status, message, data: { wallets: [...] } }
-      else if (res.data?.wallets) {
-        wallets = Array.isArray(res.data.wallets) ? res.data.wallets : [res.data.wallets]
+      // Case 2: { data: [...] } - Array of wallets
+      else if (res.data?.data && Array.isArray(res.data.data)) {
+        wallets = res.data.data
       }
-      // Case 3: Direct array response
+      // Case 3: Direct wallet object response
+      else if (res.data && res.data.id && res.data.code) {
+        wallets = [res.data]
+      }
+      // Case 4: Direct array response
       else if (Array.isArray(res.data)) {
         wallets = res.data
-      }
-      // Case 4: Wrapped in items or results
-      else if (res.data?.items) {
-        wallets = Array.isArray(res.data.items) ? res.data.items : [res.data.items]
-      }
-      else if (res.data?.results) {
-        wallets = Array.isArray(res.data.results) ? res.data.results : [res.data.results]
       }
 
       console.log(`✅ Successfully parsed ${wallets.length} wallet(s)`, wallets)
@@ -97,7 +96,8 @@ export const walletService = {
       console.error('❌ Error response:', error?.response?.data)
       console.error('❌ Error config:', {
         url: error?.config?.url,
-        method: error?.config?.method
+        method: error?.config?.method,
+        baseURL: error?.config?.baseURL
       })
       throw error
     }
@@ -148,7 +148,7 @@ export const walletService = {
     }
   },
 
-  // Create wallet (admin only)
+  // Create wallet (admin only) - Requires userId in payload
   createWallet: async (payload: {
     code: string
     balance: number
@@ -164,6 +164,31 @@ export const walletService = {
       return res.data.data
     } catch (error: any) {
       console.error('Create wallet error:', error)
+      throw error
+    }
+  },
+
+  // ✅ NEW: Create wallet for current user (không cần userId trong payload)
+  createMyWallet: async (code: string, initialBalance: number = 0) => {
+    try {
+      console.log('📡 Creating wallet with code:', code)
+      
+      // Backend tự lấy userId từ token, không cần truyền trong body
+      const res = await axiosClient.post<{
+        status: number
+        message: string
+        data: Wallet
+      }>('/wallets/create', {
+        code,
+        balance: initialBalance,
+        status: 'ACTIVE'
+      })
+      
+      console.log('✅ Wallet created successfully:', res.data)
+      return res.data.data
+    } catch (error: any) {
+      console.error('❌ Create my wallet error:', error)
+      console.error('❌ Response:', error?.response?.data)
       throw error
     }
   },
