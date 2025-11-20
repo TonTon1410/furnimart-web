@@ -44,6 +44,11 @@ export const walletService = {
     return axiosClient.get<{ data: TransactionResponse }>(url)
   },
 
+  deposit: async (walletId: string, amount: number, description: string) => {
+    const url = `/wallets/${walletId}/deposit?amount=${amount}&description=${encodeURIComponent(description)}`
+    return axiosClient.post(url)
+  },
+
   // Create wallet manually (if needed)
   createWallet: async (data: { code: string; balance: number; status: string; userId: string }) => {
     return axiosClient.post("/wallets", data)

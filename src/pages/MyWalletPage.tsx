@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react"
 import { authService } from "@/service/authService"
 import { walletService, type Wallet, type WalletTransaction } from "@/service/walletService"
-import { Loader2, WalletIcon, ArrowUpRight, ArrowDownLeft, History, AlertCircle } from "lucide-react"
+import { paymentService } from "@/service/paymentService"
+import { Loader2, WalletIcon, ArrowUpRight, ArrowDownLeft, History, AlertCircle, Plus } from "lucide-react"
 
 export default function MyWalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDeposit, setShowDeposit] = useState(false)
+  const [depositAmount, setDepositAmount] = useState("")
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [error, setError] = useState("")
@@ -58,9 +61,31 @@ export default function MyWalletPage() {
     }
   }
 
-  const handlePageChange = (newPage: number) => {
-    if (wallet?.id && newPage >= 0 && newPage < totalPages) {
-      fetchTransactions(wallet.id, newPage)
+  const changePage = (delta: number) => {
+    if (wallet?.id) fetchTransactions(wallet.id, page + delta)
+  }
+
+  const handleDeposit = async () => {
+    if (!wallet || !depositAmount) return
+    try {
+      const amount = Number(depositAmount)
+      if (isNaN(amount) || amount < 10000) return alert("Số tiền tối thiểu là 10,000đ")
+
+      // 1. Create deposit transaction
+      const depositRes = await walletService.deposit(wallet.id, amount, "Nạp tiền vào ví qua VNPay")
+      const transactionData = depositRes.data.data
+
+      // 2. Create VNPay payment URL using the transaction ID
+      // Assuming the deposit response returns the transaction object with an ID
+      if (transactionData?.id) {
+        const vnpayRes = await paymentService.createVnpay(amount, transactionData.id)
+        if (vnpayRes.data) {
+          window.location.href = vnpayRes.data
+        }
+      }
+    } catch (error) {
+      console.error("Deposit error:", error)
+      alert("Có lỗi xảy ra khi tạo giao dịch nạp tiền")
     }
   }
 
@@ -108,8 +133,19 @@ export default function MyWalletPage() {
                 <WalletIcon size={120} />
               </div>
               <div className="relative z-10">
-                <p className="text-green-100 text-sm font-medium mb-1">Tổng số dư</p>
-                <h2 className="text-4xl font-bold mb-4">{formatCurrency(wallet.balance)}</h2>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-green-100 text-sm font-medium mb-1">Tổng số dư</p>
+                    <h2 className="text-4xl font-bold mb-4">{formatCurrency(wallet.balance)}</h2>
+                  </div>
+                  {/* Deposit Button */}
+                  <button
+                    onClick={() => setShowDeposit(true)}
+                    className="bg-white text-[#095544] px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-green-50 transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={18} /> Nạp tiền
+                  </button>
+                </div>
                 <div className="flex items-center gap-4 text-sm bg-white/10 w-fit px-3 py-1.5 rounded-lg backdrop-blur-sm">
                   <span className="opacity-80">Mã ví:</span>
                   <span className="font-mono font-semibold tracking-wide">{wallet.code}</span>
@@ -195,23 +231,22 @@ export default function MyWalletPage() {
                 </table>
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
-                <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex justify-end gap-4 p-4 border-t text-sm font-medium text-gray-600">
                   <button
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page === 0}
-                    className="px-3 py-1.5 rounded border bg-white disabled:opacity-50 hover:bg-gray-50 text-sm font-medium transition-colors"
+                    disabled={page <= 0}
+                    onClick={() => changePage(-1)}
+                    className="hover:text-[#095544] disabled:opacity-30"
                   >
                     Trước
                   </button>
-                  <span className="text-sm text-gray-600">
-                    Trang {page + 1} / {totalPages}
+                  <span>
+                    {page + 1} / {totalPages}
                   </span>
                   <button
-                    onClick={() => handlePageChange(page + 1)}
                     disabled={page >= totalPages - 1}
-                    className="px-3 py-1.5 rounded border bg-white disabled:opacity-50 hover:bg-gray-50 text-sm font-medium transition-colors"
+                    onClick={() => changePage(1)}
+                    className="hover:text-[#095544] disabled:opacity-30"
                   >
                     Sau
                   </button>
@@ -219,6 +254,45 @@ export default function MyWalletPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* Deposit Modal */}
+        {showDeposit && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Nạp tiền vào ví</h3>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Số tiền muốn nạp (VNĐ)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="w-full p-3 pl-4 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#095544] focus:border-[#095544] outline-none transition-all text-lg font-medium"
+                    placeholder="Nhập số tiền..."
+                    min="10000"
+                    autoFocus
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">đ</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 ml-1">Số tiền tối thiểu: 10.000 đ</p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeposit(false)}
+                  className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleDeposit}
+                  className="px-5 py-2.5 bg-[#095544] text-white rounded-xl font-bold hover:bg-[#0b6e58] transition-colors shadow-lg shadow-green-900/20"
+                >
+                  Thanh toán VNPay
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
