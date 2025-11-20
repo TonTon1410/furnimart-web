@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Colors API ở port 8080 (API Gateway hoặc Product Service)
-const COLORS_API_BASE_URL = "http://152.53.227.115:8080/api";
+const COLORS_API_BASE_URL = "http://152.53.244.124:8080/api";
 
 console.log("🎨 Colors API Base URL:", COLORS_API_BASE_URL);
 
