@@ -19,7 +19,7 @@ import heroImg from "@/assets/home-image.png";
 
 // Sử dụng API Gateway chính (port 8080) để routing đến service categories
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://152.53.227.115:8080/api";
+  import.meta.env.VITE_API_BASE_URL || "http://152.53.244.124:8080/api";
 
 // Tạo axios instance cho public API (không cần token)
 const publicAxios = axios.create({
