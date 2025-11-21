@@ -41,6 +41,9 @@ const WarehouseManagement = lazy(
 const InventoryManagement = lazy(
   () => import("@/dashboard/roles/manager/InventoryManagement")
 );
+const WarehouseMapNew = lazy(
+  () => import("@/dashboard/roles/manager/WarehouseMapNew")
+);
 const OrderManagement = lazy(
   () => import("@/dashboard/roles/manager/OrderManagement")
 );
@@ -123,6 +126,7 @@ export default function RoleRoutes() {
         <Route path="inventory" element={<InventoryPage />} /> */}
         <Route path="warehouses" element={<WarehouseManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
+        <Route path="warehouse-map" element={<WarehouseMapNew />} />
         <Route path="orders" element={<OrderManagement />} />
         <Route path="employees" element={<ManagerEmployeesPage />} />
         <Route path="orders/approval" element={<ManagerApproval />} />

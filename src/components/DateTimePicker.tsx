@@ -138,7 +138,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             }}
             className="w-full flex items-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-3 py-3 text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 hover:border-purple-400 hover:shadow-md focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:border-purple-600"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 shadow-sm">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 shadow-sm">
               <Calendar className="h-4 w-4 text-purple-700 dark:text-purple-300" />
             </div>
             <span className="flex-1 text-left">
@@ -154,7 +154,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
           {/* Calendar Popup */}
           {showDatePicker && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-sm rounded-2xl border-2 border-purple-200 bg-white p-4 shadow-2xl dark:border-purple-800 dark:bg-gray-900 max-h-[90vh] overflow-y-auto">
                 {/* Month Navigation */}
                 <div className="mb-4 flex items-center justify-between">
@@ -240,7 +240,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             isPast
                               ? "cursor-not-allowed text-gray-300 dark:text-gray-700"
                               : isSelected
-                              ? "bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-md"
+                              ? "bg-linear-to-br from-purple-500 to-purple-600 text-white shadow-md"
                               : isToday
                               ? "border-2 border-purple-400 text-purple-600 dark:text-purple-400"
                               : "hover:bg-purple-100 text-gray-700 dark:text-gray-300 dark:hover:bg-purple-900/30"
@@ -272,7 +272,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             }}
             className="w-full flex items-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-3 py-3 text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 hover:border-indigo-400 hover:shadow-md focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:border-indigo-600"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/40 dark:to-indigo-800/40 shadow-sm">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/40 dark:to-indigo-800/40 shadow-sm">
               <Clock className="h-4 w-4 text-indigo-700 dark:text-indigo-300" />
             </div>
             <span className="flex-1 text-left">
@@ -295,7 +295,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
       {/* Preview Card - Compact Version */}
       {value && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-3 border border-purple-200 dark:border-purple-700">
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-linear-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-3 border border-purple-200 dark:border-purple-700">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -336,7 +336,7 @@ const TimePickerPopup: React.FC<TimePickerPopupProps> = ({
   const [localTime, setLocalTime] = React.useState(selectedTime);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-sm rounded-2xl border-2 border-indigo-200 bg-white p-4 shadow-2xl dark:border-indigo-800 dark:bg-gray-900 max-h-[90vh] overflow-y-auto">
         <div className="mb-3 text-center text-sm font-bold text-gray-900 dark:text-gray-100">
           Chọn giờ
@@ -359,7 +359,7 @@ const TimePickerPopup: React.FC<TimePickerPopupProps> = ({
                   }}
                   className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                     localTime.hour === i
-                      ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
+                      ? "bg-linear-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
                       : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
                   }`}
                 >
@@ -385,7 +385,7 @@ const TimePickerPopup: React.FC<TimePickerPopupProps> = ({
                   }}
                   className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                     localTime.minute === i
-                      ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
+                      ? "bg-linear-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
                       : "hover:bg-indigo-100 text-gray-700 dark:text-gray-300 dark:hover:bg-indigo-900/30"
                   }`}
                 >
@@ -399,7 +399,7 @@ const TimePickerPopup: React.FC<TimePickerPopupProps> = ({
         <button
           type="button"
           onClick={onConfirm}
-          className="mt-3 w-full rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-indigo-600 hover:to-indigo-700"
+          className="mt-3 w-full rounded-lg bg-linear-to-r from-indigo-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-indigo-600 hover:to-indigo-700"
         >
           Xác nhận
         </button>

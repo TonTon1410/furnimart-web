@@ -135,14 +135,14 @@ const LeftSection: React.FC<LeftSectionProps> = ({
           {product.name}
         </h1>
         <div className="flex items-baseline gap-3">
-          <p className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
+          <p className="text-3xl md:text-4xl font-extrabold bg-linear-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
             {fmtVND(product.price)}
           </p>
         </div>
 
         {/* Hiển thị tồn kho */}
         {selectedColorId && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-linear-to-r from-gray-50 to-gray-100 border border-gray-200">
             {availableStock === null ? (
               <span className="text-gray-600">Đang kiểm tra tồn kho...</span>
             ) : availableStock > 0 ? (
@@ -252,7 +252,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         className={`w-full rounded-lg md:rounded-xl py-3 md:py-4 px-4 md:px-6 text-base md:text-lg font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 md:gap-3 ${
           !selectedColorId || availableStock === null || availableStock === 0
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            : "bg-linear-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
         }`}
       >
         <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />

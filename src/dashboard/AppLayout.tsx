@@ -6,8 +6,11 @@ import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
 
 const LayoutContent: React.FC = () => {
-  const { isExpanded, isHovered } = useSidebar();
+  const context = useSidebar();
   const { theme } = useTheme();
+
+  const isExpanded = context?.isExpanded ?? true;
+  const isHovered = context?.isHovered ?? false;
 
   // Apply dark class only to dashboard
   useEffect(() => {
@@ -24,18 +27,18 @@ const LayoutContent: React.FC = () => {
   }, [theme]);
 
   return (
-      <div className="min-h-screen xl:flex bg-gray-50 dark:bg-gray-900 transition-colors">
-        <AppSidebar />
-        <div
-          className={`flex-1 transition-all duration-300 ease-in-out
+    <div className="min-h-screen xl:flex bg-gray-50 dark:bg-gray-900 transition-colors">
+      <AppSidebar />
+      <div
+        className={`flex-1 transition-all duration-300 ease-in-out
           ${isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"}`}
-        >
-          <AppHeader />
-          <main className="mx-auto w-full max-w-none p-4 lg:p-6">
-            <Outlet />
-          </main>
-        </div>
+      >
+        <AppHeader />
+        <main className="mx-auto w-full max-w-none p-4 lg:p-6">
+          <Outlet />
+        </main>
       </div>
+    </div>
   );
 };
 

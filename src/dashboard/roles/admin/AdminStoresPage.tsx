@@ -156,7 +156,7 @@ const AdminStoresPage: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-50 px-6 py-8 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <main className="min-h-screen w-full bg-linear-to-br from-gray-50 via-white to-gray-50 px-6 py-8 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Header với gradient */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
         <div>
@@ -186,7 +186,7 @@ const AdminStoresPage: React.FC = () => {
 
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all hover:shadow-xl hover:shadow-emerald-500/40 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all hover:shadow-xl hover:shadow-emerald-500/40 active:scale-95"
         >
           <Plus className="h-5 w-5" />
           Thêm cửa hàng
@@ -213,7 +213,7 @@ const AdminStoresPage: React.FC = () => {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900">
             <table className="min-w-full text-sm">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80">
+              <thead className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80">
                 <tr>
                   <th className="px-6 py-4 text-left font-semibold text-gray-700 dark:text-gray-200">
                     Tên cửa hàng
@@ -307,7 +307,7 @@ const AdminStoresPage: React.FC = () => {
         {mode === "detail" && selected ? (
           <div className="space-y-6">
             {/* Thông tin cơ bản */}
-            <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 dark:from-emerald-900/20 dark:to-emerald-900/10">
+            <div className="rounded-xl bg-linear-to-br from-emerald-50 to-emerald-100/50 p-6 dark:from-emerald-900/20 dark:to-emerald-900/10">
               <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">
                 Thông tin cửa hàng
               </h3>

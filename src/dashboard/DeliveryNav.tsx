@@ -21,13 +21,13 @@ export default function DeliveryNav() {
                   key={item.path}
                   to={item.path}
                   className={clsx(
-                    "flex items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors flex-shrink-0",
+                    "flex items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors shrink-0",
                     isActive(item.path)
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
                   )}
                 >
-                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span className="shrink-0">{item.icon}</span>
                   <span className="hidden xs:inline sm:inline">
                     {item.name}
                   </span>
@@ -37,7 +37,7 @@ export default function DeliveryNav() {
 
           {nav.others && nav.others.length > 0 && (
             <>
-              <div className="w-px bg-gray-200 dark:bg-gray-700 my-1.5 sm:my-2 flex-shrink-0" />
+              <div className="w-px bg-gray-200 dark:bg-gray-700 my-1.5 sm:my-2 shrink-0" />
               {nav.others.map(
                 (item) =>
                   item.path && (
@@ -45,13 +45,13 @@ export default function DeliveryNav() {
                       key={item.path}
                       to={item.path}
                       className={clsx(
-                        "flex items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors flex-shrink-0",
+                        "flex items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors shrink-0",
                         isActive(item.path)
                           ? "bg-blue-600 text-white shadow-sm"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
                       )}
                     >
-                      <span className="flex-shrink-0">{item.icon}</span>
+                      <span className="shrink-0">{item.icon}</span>
                       <span className="hidden xs:inline sm:inline">
                         {item.name}
                       </span>
