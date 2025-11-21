@@ -169,7 +169,7 @@ const RightSection: React.FC<RightSectionProps> = ({
                 key={index}
                 type="button"
                 onClick={() => setMainImage(img || defaultImage)}
-                className={`h-16 w-16 md:h-20 md:w-20 flex-shrink-0 overflow-hidden border rounded-md transition focus:outline-none ${
+                className={`h-16 w-16 md:h-20 md:w-20 shrink-0 overflow-hidden border rounded-md transition focus:outline-none ${
                   active
                     ? "border-emerald-600 shadow-md"
                     : "border-gray-300 hover:border-emerald-300"
@@ -194,7 +194,7 @@ const RightSection: React.FC<RightSectionProps> = ({
           <button
             type="button"
             onClick={handleOpen3D}
-            className="h-16 w-16 md:h-20 md:w-20 flex-shrink-0 flex flex-col items-center justify-center gap-0.5 md:gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
+            className="h-16 w-16 md:h-20 md:w-20 shrink-0 flex flex-col items-center justify-center gap-0.5 md:gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
             title="Xem 3D"
           >
             <Box className="h-5 w-5 md:h-6 md:w-6" />
@@ -204,7 +204,7 @@ const RightSection: React.FC<RightSectionProps> = ({
           {/* Nút AR (chưa kích hoạt) */}
           <button
             type="button"
-            className="h-16 w-16 md:h-20 md:w-20 flex-shrink-0 flex flex-col items-center justify-center gap-0.5 md:gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
+            className="h-16 w-16 md:h-20 md:w-20 shrink-0 flex flex-col items-center justify-center gap-0.5 md:gap-1 border border-gray-300 rounded-md text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-400"
             title="Xem AR"
           >
             <Smartphone className="h-5 w-5 md:h-6 md:w-6" />

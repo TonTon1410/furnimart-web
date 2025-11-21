@@ -270,7 +270,7 @@ export default function DeliveryPOD() {
             </span>
           </div>
           <div className="flex items-start gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 shrink-0" />
             <span className="flex-1">{orderDetail?.address || "N/A"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">

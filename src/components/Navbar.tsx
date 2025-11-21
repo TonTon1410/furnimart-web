@@ -186,7 +186,7 @@ export default function Navbar() {
             <ShoppingCart className="h-5 w-5" />
             <span>Giỏ hàng</span>
             {count > 0 && (
-              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-yellow-400 px-1 text-xs font-bold text-gray-900">
+              <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1 text-xs font-bold text-gray-900">
                 {count}
               </span>
             )}
@@ -318,7 +318,7 @@ export default function Navbar() {
               <ShoppingCart className="h-5 w-5" />
               <span className="text-sm font-medium">Giỏ hàng</span>
               {count > 0 && (
-                <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-yellow-400 px-1 text-xs font-bold text-gray-900">
+                <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1 text-xs font-bold text-gray-900">
                   {count}
                 </span>
               )}

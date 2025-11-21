@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import type React from "react";
@@ -185,7 +186,7 @@ export default function ResetPassword() {
             alt="Nội thất hiện đại"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
+          <div className="absolute inset-0 bg-linear-to-br from-emerald-600/20 to-cyan-600/20" />
           <Link
             to="/"
             className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all"
@@ -205,7 +206,7 @@ export default function ResetPassword() {
           </div>
         </div>
 
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-red-50 via-pink-50 to-rose-50">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-linear-to-br from-red-50 via-pink-50 to-rose-50">
           <motion.div
             initial="hidden"
             animate="show"
@@ -234,7 +235,7 @@ export default function ResetPassword() {
               <div className="space-y-3">
                 <Link
                   to="/forgot-password"
-                  className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                  className="w-full py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
                 >
                   Yêu cầu khôi phục mới
                 </Link>
@@ -271,7 +272,7 @@ export default function ResetPassword() {
             alt="Nội thất hiện đại"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
+          <div className="absolute inset-0 bg-linear-to-br from-emerald-600/20 to-cyan-600/20" />
           <Link
             to="/"
             className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all"
@@ -291,29 +292,29 @@ export default function ResetPassword() {
           </div>
         </div>
 
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-linear-to-br from-green-50 via-emerald-50 to-teal-50">
           <motion.div
-            className="absolute top-20 right-20 w-48 h-48 bg-gradient-to-br from-green-500/60 to-emerald-500/40 rounded-full blur-sm"
+            className="absolute top-20 right-20 w-48 h-48 bg-linear-to-br from-green-500/60 to-emerald-500/40 rounded-full blur-sm"
             variants={bubbleVariants}
             animate="animate"
           />
           <motion.div
-            className="absolute top-40 left-10 w-40 h-40 bg-gradient-to-br from-teal-500/70 to-cyan-500/50 rounded-full blur-sm"
+            className="absolute top-40 left-10 w-40 h-40 bg-linear-to-br from-teal-500/70 to-cyan-500/50 rounded-full blur-sm"
             variants={bubbleVariants2}
             animate="animate"
           />
           <motion.div
-            className="absolute bottom-32 right-16 w-56 h-56 bg-gradient-to-br from-emerald-500/50 to-green-500/30 rounded-full blur-sm"
+            className="absolute bottom-32 right-16 w-56 h-56 bg-linear-to-br from-emerald-500/50 to-green-500/30 rounded-full blur-sm"
             variants={bubbleVariants3}
             animate="animate"
           />
           <motion.div
-            className="absolute bottom-20 left-20 w-36 h-36 bg-gradient-to-br from-cyan-600/65 to-teal-600/45 rounded-full blur-sm"
+            className="absolute bottom-20 left-20 w-36 h-36 bg-linear-to-br from-cyan-600/65 to-teal-600/45 rounded-full blur-sm"
             variants={bubbleVariants4}
             animate="animate"
           />
           <motion.div
-            className="absolute top-60 right-32 w-32 h-32 bg-gradient-to-br from-green-500/75 to-emerald-500/55 rounded-full blur-sm"
+            className="absolute top-60 right-32 w-32 h-32 bg-linear-to-br from-green-500/75 to-emerald-500/55 rounded-full blur-sm"
             variants={bubbleVariants5}
             animate="animate"
           />
@@ -345,7 +346,7 @@ export default function ResetPassword() {
 
               <Link
                 to="/login"
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                className="w-full py-3 bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
               >
                 Đăng nhập ngay
               </Link>
@@ -373,7 +374,7 @@ export default function ResetPassword() {
           alt="Nội thất hiện đại"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
+        <div className="absolute inset-0 bg-linear-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"
           className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all"
@@ -393,29 +394,29 @@ export default function ResetPassword() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-teal-50">
         <motion.div
-          className="absolute top-20 right-20 w-48 h-48 bg-gradient-to-br from-purple-500/60 to-pink-500/40 rounded-full blur-sm"
+          className="absolute top-20 right-20 w-48 h-48 bg-linear-to-br from-purple-500/60 to-pink-500/40 rounded-full blur-sm"
           variants={bubbleVariants}
           animate="animate"
         />
         <motion.div
-          className="absolute top-40 left-10 w-40 h-40 bg-gradient-to-br from-emerald-500/70 to-teal-500/50 rounded-full blur-sm"
+          className="absolute top-40 left-10 w-40 h-40 bg-linear-to-br from-emerald-500/70 to-teal-500/50 rounded-full blur-sm"
           variants={bubbleVariants2}
           animate="animate"
         />
         <motion.div
-          className="absolute bottom-32 right-16 w-56 h-56 bg-gradient-to-br from-orange-500/50 to-red-500/30 rounded-full blur-sm"
+          className="absolute bottom-32 right-16 w-56 h-56 bg-linear-to-br from-orange-500/50 to-red-500/30 rounded-full blur-sm"
           variants={bubbleVariants3}
           animate="animate"
         />
         <motion.div
-          className="absolute bottom-20 left-20 w-36 h-36 bg-gradient-to-br from-indigo-600/65 to-blue-600/45 rounded-full blur-sm"
+          className="absolute bottom-20 left-20 w-36 h-36 bg-linear-to-br from-indigo-600/65 to-blue-600/45 rounded-full blur-sm"
           variants={bubbleVariants4}
           animate="animate"
         />
         <motion.div
-          className="absolute top-60 right-32 w-32 h-32 bg-gradient-to-br from-yellow-500/75 to-amber-500/55 rounded-full blur-sm"
+          className="absolute top-60 right-32 w-32 h-32 bg-linear-to-br from-yellow-500/75 to-amber-500/55 rounded-full blur-sm"
           variants={bubbleVariants5}
           animate="animate"
         />
@@ -446,7 +447,7 @@ export default function ResetPassword() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-start gap-2"
               >
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span className="text-sm">{error}</span>
               </motion.div>
             )}
@@ -531,7 +532,7 @@ export default function ResetPassword() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>

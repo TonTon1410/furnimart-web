@@ -291,7 +291,7 @@ const AdminUsersPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
+              <thead className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
                 <tr>
                   <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
                     Avatar
