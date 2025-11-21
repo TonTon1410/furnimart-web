@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { DateTimePicker } from "../../../components/DateTimePicker";
 import {
   Package,
   Search,
@@ -20,6 +21,8 @@ import Pagination from "@/components/Pagination";
 import CustomDropdown from "@/components/CustomDropdown";
 import { orderService } from "@/service/orderService";
 import { productService, type ProductColor } from "@/service/productService";
+import { authService } from "@/service/authService";
+import axiosClient from "@/service/axiosClient";
 import type { OrderItem } from "@/types/order";
 
 // Process status config - Tất cả trạng thái hiển thị bằng tiếng Việt
@@ -128,6 +131,41 @@ const OrderManagement: React.FC = () => {
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
 
+  // Confirmation modals
+  const [confirmAcceptModal, setConfirmAcceptModal] = useState<{
+    open: boolean;
+    orderId: string | null;
+  }>({ open: false, orderId: null });
+
+  const [confirmRejectModal, setConfirmRejectModal] = useState<{
+    open: boolean;
+    orderId: string | null;
+  }>({ open: false, orderId: null });
+
+  const [rejectReason, setRejectReason] = useState("");
+
+  // Success/Error message modal
+  const [messageModal, setMessageModal] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({ open: false, type: "success", message: "" });
+
+  // Assign delivery modal
+  const [assignModal, setAssignModal] = useState<{
+    open: boolean;
+    orderId: string | null;
+  }>({ open: false, orderId: null });
+
+  const [deliveryStaff, setDeliveryStaff] = useState<any[]>([]);
+  const [loadingDeliveryStaff, setLoadingDeliveryStaff] = useState(false);
+  const [selectedDeliveryStaff, setSelectedDeliveryStaff] = useState("");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [assigningDelivery, setAssigningDelivery] = useState(false);
+
+  // DateTime picker states
+
   // Fetch orders - Lấy tất cả đơn hàng 1 lần để filter phía client
   useEffect(() => {
     const fetchOrders = async () => {
@@ -154,12 +192,23 @@ const OrderManagement: React.FC = () => {
 
   // Handle accept order
   const handleAcceptOrder = async (orderId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn chấp nhận đơn hàng này?")) return;
+    setConfirmAcceptModal({ open: true, orderId });
+  };
 
+  const confirmAcceptOrder = async () => {
+    const orderId = confirmAcceptModal.orderId;
+    if (!orderId) return;
+
+    setConfirmAcceptModal({ open: false, orderId: null });
     setAcceptingOrderId(orderId);
+
     try {
       await orderService.acceptOrder(Number(orderId));
-      alert("Đã chấp nhận đơn hàng thành công!");
+      setMessageModal({
+        open: true,
+        type: "success",
+        message: "Đã chấp nhận đơn hàng thành công!",
+      });
 
       // Refresh orders
       const response = await orderService.searchAllOrders({
@@ -168,7 +217,11 @@ const OrderManagement: React.FC = () => {
       setOrders(response.orders);
       setTotalOrders(response.total);
     } catch (err: any) {
-      alert(err.message || "Không thể chấp nhận đơn hàng");
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: err.message || "Không thể chấp nhận đơn hàng",
+      });
     } finally {
       setAcceptingOrderId(null);
     }
@@ -176,16 +229,134 @@ const OrderManagement: React.FC = () => {
 
   // Handle reject order
   const handleRejectOrder = async (orderId: string) => {
-    const reason = prompt("Vui lòng nhập lý do từ chối đơn hàng:");
-    if (!reason || reason.trim() === "") {
-      alert("Vui lòng nhập lý do từ chối!");
+    setConfirmRejectModal({ open: true, orderId });
+    setRejectReason("");
+  };
+
+  const confirmRejectOrder = async () => {
+    const orderId = confirmRejectModal.orderId;
+    if (!orderId) return;
+
+    if (!rejectReason || rejectReason.trim() === "") {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Vui lòng nhập lý do từ chối!",
+      });
       return;
     }
 
+    setConfirmRejectModal({ open: false, orderId: null });
     setRejectingOrderId(orderId);
+
     try {
-      await orderService.rejectOrder(Number(orderId), reason);
-      alert("Đã từ chối đơn hàng thành công!");
+      await orderService.rejectOrder(Number(orderId), rejectReason);
+      setMessageModal({
+        open: true,
+        type: "success",
+        message: "Đã từ chối đơn hàng thành công!",
+      });
+
+      // Refresh orders
+      const response = await orderService.searchAllOrders({
+        search: searchQuery,
+      });
+      setOrders(response.orders);
+      setTotalOrders(response.total);
+      setRejectReason("");
+    } catch (err: any) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: err.message || "Không thể từ chối đơn hàng",
+      });
+    } finally {
+      setRejectingOrderId(null);
+    }
+  };
+
+  // Handle assign delivery
+  const handleAssignDelivery = async (orderId: string) => {
+    const storeId = authService.getStoreId();
+    if (!storeId) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Không tìm thấy thông tin cửa hàng",
+      });
+      return;
+    }
+
+    setAssignModal({ open: true, orderId });
+    setSelectedDeliveryStaff("");
+    setEstimatedDeliveryDate("");
+    setDeliveryNotes("");
+    setLoadingDeliveryStaff(true);
+
+    try {
+      const response = await axiosClient.get(
+        `/employees/store/${storeId}/role/delivery`
+      );
+      setDeliveryStaff(response.data?.data || []);
+    } catch (error: any) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: error.message || "Không thể tải danh sách nhân viên giao hàng",
+      });
+      setAssignModal({ open: false, orderId: null });
+    } finally {
+      setLoadingDeliveryStaff(false);
+    }
+  };
+
+  const confirmAssignDelivery = async () => {
+    const orderId = assignModal.orderId;
+    const storeId = authService.getStoreId();
+
+    if (!orderId || !storeId) return;
+
+    if (!selectedDeliveryStaff) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Vui lòng chọn nhân viên giao hàng",
+      });
+      return;
+    }
+
+    if (!estimatedDeliveryDate) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Vui lòng chọn ngày giao hàng dự kiến",
+      });
+      return;
+    }
+
+    setAssigningDelivery(true);
+
+    try {
+      // Don't add ":00.000Z" - just send the value as-is from DateTimePicker
+      // DateTimePicker gives us "YYYY-MM-DDTHH:mm" format
+      // Backend expects this exact format without extra transformations
+
+      console.log("Sending estimatedDeliveryDate:", estimatedDeliveryDate);
+
+      await orderService.assignDelivery({
+        orderId: Number(orderId),
+        storeId: storeId,
+        deliveryStaffId: selectedDeliveryStaff,
+        estimatedDeliveryDate: estimatedDeliveryDate,
+        notes: deliveryNotes || undefined,
+      });
+
+      setAssignModal({ open: false, orderId: null });
+      setMessageModal({
+        open: true,
+        type: "success",
+        message: "Đã phân công nhân viên giao hàng thành công!",
+      });
 
       // Refresh orders
       const response = await orderService.searchAllOrders({
@@ -194,9 +365,13 @@ const OrderManagement: React.FC = () => {
       setOrders(response.orders);
       setTotalOrders(response.total);
     } catch (err: any) {
-      alert(err.message || "Không thể từ chối đơn hàng");
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: err.message || "Không thể phân công nhân viên giao hàng",
+      });
     } finally {
-      setRejectingOrderId(null);
+      setAssigningDelivery(false);
     }
   };
 
@@ -211,7 +386,11 @@ const OrderManagement: React.FC = () => {
       setFullOrderDetail(detail);
     } catch (err: any) {
       console.error("Error fetching order detail:", err);
-      alert(err.message || "Không thể tải chi tiết đơn hàng");
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: err.message || "Không thể tải chi tiết đơn hàng",
+      });
     } finally {
       setLoadingOrderDetail(false);
     }
@@ -404,7 +583,7 @@ const OrderManagement: React.FC = () => {
         ) : (
           <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
+              <thead className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
                 <tr>
                   <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
                     Mã đơn
@@ -526,6 +705,18 @@ const OrderManagement: React.FC = () => {
                                 Từ chối
                               </button>
                             </>
+                          )}
+
+                        {/* Nút phân công giao hàng - chỉ hiện khi đã được manager accept */}
+                        {order.isAssigned &&
+                          order.rawStatus === "MANAGER_ACCEPT" && (
+                            <button
+                              onClick={() => handleAssignDelivery(order.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-600 transition-all hover:bg-purple-50 active:scale-95 dark:border-purple-800 dark:bg-gray-900 dark:text-purple-300 dark:hover:bg-purple-900/20"
+                            >
+                              <Truck className="h-3.5 w-3.5" />
+                              Phân công giao hàng
+                            </button>
                           )}
                       </div>
                     </td>
@@ -896,7 +1087,7 @@ const OrderManagement: React.FC = () => {
                                 </div>
                                 {index <
                                   fullOrderDetail.processOrders.length - 1 && (
-                                  <div className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1 min-h-[20px]" />
+                                  <div className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1 min-h-5" />
                                 )}
                               </div>
 
@@ -965,7 +1156,7 @@ const OrderManagement: React.FC = () => {
                             >
                               {/* Product Image */}
                               {productColor && (
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                   <img
                                     src={
                                       productColor.images[0]?.image ||
@@ -1034,6 +1225,256 @@ const OrderManagement: React.FC = () => {
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-98 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Accept Modal */}
+      {confirmAcceptModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Xác nhận chấp nhận đơn hàng
+              </h3>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Bạn có chắc chắn muốn chấp nhận đơn hàng #
+                {confirmAcceptModal.orderId}?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() =>
+                    setConfirmAcceptModal({ open: false, orderId: null })
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmAcceptOrder}
+                  className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500"
+                >
+                  Chấp nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Reject Modal */}
+      {confirmRejectModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                  <ThumbsDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Xác nhận từ chối đơn hàng
+              </h3>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Đơn hàng #{confirmRejectModal.orderId}
+              </p>
+              <div className="mb-6">
+                <label
+                  htmlFor="rejectReason"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Lý do từ chối <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="rejectReason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Nhập lý do từ chối đơn hàng..."
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setConfirmRejectModal({ open: false, orderId: null });
+                    setRejectReason("");
+                  }}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmRejectOrder}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500"
+                >
+                  Từ chối
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Delivery Modal */}
+      {assignModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                  <Truck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+              <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Phân công nhân viên giao hàng
+              </h3>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Đơn hàng #{assignModal.orderId}
+              </p>
+
+              <div className="space-y-4 mb-6">
+                {/* Chọn nhân viên giao hàng */}
+                {loadingDeliveryStaff ? (
+                  <div className="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Đang tải danh sách nhân viên...
+                  </div>
+                ) : deliveryStaff.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                    Không có nhân viên giao hàng nào
+                  </div>
+                ) : (
+                  <CustomDropdown
+                    id="deliveryStaff"
+                    label="Nhân viên giao hàng"
+                    value={selectedDeliveryStaff}
+                    onChange={(value) => setSelectedDeliveryStaff(value)}
+                    options={[
+                      { value: "", label: "-- Chọn nhân viên --" },
+                      ...deliveryStaff.map((staff) => ({
+                        value: staff.id,
+                        label: `${staff.fullName} (${
+                          staff.phone || staff.email
+                        })`,
+                      })),
+                    ]}
+                    placeholder="Chọn nhân viên giao hàng..."
+                    fullWidth
+                  />
+                )}
+
+                {/* Ngày giao hàng dự kiến */}
+                <DateTimePicker
+                  value={estimatedDeliveryDate}
+                  onChange={setEstimatedDeliveryDate}
+                  label="Ngày giao hàng dự kiến"
+                  required
+                  minDate={new Date().toISOString().slice(0, 10)}
+                />
+
+                {/* Ghi chú */}
+                <div>
+                  <label
+                    htmlFor="deliveryNotes"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Ghi chú (tùy chọn)
+                  </label>
+                  <textarea
+                    id="deliveryNotes"
+                    value={deliveryNotes}
+                    onChange={(e) => setDeliveryNotes(e.target.value)}
+                    placeholder="Nhập ghi chú cho nhân viên giao hàng..."
+                    rows={3}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setAssignModal({ open: false, orderId: null });
+                    setSelectedDeliveryStaff("");
+                    setEstimatedDeliveryDate("");
+                    setDeliveryNotes("");
+                  }}
+                  disabled={assigningDelivery}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmAssignDelivery}
+                  disabled={assigningDelivery || loadingDeliveryStaff}
+                  className="flex-1 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-purple-600 dark:hover:bg-purple-500"
+                >
+                  {assigningDelivery ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    "Xác nhận"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Modal (Success/Error) */}
+      {messageModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full ${
+                    messageModal.type === "success"
+                      ? "bg-green-100 dark:bg-green-900/30"
+                      : "bg-red-100 dark:bg-red-900/30"
+                  }`}
+                >
+                  {messageModal.type === "success" ? (
+                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  )}
+                </div>
+              </div>
+              <h3
+                className={`text-center text-lg font-semibold mb-2 ${
+                  messageModal.type === "success"
+                    ? "text-green-900 dark:text-green-100"
+                    : "text-red-900 dark:text-red-100"
+                }`}
+              >
+                {messageModal.type === "success" ? "Thành công" : "Lỗi"}
+              </h3>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+                {messageModal.message}
+              </p>
+              <button
+                onClick={() =>
+                  setMessageModal({ open: false, type: "success", message: "" })
+                }
+                className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors ${
+                  messageModal.type === "success"
+                    ? "bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500"
+                    : "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500"
+                }`}
               >
                 Đóng
               </button>

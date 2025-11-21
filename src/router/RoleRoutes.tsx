@@ -1,13 +1,68 @@
 // src/router/RoleRoutes.tsx
+import { lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import type { RoleKey } from "./paths";
 import { authService } from "@/service/authService";
 import { DP } from "./paths";
 
-import AdminCategoriesPage from "@/dashboard/roles/admin/AdminCategoriesPage";
-import AdminMaterialsPage from "@/dashboard/roles/admin/AdminMaterialsPage";
-import UserProfile from "@/pages/UserProfile";
 const Placeholder = (t: string) => () => <div className="p-6 text-lg">{t}</div>;
+
+// Lazy load all dashboard pages
+const AdminCategoriesPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminCategoriesPage")
+);
+const AdminMaterialsPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminMaterialsPage")
+);
+const AdminUsersPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminUsersPage")
+);
+const AdminEmployeesPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminEmployeesPage")
+);
+const AdminStoresPage = lazy(
+  () => import("@/dashboard/roles/admin/AdminStoresPage")
+);
+const UserProfile = lazy(() => import("@/pages/UserProfile"));
+
+const SellerProductsPage = lazy(
+  () => import("@/dashboard/roles/seller/SellerProductsPage")
+);
+const ColorManagementPage = lazy(
+  () => import("@/dashboard/roles/seller/ColorManagementPage")
+);
+const DeliveryManagementPage = lazy(
+  () => import("@/dashboard/roles/seller/DeliveryManagementPage")
+);
+
+const WarehouseManagement = lazy(
+  () => import("@/dashboard/roles/manager/WarehouseManagement")
+);
+const InventoryManagement = lazy(
+  () => import("@/dashboard/roles/manager/InventoryManagement")
+);
+const WarehouseMapNew = lazy(
+  () => import("@/dashboard/roles/manager/WarehouseMapNew")
+);
+const OrderManagement = lazy(
+  () => import("@/dashboard/roles/manager/OrderManagement")
+);
+const ManagerEmployeesPage = lazy(
+  () => import("@/dashboard/roles/manager/ManagerEmployeesPage")
+);
+
+const DeliveryOrdersPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryOrdersPage")
+);
+const DeliveryPickupPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryPickupPage")
+);
+const DeliveryStatusPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryStatusPage")
+);
+const DeliveryPODPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryPODPage")
+);
 
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
@@ -16,21 +71,11 @@ const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 
-import SellerProductsPage from "@/dashboard/roles/seller/SellerProductsPage";
-import ColorManagementPage from "@/dashboard/roles/seller/ColorManagementPage";
-import AdminUsersPage from "@/dashboard/roles/admin/AdminUsersPage";
-import AdminEmployeesPage from "@/dashboard/roles/admin/AdminEmployeesPage";
-import AdminStoresPage from "@/dashboard/roles/admin/AdminStoresPage";
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
 const SellerChat = Placeholder("Seller • Chat");
 
-import WarehouseManagement from "@/dashboard/roles/manager/WarehouseManagement";
-import InventoryManagement from "@/dashboard/roles/manager/InventoryManagement";
-import OrderManagement from "@/dashboard/roles/manager/OrderManagement";
-import ManagerEmployeesPage from "@/dashboard/roles/manager/ManagerEmployeesPage";
-// const ManagerInventory = Placeholder("Manager • Inventory");
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
 const ManagerRevenue = Placeholder("Manager • Revenue Report");
@@ -38,10 +83,6 @@ const ManagerPerformance = Placeholder("Manager • Performance Report");
 const ManagerDelivery = Placeholder("Manager • Delivery Report");
 const ManagerChat = Placeholder("Manager • Chat");
 
-const DeliveryOrders = Placeholder("Delivery • My Orders");
-const DeliveryPickup = Placeholder("Delivery • Pickup Confirm");
-const DeliveryStatus = Placeholder("Delivery • Update Status");
-const DeliveryPOD = Placeholder("Delivery • Proof of Delivery");
 const DeliveryHistory = Placeholder("Delivery • History");
 
 export default function RoleRoutes() {
@@ -85,6 +126,7 @@ export default function RoleRoutes() {
         <Route path="inventory" element={<InventoryPage />} /> */}
         <Route path="warehouses" element={<WarehouseManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
+        <Route path="warehouse-map" element={<WarehouseMapNew />} />
         <Route path="orders" element={<OrderManagement />} />
         <Route path="employees" element={<ManagerEmployeesPage />} />
         <Route path="orders/approval" element={<ManagerApproval />} />
@@ -104,10 +146,10 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("orders")} replace />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="orders" element={<DeliveryOrders />} />
-        <Route path="pickup" element={<DeliveryPickup />} />
-        <Route path="status" element={<DeliveryStatus />} />
-        <Route path="pod" element={<DeliveryPOD />} />
+        <Route path="orders" element={<DeliveryOrdersPage />} />
+        <Route path="pickup" element={<DeliveryPickupPage />} />
+        <Route path="status" element={<DeliveryStatusPage />} />
+        <Route path="pod" element={<DeliveryPODPage />} />
         <Route path="history" element={<DeliveryHistory />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
@@ -122,6 +164,10 @@ export default function RoleRoutes() {
         <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
+        <Route
+          path="delivery-management"
+          element={<DeliveryManagementPage />}
+        />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />

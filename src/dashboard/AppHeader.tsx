@@ -57,7 +57,11 @@ const ThemeToggleButton = () => {
 };
 
 const AppHeader: React.FC = () => {
-  const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const sidebar = useSidebar();
+  const isMobileOpen = sidebar?.isMobileOpen ?? false;
+  const toggleSidebar = sidebar?.toggleSidebar ?? (() => {});
+  const toggleMobileSidebar = sidebar?.toggleMobileSidebar ?? (() => {});
+
   const [user, setUser] = useState<UserProfile | null>(null);
   const [roleKey, setRoleKey] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState(false);
@@ -124,36 +128,41 @@ const AppHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-white lg:border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
       <div className="flex items-center justify-between px-3 py-3 lg:px-6 lg:py-4">
-        {/* Left: sidebar toggle + logo (mobile) */}
-
-        {/* Left: sidebar toggle + logo (mobile) */}
+        {/* Left: sidebar toggle + logo */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleToggleSidebar}
-            aria-label="Toggle Sidebar"
-            aria-haspopup="true"
-            aria-controls={isMobileOpen ? "app-sidebar" : undefined}
-            className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 border border-gray-200 rounded-lg text-gray-500 dark:border-gray-800 dark:text-gray-400"
-          >
-            {isMobileOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M6.22 7.28a.75.75 0 1 1 1.06-1.06L12 10.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L13.06 12l4.72 4.72a.75.75 0 0 1-1.06 1.06L12 13.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10.94 12 6.22 7.28Z"
-                  fill="currentColor"
-                />
-              </svg>
-            ) : (
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-                <path
-                  d="M.583 1c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333A.75.75 0 0 1 .583 1Zm0 10c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333a.75.75 0 0 1-.75-.75ZM1.333 5.25a.75.75 0 0 0 0 1.5H8a.75.75 0 0 0 0-1.5H1.333Z"
-                  fill="currentColor"
-                />
-              </svg>
-            )}
-          </button>
+          {/* Only show toggle button if sidebar context exists */}
+          {sidebar && (
+            <button
+              onClick={handleToggleSidebar}
+              aria-label="Toggle Sidebar"
+              aria-haspopup="true"
+              aria-controls={isMobileOpen ? "app-sidebar" : undefined}
+              className="flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 border border-gray-200 rounded-lg text-gray-500 dark:border-gray-800 dark:text-gray-400"
+            >
+              {isMobileOpen ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M6.22 7.28a.75.75 0 1 1 1.06-1.06L12 10.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L13.06 12l4.72 4.72a.75.75 0 0 1-1.06 1.06L12 13.06l-4.72 4.72a.75.75 0 1 1-1.06-1.06L10.94 12 6.22 7.28Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              ) : (
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+                  <path
+                    d="M.583 1c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333A.75.75 0 0 1 .583 1Zm0 10c0-.414.336-.75.75-.75h13.334c.414 0 .75.336.75.75s-.336.75-.75.75H1.333a.75.75 0 0 1-.75-.75ZM1.333 5.25a.75.75 0 0 0 0 1.5H8a.75.75 0 0 0 0-1.5H1.333Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              )}
+            </button>
+          )}
 
-          {/* Logo kiểu chữ giống Sidebar */}
-          <Link to={DP()} className="lg:hidden" aria-label="Dashboard">
+          {/* Logo - always show on mobile or when no sidebar */}
+          <Link
+            to={DP()}
+            className={sidebar ? "lg:hidden" : ""}
+            aria-label="Dashboard"
+          >
             <span className="text-xl font-extrabold text-gray-900 dark:text-white">
               Furni<span className="text-yellow-400">.</span>
             </span>
@@ -187,7 +196,7 @@ const AppHeader: React.FC = () => {
                   alt="User"
                   className="h-8 w-8 rounded-full object-cover"
                 />
-                <span className="max-w-[160px] truncate">{user.fullName}</span>
+                <span className="max-w-40 truncate">{user.fullName}</span>
                 <ChevronDown className="h-4 w-4 opacity-70" />
               </button>
 

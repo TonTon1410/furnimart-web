@@ -406,7 +406,7 @@ export const authService = {
       // Try a list of candidate employee API bases (primary 8080, fallback 8086) before falling back to user endpoints
       const EMPLOYEE_API_BASES = [
         (import.meta.env.VITE_EMPLOYEE_API_BASE as string) ||
-          "http://152.53.227.115:8080/api",
+          "http://152.53.244.124:8080/api",
       ];
 
       for (const base of EMPLOYEE_API_BASES) {
@@ -544,6 +544,13 @@ export const authService = {
   /** ✅ Tiện xoá role nếu cần */
   clearRole() {
     localStorage.removeItem(ROLE_KEY);
+  },
+
+  /** ✅ Lấy toàn bộ decoded token payload */
+  getDecodedToken(): any {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    return safeDecodeJwt(token);
   },
 
   // Debug tokens

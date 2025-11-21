@@ -22,7 +22,7 @@ export interface OrderSearchResponse {
 // Thêm interface cho API response
 interface ApiOrderDetail {
   id: number;
-  productId: string;
+  productColorId: string; // API trả về productColorId, không phải productId
   quantity: number;
   price: number;
 }
@@ -46,7 +46,17 @@ interface ApiAddress {
   id: number;
   name: string;
   phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  street: string;
+  addressLine: string;
   fullAddress: string;
+  latitude?: number;
+  longitude?: number;
+  isDefault: boolean;
+  userId: string;
+  userName: string;
 }
 
 interface ApiOrder {
@@ -57,9 +67,14 @@ interface ApiOrder {
   total: number;
   note: string | null;
   orderDate: string;
+  status: string; // Trạng thái hiện tại của đơn hàng
+  reason: string | null;
   orderDetails: ApiOrderDetail[];
   processOrders: ApiProcessOrder[];
   payment: ApiPayment;
+  qrCode: string | null; // Mã QR của đơn hàng
+  qrCodeGeneratedAt: string | null;
+  depositPrice: number | null;
 }
 
 class OrderService {
@@ -338,7 +353,7 @@ class OrderService {
 
       // Thêm thông tin chi tiết
       address: apiOrder.address?.fullAddress,
-      phone: apiOrder.address?.phone || apiOrder.user?.phone, // Lấy từ address hoặc user
+      phone: apiOrder.user?.phone || apiOrder.address?.phone, // Ưu tiên lấy từ user.phone
       paymentMethod: apiOrder.payment?.paymentMethod,
       paymentStatus: apiOrder.payment?.paymentStatus,
       transactionCode: apiOrder.payment?.transactionCode,
@@ -364,6 +379,26 @@ class OrderService {
         limit: filters.limit || 10,
         totalPages: 0,
       };
+    }
+  }
+
+  // Assign order to delivery staff
+  async assignDelivery(data: {
+    orderId: number;
+    storeId: string;
+    deliveryStaffId: string;
+    estimatedDeliveryDate: string;
+    notes?: string;
+  }): Promise<any> {
+    try {
+      const response = await axiosClient.post("/delivery/assign", data);
+      return response.data;
+    } catch (error: any) {
+      const message = this.handleError(
+        error,
+        "Không thể phân công nhân viên giao hàng"
+      );
+      throw new Error(message);
     }
   }
 

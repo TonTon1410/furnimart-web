@@ -509,7 +509,7 @@ export default function UserProfile() {
           className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-start justify-between"
         >
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
             <div>
               <div className="font-semibold mb-1">Có lỗi xảy ra</div>
               <div className="text-sm opacity-90">{error}</div>
@@ -557,8 +557,8 @@ export default function UserProfile() {
               alt="Cover"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-secondary/30 to-accent/40"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-linear-to-br from-primary/40 via-secondary/30 to-accent/40"></div>
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 dark:from-black/80 via-transparent to-transparent"></div>
             <div className="absolute top-4 left-4 w-16 h-16 border-2 border-white/20 dark:border-gray-400/30 rounded-full"></div>
             <div className="absolute bottom-4 right-4 w-8 h-8 bg-white/10 dark:bg-gray-400/20 rounded-full"></div>
             <div className="absolute top-1/2 right-8 w-4 h-4 bg-white/20 dark:bg-gray-400/30 rotate-45"></div>

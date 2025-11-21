@@ -74,9 +74,9 @@ const ManagerEmployeesPage: React.FC = () => {
 
   // filters
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"ALL" | "STAFF" | "DELIVERY">(
-    "ALL"
-  );
+  const [roleFilter, setRoleFilter] = useState<
+    "ALL" | "STAFF" | "DELIVERY" | "BRANCH_MANAGER"
+  >("ALL");
   const [statusFilter, setStatusFilter] = useState<
     "ACTIVE" | "INACTIVE" | "ALL"
   >("ALL");
@@ -121,6 +121,7 @@ const ManagerEmployeesPage: React.FC = () => {
     const r = role.toUpperCase().replace(/^ROLE_/, "");
     if (r === "STAFF") return "STAFF";
     if (r === "DELIVERY") return "DELIVERY";
+    if (r === "BRANCH_MANAGER" || r === "MANAGER") return "BRANCH_MANAGER";
     return r;
   };
 
@@ -131,6 +132,8 @@ const ManagerEmployeesPage: React.FC = () => {
         return "Nhân viên bán hàng";
       case "DELIVERY":
         return "Nhân viên giao hàng";
+      case "BRANCH_MANAGER":
+        return "Quản lí cửa hàng";
       default:
         return role || "—";
     }
@@ -431,6 +434,7 @@ const ManagerEmployeesPage: React.FC = () => {
           options={[
             { value: "ALL", label: "Tất cả nhân viên" },
             { value: "STAFF", label: "Nhân viên bán hàng" },
+            { value: "BRANCH_MANAGER", label: "Quản lí cửa hàng" },
             { value: "DELIVERY", label: "Nhân viên giao hàng" },
           ]}
         />
@@ -491,7 +495,7 @@ const ManagerEmployeesPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
+              <thead className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
                 <tr>
                   <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
                     Avatar
@@ -546,6 +550,8 @@ const ManagerEmployeesPage: React.FC = () => {
                           className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
                             normalizeRoleKey(emp.role) === "STAFF"
                               ? "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800"
+                              : normalizeRoleKey(emp.role) === "BRANCH_MANAGER"
+                              ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-800"
                               : "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-800"
                           }`}
                         >

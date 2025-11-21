@@ -8,6 +8,7 @@ import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "@/service/authService";
 import { useGoogleLogin } from "@react-oauth/google";
+import noithatImg from "@/assets/noithat.jpg";
 
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 
@@ -344,11 +345,11 @@ export default function Login() {
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="src/assets/noithat.jpg"
+          src={noithatImg}
           alt="Nội thất hiện đại"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
+        <div className="absolute inset-0 bg-linear-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"
           className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:bg-white transition-all"
@@ -369,44 +370,44 @@ export default function Login() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-teal-50">
         <motion.div
-          className="absolute top-20 right-20 w-48 h-48 bg-gradient-to-br from-purple-500/60 to-pink-500/40 rounded-full blur-sm"
+          className="absolute top-20 right-20 w-48 h-48 bg-linear-to-br from-purple-500/60 to-pink-500/40 rounded-full blur-sm"
           variants={bubbleVariants}
           animate="animate"
         />
         <motion.div
-          className="absolute top-40 left-10 w-40 h-40 bg-gradient-to-br from-emerald-500/70 to-teal-500/50 rounded-full blur-sm"
+          className="absolute top-40 left-10 w-40 h-40 bg-linear-to-br from-emerald-500/70 to-teal-500/50 rounded-full blur-sm"
           variants={bubbleVariants2}
           animate="animate"
         />
         <motion.div
-          className="absolute bottom-32 right-16 w-56 h-56 bg-gradient-to-br from-orange-500/50 to-red-500/30 rounded-full blur-sm"
+          className="absolute bottom-32 right-16 w-56 h-56 bg-linear-to-br from-orange-500/50 to-red-500/30 rounded-full blur-sm"
           variants={bubbleVariants3}
           animate="animate"
         />
         <motion.div
-          className="absolute bottom-20 left-20 w-36 h-36 bg-gradient-to-br from-indigo-600/65 to-blue-600/45 rounded-full blur-sm"
+          className="absolute bottom-20 left-20 w-36 h-36 bg-linear-to-br from-indigo-600/65 to-blue-600/45 rounded-full blur-sm"
           variants={bubbleVariants4}
           animate="animate"
         />
         <motion.div
-          className="absolute top-60 right-32 w-32 h-32 bg-gradient-to-br from-yellow-500/75 to-amber-500/55 rounded-full blur-sm"
+          className="absolute top-60 right-32 w-32 h-32 bg-linear-to-br from-yellow-500/75 to-amber-500/55 rounded-full blur-sm"
           variants={bubbleVariants5}
           animate="animate"
         />
         <motion.div
-          className="absolute top-32 left-32 w-44 h-44 bg-gradient-to-br from-rose-500/60 to-pink-600/40 rounded-full blur-sm"
+          className="absolute top-32 left-32 w-44 h-44 bg-linear-to-br from-rose-500/60 to-pink-600/40 rounded-full blur-sm"
           variants={bubbleVariants6}
           animate="animate"
         />
         <motion.div
-          className="absolute bottom-40 right-8 w-36 h-36 bg-gradient-to-br from-cyan-600/55 to-blue-700/35 rounded-full blur-sm"
+          className="absolute bottom-40 right-8 w-36 h-36 bg-linear-to-br from-cyan-600/55 to-blue-700/35 rounded-full blur-sm"
           variants={bubbleVariants7}
           animate="animate"
         />
         <motion.div
-          className="absolute top-16 right-64 w-22 h-22 bg-gradient-to-br from-lime-500/70 to-green-600/50 rounded-full blur-sm"
+          className="absolute top-16 right-64 w-22 h-22 bg-linear-to-br from-lime-500/70 to-green-600/50 rounded-full blur-sm"
           variants={bubbleVariants8}
           animate="animate"
         />
@@ -422,7 +423,7 @@ export default function Login() {
             <div className="flex mb-8 bg-gray-100 rounded-xl p-1 relative">
               {/* Sliding background indicator */}
               <motion.div
-                className="absolute top-1 bottom-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg shadow-md"
+                className="absolute top-1 bottom-1 bg-linear-to-r from-cyan-500 to-blue-600 rounded-lg shadow-md"
                 initial={false}
                 animate={{
                   x: activeTab === "login" ? 0 : "100%",
@@ -564,7 +565,7 @@ export default function Login() {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100"
+                      className="w-full py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100"
                     >
                       {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                     </button>
@@ -748,7 +749,7 @@ export default function Login() {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100"
+                      className="w-full py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100"
                     >
                       {isLoading ? "Đang đăng ký..." : "Đăng ký"}
                     </button>

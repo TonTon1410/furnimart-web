@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import type React from "react";
@@ -557,7 +558,7 @@ export default function AddressPage() {
                 : "bg-blue-50 border-blue-200 text-blue-800"
             }`}
           >
-            <div className="flex-shrink-0 mt-0.5">
+            <div className="shrink-0 mt-0.5">
               {toast.type === "success" && <CheckCircle className="h-4 w-4" />}
               {toast.type === "error" && <AlertCircle className="h-4 w-4" />}
               {toast.type === "warning" && <AlertCircle className="h-4 w-4" />}
@@ -566,7 +567,7 @@ export default function AddressPage() {
             <div className="flex-1 text-sm font-medium">{toast.message}</div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 p-1 hover:opacity-70 transition-opacity"
+              className="shrink-0 p-1 hover:opacity-70 transition-opacity"
             >
               <X className="h-3 w-3" />
             </button>
@@ -1281,7 +1282,7 @@ export default function AddressPage() {
                                 <span>{address.phone}</span>
                               </div>
                               <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                                 <span className="text-sm">
                                   {formatAddress(address)}
                                 </span>
