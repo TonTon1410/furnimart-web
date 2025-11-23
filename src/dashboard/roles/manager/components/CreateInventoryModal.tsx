@@ -26,19 +26,17 @@ import {
   Description as NoteIcon
 } from '@mui/icons-material';
 
-// 1. Thay thế import notistack bằng useToast của bạn
-// import { useSnackbar } from 'notistack'; <--- Xóa dòng này
-import { useToast } from '@/context/ToastContext'; //
+import { useToast } from '@/context/ToastContext';
 import ProductSelector, { type ProductSelectionResult } from './ProductSelector';
 import inventoryService, { type CreateInventoryRequest } from '@/service/inventoryService';
-import { useWarehouseData } from '../hook/useWarehouseData';
+import WarehouseZoneLocationSelector from './WarehouseZoneLocationSelector';
 
-// --- Constants & Mappings (Giữ nguyên) ---
+// --- Constants & Mappings ---
 const TYPE_OPTIONS = [
   { value: 'IMPORT', label: 'Nhập hàng', icon: <ImportIcon color="success" /> },
   { value: 'EXPORT', label: 'Xuất hàng', icon: <ExportIcon color="error" /> },
   { value: 'TRANSFER', label: 'Chuyển kho', icon: <TransferIcon color="warning" /> },
-  { value: 'RESERVE', label: 'Giữ hàng', icon: <NoteIcon color="info" /> },
+  { value: 'RESERVE', label: 'Hàng đang đặt', icon: <NoteIcon color="info" /> },
 ];
 
 const PURPOSE_OPTIONS = [
@@ -51,21 +49,28 @@ const PURPOSE_OPTIONS = [
 interface CreateInventoryModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void; 
+  onSuccess?: () => void;
+  currentWarehouseId: string | null;
 }
 
-const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClose, onSuccess }) => {
-  const { storeId } = useWarehouseData();
-  
-  // 2. Sử dụng hook useToast thay vì useSnackbar
-  const { showToast } = useToast(); //
+const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ 
+  open, 
+  onClose, 
+  onSuccess,
+  currentWarehouseId 
+}) => {
+  const { showToast } = useToast();
 
   // --- Form State ---
   const [type, setType] = useState<string>('IMPORT');
   const [purpose, setPurpose] = useState<string>('STOCK_IN');
   const [orderId, setOrderId] = useState<string>('');
   const [note, setNote] = useState<string>('');
-  const [toWarehouseId, setToWarehouseId] = useState<string>('');
+  
+  // --- Destination Warehouse State (Cho Transfer) ---
+  const [toWarehouseId, setToWarehouseId] = useState<string | null>(null);
+  const [toZoneId, setToZoneId] = useState<string | null>(null);
+  const [toLocationId, setToLocationId] = useState<string | null>(null);
   
   // --- Product Selection State ---
   const [selection, setSelection] = useState<ProductSelectionResult | null>(null);
@@ -79,9 +84,13 @@ const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClo
       setPurpose('STOCK_IN');
       setOrderId('');
       setNote('');
-      setToWarehouseId('');
       setQuantity('');
       setSelection(null);
+      
+      // Reset Destination
+      setToWarehouseId(null);
+      setToZoneId(null);
+      setToLocationId(null);
     }
   }, [open]);
 
@@ -93,49 +102,31 @@ const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClo
   }, [type]);
 
   const handleSave = async () => {
-    // 1. Validate cơ bản & Thay thế enqueueSnackbar bằng showToast
-    if (!storeId) {
-      showToast({ 
-        type: 'error', 
-        title: 'Lỗi hệ thống', 
-        description: 'Không xác định được kho nguồn (Store ID)' 
-      });
+    if (!currentWarehouseId) {
+      showToast({ type: 'error', title: 'Lỗi', description: 'Không xác định được kho nguồn.' });
       return;
     }
     if (!selection) {
-      showToast({ 
-        type: 'warning', 
-        title: 'Thiếu thông tin', 
-        description: 'Vui lòng chọn sản phẩm, màu sắc và vị trí kho' 
-      });
+      showToast({ type: 'warning', title: 'Thiếu thông tin', description: 'Vui lòng chọn sản phẩm (Mục 1).' });
       return;
     }
     if (!quantity || Number(quantity) <= 0) {
-      showToast({ 
-        type: 'warning', 
-        title: 'Dữ liệu không hợp lệ', 
-        description: 'Vui lòng nhập số lượng lớn hơn 0' 
-      });
+      showToast({ type: 'warning', title: 'Thiếu thông tin', description: 'Vui lòng nhập số lượng hợp lệ.' });
       return;
     }
     if (type === 'TRANSFER' && !toWarehouseId) {
-      showToast({ 
-        type: 'warning', 
-        title: 'Thiếu thông tin', 
-        description: 'Vui lòng nhập ID kho đích để chuyển hàng' 
-      });
+      showToast({ type: 'warning', title: 'Thiếu thông tin', description: 'Vui lòng chọn Kho đích để chuyển hàng.' });
       return;
     }
 
     setSubmitting(true);
     try {
-      // 2. Chuẩn bị payload
       const payload: CreateInventoryRequest = {
         id: 0,
         type,
         purpose,
-        warehouseId: storeId,
-        toWarehouseId: type === 'TRANSFER' ? toWarehouseId : undefined,
+        warehouseId: currentWarehouseId,
+        toWarehouseId: (type === 'TRANSFER' && toWarehouseId) ? toWarehouseId : undefined,
         note: note,
         orderId: orderId ? Number(orderId) : undefined,
         items: [
@@ -147,25 +138,17 @@ const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClo
         ],
       };
 
-      // 3. Gọi API
       await inventoryService.createOrUpdateInventory(payload);
       
-      // Thông báo thành công
-      showToast({ 
-        type: 'success', 
-        title: 'Thành công', 
-        description: 'Đã tạo phiếu kho mới thành công!' 
-      });
-
+      showToast({ type: 'success', title: 'Thành công', description: 'Đã tạo phiếu kho mới thành công!' });
       if (onSuccess) onSuccess();
       onClose();
     } catch (error: any) {
       console.error(error);
-      // Thông báo lỗi từ API
       showToast({ 
         type: 'error', 
         title: 'Tạo phiếu thất bại', 
-        description: error?.response?.data?.message || 'Có lỗi xảy ra khi xử lý yêu cầu' 
+        description: error?.response?.data?.message || 'Có lỗi xảy ra' 
       });
     } finally {
       setSubmitting(false);
@@ -176,26 +159,13 @@ const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClo
     <Dialog 
       open={open} 
       onClose={onClose} 
-      maxWidth="md" 
+      maxWidth="md" // Đổi thành MD cho form dọc gọn gàng hơn
       fullWidth
       scroll="paper"
-      PaperProps={{ sx: { borderRadius: 3 } }}
     >
-      {/* HEADER */}
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f8f9fa', borderBottom: '1px solid #eee' }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Box 
-            sx={{ 
-              bgcolor: 'primary.main', 
-              color: 'white', 
-              width: 32, 
-              height: 32, 
-              borderRadius: '8px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}
-          >
+          <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 0.5, borderRadius: 1 }}>
             <NoteIcon fontSize="small" />
           </Box>
           <Typography variant="h6" fontWeight={700}>TẠO PHIẾU KHO MỚI</Typography>
@@ -203,156 +173,153 @@ const CreateInventoryModal: React.FC<CreateInventoryModalProps> = ({ open, onClo
         <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, bgcolor: '#fff' }}>
-        <Grid container spacing={3}>
+      <DialogContent sx={{ p: 0, bgcolor: '#fff' }}>
+        <Stack divider={<Divider />}>
           
-          {/* CỘT TRÁI: THÔNG TIN CHUNG */}
-          <Grid item xs={12} md={5}>
-            <Stack spacing={2.5}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
-                1. Thông tin phiếu
-              </Typography>
+          {/* --- PHẦN 1: CHỌN SẢN PHẨM & VỊ TRÍ (Đưa lên đầu) --- */}
+          <Box sx={{ p: 3, bgcolor: '#fcfcfc' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', mb: 2 }}>
+              1. Chọn sản phẩm & Vị trí
+            </Typography>
 
-              {/* Type Select */}
-              <TextField
-                select
-                label="Loại phiếu"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                fullWidth
-                size="medium"
-              >
-                {TYPE_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Stack direction="row" alignItems="center" spacing={1.5}>
-                      {option.icon}
-                      <Typography>{option.label}</Typography>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </TextField>
+            <ProductSelector onSelectionChange={setSelection} />
 
-              {/* Purpose Select */}
-              <TextField
-                select
-                label="Mục đích nghiệp vụ"
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                fullWidth
-                size="medium"
-                helperText="Chọn mục đích hạch toán tồn kho"
-              >
-                {PURPOSE_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+            {/* Hiển thị tóm tắt và nhập số lượng */}
+            {selection && (
+              <Box sx={{ mt: 3, p: 2, bgcolor: '#e8f5e9', borderRadius: 2, border: '1px solid #c8e6c9' }}>
+                <Stack direction="row" spacing={2} alignItems="center">
+                    <Box flex={1}>
+                      <Typography variant="subtitle2" color="success.main">
+                        Đã chọn: <b>{selection.productName}</b>
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        Màu: {selection.colorName} | Kho nguồn: {selection.locationCode}
+                      </Typography>
+                    </Box>
+                    
+                    <TextField
+                      label="Số lượng"
+                      value={quantity}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^[0-9]+$/.test(val)) {
+                          setQuantity(val);
+                        }
+                      }}
+                      sx={{ width: 150, bgcolor: 'white' }}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">cái</InputAdornment>,
+                      }}
+                      autoFocus
+                      required
+                    />
+                </Stack>
+              </Box>
+            )}
+          </Box>
 
-              {/* Input Kho đích (Chỉ hiện khi Transfer) */}
+          {/* --- PHẦN 2: THÔNG TIN PHIẾU (Đưa xuống dưới) --- */}
+          <Box sx={{ p: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 2 }}>
+              2. Thông tin phiếu
+            </Typography>
+
+            {/* Grid container để chia cột trong phần thông tin phiếu cho gọn */}
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                 <Stack spacing={3}>
+                    <TextField
+                      select
+                      label="Loại phiếu"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      fullWidth
+                    >
+                      {TYPE_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            {option.icon}
+                            <Typography>{option.label}</Typography>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
+                    <TextField
+                      select
+                      label="Mục đích nghiệp vụ"
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      fullWidth
+                    >
+                      {PURPOSE_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                 </Stack>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                 <Stack spacing={3}>
+                    <TextField
+                        label="Mã đơn hàng (Order ID)"
+                        value={orderId}
+                        onChange={(e) => setOrderId(e.target.value)}
+                        type="number"
+                        fullWidth
+                    />
+                     <TextField
+                      label="Ghi chú nội bộ"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      multiline
+                      rows={1.5} // Giảm row xuống một chút cho cân đối
+                      fullWidth
+                      placeholder="Nhập ghi chú chi tiết..."
+                    />
+                 </Stack>
+              </Grid>
+
+              {/* SELECTOR KHO ĐÍCH (Full width nếu là Transfer) */}
               {type === 'TRANSFER' && (
-                <Box sx={{ p: 2, border: '1px dashed orange', borderRadius: 2, bgcolor: '#fffbf2' }}>
-                  <Typography variant="caption" color="warning.main" fontWeight="bold">KHO ĐÍCH ĐẾN</Typography>
-                  <TextField
-                    label="Nhập ID Kho đích (Destination Warehouse)"
-                    value={toWarehouseId}
-                    onChange={(e) => setToWarehouseId(e.target.value)}
-                    fullWidth
-                    margin="dense"
-                    required
-                    placeholder="VD: WH-HCM-02"
-                  />
-                </Box>
-              )}
-
-              <Divider />
-
-              <TextField
-                label="Mã đơn hàng (Order ID)"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                type="number"
-                fullWidth
-                placeholder="Để trống nếu không có"
-              />
-
-              <TextField
-                label="Ghi chú nội bộ"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                multiline
-                rows={3}
-                fullWidth
-                placeholder="VD: Nhập bù hàng bị vỡ..."
-              />
-            </Stack>
-          </Grid>
-
-          {/* CỘT PHẢI: CHỌN SẢN PHẨM */}
-          <Grid item xs={12} md={7}>
-             <Box sx={{ height: '100%', borderLeft: { md: '1px solid #eee' }, pl: { md: 3 } }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 2 }}>
-                  2. Chi tiết hàng hóa
-                </Typography>
-
-                {/* Component Product Selector */}
-                <ProductSelector onSelectionChange={setSelection} />
-
-                {/* Input Số lượng (Chỉ hiện khi đã chọn xong Product + Location) */}
-                {selection && (
-                  <Box sx={{ mt: 3, p: 2, bgcolor: '#e8f5e9', borderRadius: 2, border: '1px solid #c8e6c9' }}>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                       <Box flex={1}>
-                          <Typography variant="subtitle2" color="success.main">
-                            Đã chọn: <b>{selection.productName}</b>
-                          </Typography>
-                          <Typography variant="caption" display="block">
-                            Màu: {selection.colorName} | Vị trí: {selection.locationCode}
-                          </Typography>
-                       </Box>
-                       
-                       <TextField
-                          label="Số lượng"
-                          value={quantity}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '' || /^[0-9]+$/.test(val)) {
-                              setQuantity(val);
-                            }
-                          }}
-                          sx={{ width: 120, bgcolor: 'white' }}
-                          InputProps={{
-                            endAdornment: <InputAdornment position="end">cái</InputAdornment>,
-                          }}
-                          autoFocus
-                       />
-                    </Stack>
+                <Grid item xs={12}>
+                  <Box sx={{ p: 2, border: '1px dashed #ed6c02', borderRadius: 2, bgcolor: '#fff3e0' }}>
+                    <Typography variant="caption" color="warning.main" fontWeight="bold" display="block" mb={1}>
+                      CHUYỂN ĐẾN KHO (DESTINATION)
+                    </Typography>
+                    <WarehouseZoneLocationSelector 
+                      labelPrefix="Đích"
+                      selectedWarehouseId={toWarehouseId}
+                      selectedZoneId={toZoneId}
+                      selectedLocationId={toLocationId}
+                      onWarehouseChange={(id) => { setToWarehouseId(id); setToZoneId(null); setToLocationId(null); }}
+                      onZoneChange={(id) => { setToZoneId(id); setToLocationId(null); }}
+                      onLocationChange={(id) => setToLocationId(id)}
+                    />
                   </Box>
-                )}
-             </Box>
-          </Grid>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
 
-        </Grid>
+        </Stack>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #eee', bgcolor: '#f8f9fa' }}>
-        <Button onClick={onClose} color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
+        <Button onClick={onClose} color="inherit" sx={{ textTransform: 'none' }}>
           Hủy bỏ
         </Button>
         <Button 
           onClick={handleSave} 
           variant="contained" 
-          color="success"
+          color="primary"
           startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           disabled={submitting || !selection || !quantity}
-          sx={{ 
-            px: 4, 
-            textTransform: 'none', 
-            fontWeight: 700, 
-            boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)' 
-          }}
+          sx={{ px: 4, textTransform: 'none', fontWeight: 700 }}
         >
-          {submitting ? 'Đang xử lý...' : 'Lưu phiếu kho'}
+          Lưu phiếu kho
         </Button>
       </DialogActions>
     </Dialog>
