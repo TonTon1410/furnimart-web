@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { userService } from "@/service/userService";
@@ -498,10 +498,11 @@ export default function AddressPage() {
 
           try {
             const profile = await authService.getProfile();
+            // cast payload to any because UpdateProfilePayload doesn't include 'address'
             await userService.updateProfile({
               fullName: profile?.fullName || "",
               address: formattedAddress,
-            });
+            } as any);
             showToast("success", "Đã đặt làm địa chỉ mặc định!");
           } catch (error) {
             showToast("warning", "Đã đặt mặc định nhưng chưa cập nhật profile");

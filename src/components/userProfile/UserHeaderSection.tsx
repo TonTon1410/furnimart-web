@@ -1,18 +1,36 @@
 "use client"
 
 import type React from "react"
-import { Camera, User, Shield, UserCheck } from "lucide-react"
+import { Camera, User, Shield, UserCheck, X } from "lucide-react"
 import type { UserProfile } from "@/pages/UserProfile"
 import coverImage from "@/assets/noithat.jpg"
 import axiosClient from "@/service/axiosClient"
+import { useState } from "react"
 
 interface UserHeaderSectionProps {
   user: UserProfile
   isUploadingAvatar: boolean
   handleAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
+  handleAvatarUrlUpdate: (url: string) => Promise<void>
 }
 
-export default function UserHeaderSection({ user, isUploadingAvatar, handleAvatarUpload }: UserHeaderSectionProps) {
+export default function UserHeaderSection({
+  user,
+  isUploadingAvatar,
+  handleAvatarUpload,
+  handleAvatarUrlUpdate,
+}: UserHeaderSectionProps) {
+  const [avatarUrlInput, setAvatarUrlInput] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const handleUrlSubmit = () => {
+    if (avatarUrlInput.trim()) {
+      handleAvatarUrlUpdate(avatarUrlInput.trim())
+      setIsDialogOpen(false)
+      setAvatarUrlInput("")
+    }
+  }
+
   const getAvatarUrl = (user: UserProfile) => {
     if (user.avatar) {
       if (user.avatar.startsWith("http")) return user.avatar
@@ -65,15 +83,84 @@ export default function UserHeaderSection({ user, isUploadingAvatar, handleAvata
       </div>
 
       <div className="absolute top-4 right-4">
-        <label className="bg-black/30 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-black/40 dark:hover:bg-gray-700/60 text-white dark:text-gray-100 p-2.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2">
+        <button
+          onClick={() => setIsDialogOpen(true)}
+          className="bg-black/30 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-black/40 dark:hover:bg-gray-700/60 text-white dark:text-gray-100 p-2.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2"
+        >
           <Camera className="h-4 w-4" />
           <span className="text-sm font-medium">Đổi ảnh bìa</span>
-          <input type="file" accept="image/*" className="hidden" />
-        </label>
+        </button>
+
+        {/* Custom Modal using pure HTML/CSS (Tailwind) */}
+        {isDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Cập nhật ảnh đại diện</h3>
+                <button
+                  onClick={() => setIsDialogOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tải ảnh lên từ thiết bị
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-200 dark:border-gray-800" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">Hoặc</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">URL hình ảnh</label>
+                  <input
+                    type="text"
+                    placeholder="https://example.com/image.jpg"
+                    value={avatarUrlInput}
+                    onChange={(e) => setAvatarUrlInput(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                <button
+                  onClick={() => setIsDialogOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleUrlSubmit}
+                  disabled={!avatarUrlInput.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-600 dark:hover:bg-blue-700"
+                >
+                  Lưu URL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-0 left-6 translate-y-1/3">
-        <div className="relative">
+        <div className="relative group">
           <div className="w-28 h-28 rounded-2xl bg-card p-2 shadow-xl ring-4 ring-card">
             <img
               src={getAvatarUrl(user) || "/placeholder.svg"}
@@ -92,20 +179,6 @@ export default function UserHeaderSection({ user, isUploadingAvatar, handleAvata
               </div>
             )}
           </div>
-          <label
-            className={`absolute -bottom-1 -right-1 bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-xl cursor-pointer transition-all duration-200 shadow-lg ${
-              isUploadingAvatar ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            <Camera className="h-4 w-4" />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              disabled={isUploadingAvatar}
-              className="hidden"
-            />
-          </label>
         </div>
       </div>
 

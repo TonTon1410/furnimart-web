@@ -47,6 +47,7 @@ export default function UserProfile() {
     handleEditToggle,
     handleSave,
     handleAvatarUpload,
+    handleAvatarUrlUpdate, // Get new handler
     fetchUserProfile,
   } = useUserProfile()
 
@@ -133,7 +134,12 @@ export default function UserProfile() {
       )}
 
       <motion.div variants={fadeUp} className="bg-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
-        <UserHeaderSection user={user} isUploadingAvatar={isUploadingAvatar} handleAvatarUpload={handleAvatarUpload} />
+        <UserHeaderSection
+          user={user}
+          isUploadingAvatar={isUploadingAvatar}
+          handleAvatarUpload={handleAvatarUpload}
+          handleAvatarUrlUpdate={handleAvatarUrlUpdate} // Pass handler to header
+        />
 
         <div className="pt-16 p-6">
           <div className="flex items-start justify-between mb-8">
@@ -210,7 +216,7 @@ export default function UserProfile() {
             </div>
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => (window.location.href = "/change-password")}
+                onClick={() => (window.location.href = "/forgot-password")}
                 className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl hover:bg-muted/50 font-medium shadow-sm text-foreground"
               >
                 <Lock className="h-4 w-4 text-primary" />

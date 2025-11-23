@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { authService } from "@/service/authService"
 import { userService } from "@/service/userService"
@@ -191,6 +190,39 @@ export function useUserProfile() {
         setUser({ ...user, avatar: response.data.avatar })
         setSuccess("Cập nhật avatar thành công!")
         setTimeout(() => setSuccess(""), 3000)
+        // Refresh profile
+        await fetchUserProfile()
+      } else {
+        throw new Error(response.message || "Cập nhật avatar thất bại")
+      }
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError
+      setError(axiosError.response?.data?.message || axiosError.message || "Cập nhật avatar thất bại")
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const handleAvatarUrlUpdate = async (url: string) => {
+    try {
+      setIsUploadingAvatar(true)
+      setError("")
+
+      // Validate URL format
+      try {
+        new URL(url)
+      } catch {
+        throw new Error("URL không hợp lệ")
+      }
+
+      const response = await userService.updateAvatarUrl(url)
+
+      if (response.status === 200 && response.data && user) {
+        setUser({ ...user, avatar: response.data.avatar })
+        setSuccess("Cập nhật avatar thành công!")
+        setTimeout(() => setSuccess(""), 3000)
+        // Refresh profile to get updated data
+        await fetchUserProfile()
       } else {
         throw new Error(response.message || "Cập nhật avatar thất bại")
       }
@@ -218,6 +250,7 @@ export function useUserProfile() {
     handleEditToggle,
     handleSave,
     handleAvatarUpload,
+    handleAvatarUrlUpdate,
     fetchUserProfile,
   }
 }
