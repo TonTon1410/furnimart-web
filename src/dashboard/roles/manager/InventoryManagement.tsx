@@ -562,9 +562,10 @@ export default function InventoryManagement() {
       <CreateInventoryModal 
         open={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
+        // TRUYỀN WAREHOUSE ID TỪ ĐÂY (storeId lấy từ useWarehouseData trong InventoryManagement)
+        currentWarehouseId={warehouse?.id} 
         onSuccess={() => {
            loadInventories();
-           // Optional: Reset filters to show new item
            setFilterType('ALL');
         }}
       />
