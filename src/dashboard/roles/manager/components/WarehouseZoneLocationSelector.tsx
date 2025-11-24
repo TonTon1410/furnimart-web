@@ -1,14 +1,14 @@
-// file: WarehouseZoneLocationSelector.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { FormControl, InputLabel, Select, MenuItem, Grid } from '@mui/material';
 import warehousesService from '@/service/warehousesService';
 import zoneService from '@/service/zoneService';
 import locationItemService from '@/service/locationItemService';
+import CustomDropdown from '@/components/CustomDropdown'; 
 
 interface WarehouseZoneLocationSelectorProps {
-  labelPrefix: string; // Ví dụ: "Nguồn" hoặc "Đích"
+  labelPrefix: string;
   onWarehouseChange: (id: string | null) => void;
   onZoneChange: (id: string | null) => void;
   onLocationChange: (id: string | null) => void;
@@ -32,7 +32,7 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
   const [zones, setZones] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
 
-  // 1. Load Kho hàng (Warehouse)
+  // 1. Load Kho hàng
   useEffect(() => {
     const fetchWarehouses = async () => {
       try {
@@ -40,22 +40,25 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
         const warehouseList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setWarehouses(warehouseList);
       } catch (error) {
-        console.error("Failed to fetch warehouses:", error);
-        setWarehouses([]); 
+        setWarehouses([]);
       }
     };
     fetchWarehouses();
   }, []);
 
-  // 2. Load Khu vực (Zone) theo Kho hàng
+  // 2. Load Khu vực
   useEffect(() => {
     if (selectedWarehouseId) {
       const fetchZones = async () => {
-        const res = await zoneService.getZoneByWarehouse(selectedWarehouseId);
-        const zoneList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        setZones(zoneList);
-        // Reset Zone khi Kho thay đổi
-        onZoneChange(null); 
+        try {
+          const res = await zoneService.getZoneByWarehouse(selectedWarehouseId);
+          const zoneList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+          setZones(zoneList);
+        } catch (error) {
+          setZones([]);
+        }
+        // Chỉ reset nếu zone hiện tại không còn nằm trong danh sách mới (tuỳ logic, ở đây reset cho an toàn)
+        onZoneChange(null);
       };
       fetchZones();
     } else {
@@ -64,15 +67,18 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
     }
   }, [selectedWarehouseId]);
 
-  // 3. Load Vị trí (Location) theo Khu vực
+  // 3. Load Vị trí
   useEffect(() => {
     if (selectedZoneId) {
       const fetchLocations = async () => {
-        const res = await locationItemService.getLocationByZone(selectedZoneId);
-        const locationList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        setLocations(locationList);
-        // Reset Location khi Zone thay đổi
-        onLocationChange(null); 
+        try {
+          const res = await locationItemService.getLocationByZone(selectedZoneId);
+          const locationList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+          setLocations(locationList);
+        } catch (error) {
+          setLocations([]);
+        }
+        onLocationChange(null);
       };
       fetchLocations();
     } else {
@@ -81,62 +87,70 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
     }
   }, [selectedZoneId]);
 
+  // Helper map dữ liệu
+  const mapToOptions = (data: any[], valueKey: string, labelKey: string) => {
+    if (!Array.isArray(data)) return [];
+    return data.map(item => ({
+      value: item[valueKey],
+      label: item[labelKey]
+    }));
+  };
+
+  // Xác định trạng thái disable cho từng cấp
+  // 1. Disable Kho nếu component bị disable tổng
+  const isWarehouseDisabled = disabled;
+  
+  // 2. Disable Zone nếu chưa chọn Kho HOẶC component bị disable tổng
+  const isZoneDisabled = disabled || !selectedWarehouseId;
+
+  // 3. Disable Location nếu chưa chọn Zone HOẶC component bị disable tổng
+  const isLocationDisabled = disabled || !selectedZoneId;
+
+  // Class chung để tạo hiệu ứng disabled
+  const getWrapperClass = (isDisabled: boolean) => 
+    `w-full transition-opacity duration-200 ${isDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`;
+
   return (
-    <Grid container spacing={2}>
-      {/* Đã thay đổi kích thước thành xs={6} sm={6} để tăng chiều rộng */}
-      <Grid item xs={6} sm={6}> 
-        {/* Thêm sx={{ minWidth: 200 }} để đảm bảo select có chiều rộng tối thiểu, tránh label bị cắt */}
-        <FormControl fullWidth disabled={disabled} sx={{ minWidth: 200 }}>
-          <InputLabel>{labelPrefix} Kho hàng</InputLabel>
-          <Select
-            label={`${labelPrefix} Kho hàng`}
-            value={selectedWarehouseId || ''}
-            onChange={(e) => onWarehouseChange(e.target.value as string)}
-            required
-          >
-            {Array.isArray(warehouses) && warehouses.map(wh => (
-              <MenuItem key={wh.id} value={wh.id}>{wh.warehouseName}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-      
-      {/* Đã thay đổi kích thước thành xs={6} sm={6} để tăng chiều rộng */}
-      <Grid item xs={6} sm={6}> 
-        {/* Thêm sx={{ minWidth: 200 }} */}
-        <FormControl fullWidth disabled={disabled || !selectedWarehouseId} sx={{ minWidth: 200 }}>
-          <InputLabel>{labelPrefix} Khu vực</InputLabel>
-          <Select
-            label={`${labelPrefix} Khu vực`}
-            value={selectedZoneId || ''}
-            onChange={(e) => onZoneChange(e.target.value as string)}
-            required
-          >
-            {Array.isArray(zones) && zones.map(zone => (
-              <MenuItem key={zone.id} value={zone.id}>{zone.zoneName}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-      
-      {/* Đã thay đổi kích thước thành xs={6} sm={6} để tăng chiều rộng */}
-      <Grid item xs={6} sm={6}>
-        {/* Thêm sx={{ minWidth: 200 }} */}
-        <FormControl fullWidth disabled={disabled || !selectedZoneId} sx={{ minWidth: 200 }}>
-          <InputLabel>{labelPrefix} Vị trí</InputLabel>
-          <Select
-            label={`${labelPrefix} Vị trí`}
-            value={selectedLocationId || ''}
-            onChange={(e) => onLocationChange(e.target.value as string)}
-            required
-          >
-            {Array.isArray(locations) && locations.map(loc => (
-              <MenuItem key={loc.id} value={loc.id}>{loc.code}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-    </Grid>
+    <div className="flex flex-col gap-4 w-full">
+      {/* Kho hàng */}
+      <div className={getWrapperClass(isWarehouseDisabled)}>
+        <CustomDropdown
+          id="warehouse-select"
+          label={`${labelPrefix} Kho hàng`}
+          placeholder="Chọn kho hàng..."
+          value={selectedWarehouseId || ''}
+          options={mapToOptions(warehouses, 'id', 'warehouseName')}
+          onChange={(val) => onWarehouseChange(val)}
+          fullWidth
+        />
+      </div>
+
+      {/* Khu vực */}
+      <div className={getWrapperClass(isZoneDisabled)}>
+        <CustomDropdown
+          id="zone-select"
+          label={`${labelPrefix} Khu vực`}
+          placeholder={!selectedWarehouseId ? "Vui lòng chọn Kho trước" : "Chọn khu vực..."}
+          value={selectedZoneId || ''}
+          options={mapToOptions(zones, 'id', 'zoneName')}
+          onChange={(val) => onZoneChange(val)}
+          fullWidth
+        />
+      </div>
+
+      {/* Vị trí */}
+      <div className={getWrapperClass(isLocationDisabled)}>
+        <CustomDropdown
+          id="location-select"
+          label={`${labelPrefix} Vị trí`}
+          placeholder={!selectedZoneId ? "Vui lòng chọn Khu vực trước" : "Chọn vị trí..."}
+          value={selectedLocationId || ''}
+          options={mapToOptions(locations, 'id', 'code')}
+          onChange={(val) => onLocationChange(val)}
+          fullWidth
+        />
+      </div>
+    </div>
   );
 };
 

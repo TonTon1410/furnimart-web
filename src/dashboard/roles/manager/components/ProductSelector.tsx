@@ -1,26 +1,11 @@
-// src/components/ProductSelector.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  TextField,
-  Autocomplete,
-  Typography,
-  Box,
-  CircularProgress,
-  Alert,
-  Avatar,
-  Stack,
-  Paper,
-  Grid,
-  Tooltip,
-  Zoom,
-  Divider,
-  Fade,
-  InputAdornment,
+  TextField, Autocomplete, Typography, Box, CircularProgress, Alert,
+  Avatar, Stack, Grid, Tooltip, Zoom, Divider, Fade, useTheme
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
-  Inventory2 as InventoryIcon, 
   Place as PlaceIcon,
   CheckCircle as CheckCircleIcon,
   ImageNotSupported as ImageIcon
@@ -30,7 +15,12 @@ import { productService } from '@/service/homeService';
 import inventoryService, { type InventoryLocationDetail } from '@/service/inventoryService';
 import { useWarehouseData } from '../hook/useWarehouseData';
 
-// --- Interfaces (Giữ nguyên) ---
+// --- Interfaces ---
+interface ProductImage {
+  id: string;
+  image: string;
+}
+
 interface Color {
   id: string;
   colorName: string;
@@ -40,6 +30,7 @@ interface Color {
 interface ProductColor {
   id: string;
   color: Color;
+  images: ProductImage[];
 }
 
 interface Product {
@@ -48,7 +39,7 @@ interface Product {
   price: number;
   slug: string;
   thumbnailImage: string;
-  code: string; // Giả sử có mã sản phẩm
+  code: string;
   productColors: ProductColor[];
 }
 
@@ -58,16 +49,19 @@ export interface ProductSelectionResult {
   locationCode?: string;
   productName?: string;
   colorName?: string;
+  imageUrl?: string;
+  hexCode?: string;
 }
 
 interface ProductSelectorProps {
   onSelectionChange?: (result: ProductSelectionResult | null) => void;
+  key?: number;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   onSelectionChange,
 }) => {
-  // --- Logic Hooks & State (Giữ nguyên logic cốt lõi) ---
+  const theme = useTheme();
   const { storeId, loading: storeLoading } = useWarehouseData();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -80,7 +74,20 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedLocation, setSelectedLocation] = useState<InventoryLocationDetail | null>(null);
   const [loadingLocations, setLoadingLocations] = useState(false);
 
-  // --- Effects (Giữ nguyên) ---
+  // --- Logic Hình ảnh hiển thị ---
+  const currentDisplayImage = useMemo(() => {
+    if (!selectedProduct) return null;
+    
+    if (selectedProductColorId) {
+        const colorVariant = selectedProduct.productColors.find(pc => pc.id === selectedProductColorId);
+        if (colorVariant && colorVariant.images && colorVariant.images.length > 0) {
+            return colorVariant.images[0].image;
+        }
+    }
+    return selectedProduct.thumbnailImage;
+  }, [selectedProduct, selectedProductColorId]);
+
+  // --- Effects ---
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
@@ -135,17 +142,18 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           locationItemId: selectedLocation.locationItemId,
           locationCode: selectedLocation.locationCode,
           productName: selectedProduct.name,
-          colorName: colorObj?.color.colorName || ''
+          colorName: colorObj?.color.colorName || '',
+          imageUrl: currentDisplayImage || '',
+          hexCode: colorObj?.color.hexCode
         });
       } else {
         onSelectionChange(null);
       }
     }
-  }, [selectedProductColorId, selectedLocation, selectedProduct, onSelectionChange]);
+  }, [selectedProductColorId, selectedLocation, selectedProduct, onSelectionChange, currentDisplayImage]);
 
   const availableColors = useMemo(() => selectedProduct?.productColors || [], [selectedProduct]);
 
-  // --- Helper Styles ---
   const isLightColor = (hex: string) => {
     if (!hex || !hex.startsWith('#')) return true;
     const r = parseInt(hex.substring(1, 3), 16);
@@ -154,67 +162,100 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 160;
   };
 
-  // --- Render ---
+  // --- STYLE STUFF ---
+  
+  // 1. Style cho Input field
+  const commonInputStyle = {
+    '& .MuiInputLabel-root': { color: 'text.primary' },
+    // Thêm class dark cho input label để ép màu trắng khi ở chế độ tối
+    '.dark & .MuiInputLabel-root': { color: 'white' },
+    
+    '& .MuiInputBase-root': { color: 'text.primary' },
+    '.dark & .MuiInputBase-root': { color: 'white' },
+    
+    '& .MuiSvgIcon-root': { color: 'text.primary' },
+    '.dark & .MuiSvgIcon-root': { color: 'white' },
+
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'rgba(128, 128, 128, 0.5)',
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'text.primary',
+    },
+    '.dark &:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'white',
+    },
+    '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'primary.main',
+    }
+  };
+
+  // 2. Style cho Dropdown Popup (Paper)
+  const dropdownPaperStyle = {
+    // CHỈNH SỬA: Thay dark:text-gray-100 thành dark:text-white để chữ trắng sáng hơn
+    className: "!bg-white dark:!bg-gray-950 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white",
+    sx: {
+      backgroundImage: 'none',
+    }
+  };
+
+  // 3. Style cho từng Item trong dropdown
+  // CHỈNH SỬA: Đảm bảo dark:text-white
+  const dropdownOptionClass = "text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 selected:bg-emerald-50 dark:selected:bg-emerald-900/30";
+
+
   if (loadingProducts || storeLoading) {
     return (
-      <Paper elevation={0} sx={{ p: 4, textAlign: 'center', bgcolor: '#f8f9fa', borderRadius: 3 }}>
-        <CircularProgress size={30} thickness={4} sx={{ color: '#1976d2' }} />
-        <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary', fontWeight: 500 }}>
-          Đang khởi tạo dữ liệu kho...
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <CircularProgress size={30} thickness={4} color="primary" />
+        <Typography variant="body2" sx={{ mt: 2 }} className="text-gray-600 dark:text-gray-300">
+          Đang tải dữ liệu...
         </Typography>
-      </Paper>
+      </Box>
     );
   }
 
-  if (error) return <Alert severity="error" variant="filled" sx={{ borderRadius: 2 }}>{error}</Alert>;
-  if (!storeId) return <Alert severity="warning" variant="filled" sx={{ borderRadius: 2 }}>Chưa xác định được kho làm việc.</Alert>;
+  if (error) return <Alert severity="error" variant="outlined">{error}</Alert>;
+  if (!storeId) return <Alert severity="warning" variant="outlined">Chưa xác định kho.</Alert>;
 
   return (
-    <Paper 
-      elevation={0} 
-      sx={{ 
-        p: 0, 
-        overflow: 'hidden', 
-        borderRadius: 4, 
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
-        bgcolor: '#ffffff'
-      }}
-    >
-      {/* Header Strip */}
-      <Box sx={{ px: 3, py: 2, bgcolor: '#f8f9fa', borderBottom: '1px solid', borderColor: 'divider' }}>
-         <Stack direction="row" alignItems="center" spacing={1}>
-            <InventoryIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#2c3e50', fontSize: '1rem' }}>
-              CHỌN SẢN PHẨM & VỊ TRÍ
-            </Typography>
-         </Stack>
-      </Box>
-
-      <Box sx={{ p: 3 }}>
-        {/* 1. SEARCH BAR */}
+    <Box>
+        {/* 1. Ô TÌM KIẾM SẢN PHẨM */}
         <Autocomplete
           options={allProducts}
           getOptionLabel={(product) => product.name}
           value={selectedProduct}
           onChange={(_, newValue) => setSelectedProduct(newValue)}
-          popupIcon={<SearchIcon color="action" />}
+          popupIcon={<SearchIcon />}
+          
+          // Áp dụng style cho Popup
+          slotProps={{
+            paper: dropdownPaperStyle
+          }}
+
           renderOption={(props, option) => {
             const { key, ...otherProps } = props;
+            const combinedClass = `${otherProps.className || ''} ${dropdownOptionClass}`;
+            
             return (
-              <Box component="li" key={key} {...otherProps} sx={{ py: 1.5, borderBottom: '1px dashed #eee' }}>
+              <Box 
+                component="li" 
+                key={key} 
+                {...otherProps} 
+                className={combinedClass}
+                sx={{ py: 1.5, borderBottom: '1px dashed', borderColor: 'divider' }}
+              >
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%' }}>
                   <Avatar 
                     src={option.thumbnailImage} 
                     variant="rounded" 
-                    sx={{ width: 48, height: 48, bgcolor: '#f0f0f0' }}
+                    sx={{ width: 40, height: 40, bgcolor: 'action.selected' }}
                   >
-                    <ImageIcon />
+                    <ImageIcon fontSize="small" className="text-gray-500 dark:text-white" />
                   </Avatar>
                   <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{option.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">Mã: {option.code || '---'}</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'inherit' }}>{option.name}</Typography>
+                    <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.8 }}>Mã: {option.code}</Typography>
                   </Box>
                 </Stack>
               </Box>
@@ -223,101 +264,82 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           renderInput={(params) => (
             <TextField
               {...params}
-              placeholder="Tìm tên hoặc mã sản phẩm..."
+              label="Chọn sản phẩm"
+              placeholder="Tìm tên hoặc mã..."
               variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                  bgcolor: '#f8f9fa',
-                  transition: 'all 0.2s',
-                  '&:hover': { bgcolor: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
-                  '&.Mui-focused': { bgcolor: '#fff', boxShadow: '0 4px 12px rgba(25, 118, 210, 0.15)' }
-                }
-              }}
-              InputProps={{
-                ...params.InputProps,
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="disabled" />
-                  </InputAdornment>
-                )
-              }}
+              sx={commonInputStyle}
             />
           )}
         />
 
-        {/* PRODUCT DETAIL SECTION (Expandable) */}
+        {/* PHẦN CHI TIẾT SẢN PHẨM (Hiện ra khi đã chọn Product) */}
         <Fade in={!!selectedProduct} mountOnEnter unmountOnExit>
-          <Box sx={{ mt: 4 }}>
-            <Grid container spacing={4}>
+          <Box sx={{ mt: 3 }}>
+            <Grid container spacing={3}>
               
-              {/* LEFT: Product Image */}
-              <Grid item xs={12} md={4}>
-                <Paper 
-                  elevation={0} 
+              {/* Ảnh sản phẩm */}
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box 
                   sx={{ 
                     p: 2, 
-                    bgcolor: '#f8f9fa', 
-                    borderRadius: 3, 
+                    border: '1px solid',
+                    // Sử dụng borderColor dynamic theo theme hoặc class dark nếu cần
+                    borderColor: 'rgba(128, 128, 128, 0.5)',
+                    borderRadius: 1, 
                     height: '100%', 
+                    minHeight: 200,
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    border: '1px dashed',
-                    borderColor: 'divider'
+                    position: 'relative'
                   }}
                 >
-                  {selectedProduct?.thumbnailImage ? (
+                  {currentDisplayImage ? (
                     <Box 
                       component="img" 
-                      src={selectedProduct.thumbnailImage} 
-                      alt={selectedProduct.name}
+                      src={currentDisplayImage} 
+                      alt={selectedProduct?.name}
                       sx={{ 
-                        width: '100%', 
-                        maxWidth: 250, 
+                        maxWidth: '100%', 
+                        maxHeight: 200,
                         objectFit: 'contain', 
-                        borderRadius: 2,
-                        filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))'
+                        borderRadius: 1
                       }}
                     />
                   ) : (
-                    <Stack alignItems="center" color="text.secondary">
-                      <ImageIcon sx={{ fontSize: 60, mb: 1, opacity: 0.5 }} />
-                      <Typography variant="caption">Không có hình ảnh</Typography>
+                    <Stack alignItems="center" className="text-gray-500 dark:text-white">
+                      <ImageIcon sx={{ fontSize: 50, mb: 1, opacity: 0.5 }} />
+                      <Typography variant="caption">No Image</Typography>
                     </Stack>
                   )}
-                </Paper>
+                </Box>
               </Grid>
 
-              {/* RIGHT: Controls */}
-              <Grid item xs={12} md={8}>
+              {/* Thông tin & Chọn màu & Vị trí */}
+              <Grid size={{ xs: 12, md: 8 }}>
                 <Stack spacing={3}>
                   
-                  {/* Product Name Header */}
                   <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 800, color: '#1a2027' }}>
+                    {/* CHỈNH SỬA: Thêm class dark:text-white để ép màu trắng */}
+                    <Typography variant="h6" sx={{ fontWeight: 700 }} className="text-gray-900 dark:text-white">
                       {selectedProduct?.name}
                     </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                       <Typography variant="body2" sx={{ px: 1, py: 0.5, bgcolor: '#e3f2fd', color: '#1976d2', borderRadius: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                          PRODUCT
-                       </Typography>
-                       <Typography variant="body2" color="text.secondary">
-                          Chọn màu sắc và vị trí kho bên dưới
-                       </Typography>
-                    </Stack>
+                    {/* CHỈNH SỬA: Dùng class tailwind để quản lý màu secondary, dark:text-gray-300 (trắng mờ) */}
+                    <Typography variant="body2" className="text-gray-600 dark:text-gray-300">
+                        Mã: {selectedProduct?.code}
+                    </Typography>
                   </Box>
                   
-                  <Divider />
+                  <Divider sx={{ borderColor: 'rgba(128, 128, 128, 0.2)' }} />
 
-                  {/* 2. COLOR SELECTION (Swatches) */}
+                  {/* Chọn Màu Sắc */}
                   <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      MÀU SẮC <Typography component="span" variant="caption" color="text.secondary">({availableColors.length} tùy chọn)</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }} className="text-gray-900 dark:text-white">
+                      Màu sắc
                     </Typography>
                     
                     {availableColors.length === 0 ? (
-                      <Alert severity="warning" sx={{ borderRadius: 2 }}>Chưa cấu hình màu cho sản phẩm này.</Alert>
+                      <Typography variant="caption" color="warning.main">Chưa cấu hình màu.</Typography>
                     ) : (
                       <Stack direction="row" flexWrap="wrap" gap={1.5}>
                         {availableColors.map((pc) => {
@@ -327,30 +349,24 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                               <Box
                                 onClick={() => setSelectedProductColorId(pc.id)}
                                 sx={{
-                                  width: 42,
-                                  height: 42,
+                                  width: 36, height: 36,
                                   borderRadius: '50%',
                                   bgcolor: pc.color.hexCode,
                                   cursor: 'pointer',
                                   border: isSelected 
-                                    ? '3px solid #fff' 
-                                    : '1px solid rgba(0,0,0,0.1)',
-                                  boxShadow: isSelected 
-                                    ? `0 0 0 2px ${pc.color.hexCode}, 0 4px 10px rgba(0,0,0,0.2)` 
-                                    : 'none',
-                                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  position: 'relative',
-                                  '&:hover': { transform: 'scale(1.1)' },
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
+                                    ? `2px solid ${theme.palette.mode === 'dark' ? '#fff' : theme.palette.text.primary}`
+                                    : '1px solid rgba(128,128,128,0.5)',
+                                  boxShadow: isSelected ? '0 0 10px rgba(0,0,0,0.3)' : 'none',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'transform 0.2s',
+                                  '&:hover': { transform: 'scale(1.1)' }
                                 }}
                               >
                                 {isSelected && (
                                   <CheckCircleIcon 
                                     sx={{ 
                                       fontSize: 20, 
-                                      color: isLightColor(pc.color.hexCode) ? 'rgba(0,0,0,0.7)' : '#fff' 
+                                      color: isLightColor(pc.color.hexCode) ? 'black' : 'white' 
                                     }} 
                                   />
                                 )}
@@ -362,31 +378,41 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     )}
                   </Box>
 
-                  {/* 3. LOCATION SELECTION */}
+                  {/* Chọn Vị Trí (Chỉ hiện khi đã chọn màu) */}
                   {selectedProductColorId && (
                     <Zoom in={!!selectedProductColorId}>
                       <Box>
-                         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, mt: 1 }}>
-                            VỊ TRÍ LẤY HÀNG
-                         </Typography>
-                         
                          <Autocomplete
                             options={locations}
                             disabled={loadingLocations}
                             getOptionLabel={(loc) => `${loc.locationCode}`}
                             value={selectedLocation}
                             onChange={(_, val) => setSelectedLocation(val)}
+                            popupIcon={<PlaceIcon />}
+
+                            // Áp dụng style cho Popup
+                            slotProps={{
+                                paper: dropdownPaperStyle
+                            }}
+                            
                             renderInput={(params) => (
                               <TextField 
                                 {...params} 
-                                placeholder={loadingLocations ? "Đang tìm vị trí..." : "Chọn kệ hàng / vị trí"}
+                                label="Chọn Vị trí"
+                                placeholder={loadingLocations ? "Đang tìm..." : "Kệ hàng / Vị trí"}
                                 variant="outlined"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                sx={commonInputStyle}
                                 InputProps={{
                                   ...params.InputProps,
                                   startAdornment: (
                                     <>
-                                      {loadingLocations ? <CircularProgress size={20} sx={{ mr: 1 }} /> : <PlaceIcon color="action" sx={{ mr: 1 }} />}
+                                      {loadingLocations && (
+                                        <CircularProgress 
+                                            size={20} 
+                                            sx={{ mr: 1 }} 
+                                            className="text-gray-500 dark:text-white" 
+                                        />
+                                      )}
                                       {params.InputProps.startAdornment}
                                     </>
                                   )
@@ -394,33 +420,27 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                               />
                             )}
                             renderOption={(props, option) => {
-                              const { key, ...otherProps } = props;
-                              return (
-                              <Box component="li" key={key} {...otherProps} sx={{ py: 1.5 }}>
-                                <Stack direction="row" alignItems="center" spacing={2} width="100%">
-                                  <Avatar sx={{ bgcolor: '#e8f5e9', color: '#2e7d32' }} variant="rounded">
-                                    <Typography variant="h6" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
-                                      {option.available}
-                                    </Typography>
-                                  </Avatar>
-                                  <Box flex={1}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{option.locationCode}</Typography>
-                                    <Typography variant="caption" display="block" color="text.secondary">
-                                      {option.warehouseName} - {option.zoneName}
-                                    </Typography>
+                                const { key, ...otherProps } = props;
+                                const combinedClass = `${otherProps.className || ''} ${dropdownOptionClass}`;
+                                return (
+                                  <Box 
+                                    component="li" 
+                                    key={key} 
+                                    {...otherProps} 
+                                    className={combinedClass}
+                                    sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                                  >
+                                    <Box>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'inherit' }}>{option.locationCode}</Typography>
+                                      <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.8 }}>
+                                        Có sẵn: {option.available}
+                                      </Typography>
+                                    </Box>
                                   </Box>
-                                </Stack>
-                              </Box>
-                            )}}
-                            noOptionsText="Không tìm thấy vị trí chứa hàng này"
+                                );
+                            }}
+                            noOptionsText={<Typography className="text-gray-500 dark:text-white">Hết hàng hoặc chưa có vị trí</Typography>}
                          />
-                         
-                         {/* Availability Info Tag */}
-                         {locations.length > 0 && !selectedLocation && (
-                            <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'success.main', fontWeight: 500 }}>
-                               • Tìm thấy {locations.length} vị trí có sẵn hàng trong kho.
-                            </Typography>
-                         )}
                       </Box>
                     </Zoom>
                   )}
@@ -430,8 +450,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
             </Grid>
           </Box>
         </Fade>
-      </Box>
-    </Paper>
+    </Box>
   );
 };
 
