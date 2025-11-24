@@ -196,7 +196,7 @@ const AppHeader: React.FC = () => {
                   alt="User"
                   className="h-8 w-8 rounded-full object-cover"
                 />
-                <span className="max-w-[160px] truncate">{user.fullName}</span>
+                <span className="max-w-40 truncate">{user.fullName}</span>
                 <ChevronDown className="h-4 w-4 opacity-70" />
               </button>
 

@@ -286,7 +286,7 @@ export default function DeliveryOrders() {
                   className="rounded-lg bg-white shadow dark:bg-gray-800 overflow-hidden"
                 >
                   <div
-                    className={`bg-gradient-to-r ${getGradientColor(
+                    className={`bg-linear-to-r ${getGradientColor(
                       assignment.status
                     )} p-3 sm:p-4`}
                   >
@@ -306,7 +306,7 @@ export default function DeliveryOrders() {
                   <div className="p-3 sm:p-4 space-y-3">
                     {/* Tên khách hàng */}
                     <div className="flex items-start gap-2 text-sm">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                         <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">
                           {order?.shopName?.charAt(0)?.toUpperCase() || "K"}
                         </span>
@@ -323,7 +323,7 @@ export default function DeliveryOrders() {
 
                     {/* Địa chỉ */}
                     <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-gray-900 dark:text-white font-medium">
                           {order?.address || "Chưa có địa chỉ"}
@@ -333,7 +333,7 @@ export default function DeliveryOrders() {
 
                     {/* Số điện thoại */}
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <Phone className="h-4 w-4 text-gray-400 shrink-0" />
                       <span className="text-gray-700 dark:text-gray-300">
                         {order?.phone || "Chưa có SĐT"}
                       </span>
@@ -366,7 +366,7 @@ export default function DeliveryOrders() {
                                       alt={
                                         productColor?.product?.name || "Product"
                                       }
-                                      className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                      className="w-12 h-12 object-cover rounded shrink-0"
                                     />
                                   )}
 
@@ -421,7 +421,7 @@ export default function DeliveryOrders() {
                                   </div>
 
                                   {/* Subtotal */}
-                                  <div className="text-right flex-shrink-0">
+                                  <div className="text-right shrink-0">
                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                       {(
                                         detail.price * detail.quantity

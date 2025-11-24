@@ -105,7 +105,7 @@ const Home: React.FC = () => {
       {/* HERO – 2 cột */}
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden bg-emerald-50 sm:grid-cols-2">
         {/* overlay để navbar dễ đọc */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-black/60 to-transparent" />
 
         {/* Cột trái: text */}
         <div className="relative flex flex-col justify-center px-8 py-20 sm:pl-16">
@@ -241,7 +241,7 @@ const Home: React.FC = () => {
                       onError={onImgError}
                       className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
                       <div className="text-sm opacity-90">Khám phá</div>
                       <div className="text-xl font-bold">{c.categoryName}</div>
@@ -285,7 +285,7 @@ const Home: React.FC = () => {
                         onError={onImgError}
                         className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent" />
                       <div className="absolute bottom-4 left-4 text-white">
                         <div className="text-sm opacity-90">Khám phá</div>
                         <div className="text-xl font-bold">

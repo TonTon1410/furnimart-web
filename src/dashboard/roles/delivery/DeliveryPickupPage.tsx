@@ -181,7 +181,7 @@ export default function DeliveryPickupPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 shadow-lg">
+      <div className="bg-linear-to-r from-green-600 to-green-700 text-white p-6 shadow-lg">
         <h1 className="text-2xl font-bold mb-2">Xác nhận lấy hàng</h1>
         <p className="text-green-100 text-sm">
           {assignments.length} đơn hàng sẵn sàng lấy
@@ -212,7 +212,7 @@ export default function DeliveryPickupPage() {
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* Order Header */}
-                <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-white">
+                <div className="p-4 border-b border-gray-100 bg-linear-to-r from-green-50 to-white">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -233,11 +233,11 @@ export default function DeliveryPickupPage() {
                   {/* Customer Info */}
                   <div className="space-y-1 text-sm">
                     <div className="flex items-start gap-2 text-gray-600">
-                      <Phone className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                      <Phone className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
                       <span>{order?.phone || "N/A"}</span>
                     </div>
                     <div className="flex items-start gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                      <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
                       <span className="line-clamp-2">
                         {order?.address || "N/A"}
                       </span>
@@ -270,7 +270,7 @@ export default function DeliveryPickupPage() {
                               <img
                                 src={productImage}
                                 alt={productColor?.product?.name || "Product"}
-                                className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                                className="w-16 h-16 object-cover rounded-lg shrink-0"
                               />
                             )}
                             <div className="flex-1 min-w-0">

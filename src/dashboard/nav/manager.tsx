@@ -18,8 +18,12 @@ import { DP } from "../../router/paths";
  */
 export const managerNav = (): RoleNav => ({
   main: [
-    { icon: <Warehouse />, name: "Quản lí kho hàng", path: DP("warehouses") },
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
+    {
+      icon: <Warehouse />,
+      name: "Sơ đồ kho hàng (Mới)",
+      path: DP("warehouse-map"),
+    },
     { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
     { icon: <Users />, name: "Quản lí nhân viên", path: DP("employees") },
     {
