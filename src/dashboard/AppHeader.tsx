@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -57,6 +57,7 @@ const ThemeToggleButton = () => {
 };
 
 const AppHeader: React.FC = () => {
+  const navigate = useNavigate();
   const sidebar = useSidebar();
   const isMobileOpen = sidebar?.isMobileOpen ?? false;
   const toggleSidebar = sidebar?.toggleSidebar ?? (() => {});
@@ -120,6 +121,7 @@ const AppHeader: React.FC = () => {
     authService.logout(true); // true = xóa cả remember me khi user tự logout
     setUser(null);
     setOpenUser(false);
+    navigate("/login"); // Chuyển hướng về trang đăng nhập
   };
 
   const btnId = "user-menu-button";

@@ -154,7 +154,30 @@ export default function WarehouseMapNew() {
     try {
       setSubmitting(true);
       const storeId = authService.getStoreId();
-      if (!storeId) return;
+
+      console.log("=== handleSaveWarehouse START ===");
+      console.log("storeId:", storeId);
+      console.log("warehouseFormMode:", warehouseFormMode);
+      console.log("warehouseFormData:", warehouseFormData);
+
+      if (!storeId) {
+        alert("Không tìm thấy thông tin cửa hàng");
+        return;
+      }
+
+      // Validation
+      if (!warehouseFormData.warehouseName.trim()) {
+        alert("Vui lòng nhập tên kho");
+        return;
+      }
+
+      if (
+        !warehouseFormData.capacity ||
+        Number(warehouseFormData.capacity) <= 0
+      ) {
+        alert("Vui lòng nhập diện tích hợp lệ (lớn hơn 0)");
+        return;
+      }
 
       const payload = {
         warehouseName: warehouseFormData.warehouseName,
@@ -162,21 +185,39 @@ export default function WarehouseMapNew() {
         capacity: Number(warehouseFormData.capacity),
       };
 
+      console.log("payload:", payload);
+
       if (warehouseFormMode === "edit" && warehouse) {
-        await warehousesService.updateWarehouseInfo(
+        console.log("Updating warehouse:", warehouse.id);
+        const response = await warehousesService.updateWarehouseInfo(
           storeId,
           warehouse.id,
           payload
         );
+        console.log("Update response:", response);
       } else {
-        await warehousesService.createWarehouse(storeId, payload);
+        console.log("Creating new warehouse");
+        const response = await warehousesService.createWarehouse(
+          storeId,
+          payload
+        );
+        console.log("Create response:", response);
       }
 
+      console.log("=== handleSaveWarehouse SUCCESS ===");
       setWarehouseFormOpen(false);
-      loadWarehouseData();
-    } catch (error) {
-      console.error("Error saving warehouse:", error);
-      alert("Lỗi khi lưu kho hàng");
+      await loadWarehouseData();
+    } catch (error: any) {
+      console.error("=== handleSaveWarehouse ERROR ===");
+      console.error("Error details:", error);
+      console.error("Error response:", error?.response);
+      console.error("Error message:", error?.message);
+
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Lỗi không xác định";
+      alert(`Lỗi khi lưu kho hàng: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -397,66 +438,83 @@ export default function WarehouseMapNew() {
       }
 
       // Lấy warehouse theo storeId
-      const warehouseRes = await warehousesService.getWarehouseByStore(storeId);
-      console.log("Warehouse response:", warehouseRes);
-      // API trả về { status, message, data }, nên phải lấy .data.data
-      const warehouseData = warehouseRes.data?.data || warehouseRes.data;
-      console.log("Warehouse data:", warehouseData);
+      try {
+        const warehouseRes = await warehousesService.getWarehouseByStore(
+          storeId
+        );
+        console.log("Warehouse response:", warehouseRes);
+        // API trả về { status, message, data }, nên phải lấy .data.data
+        const warehouseData = warehouseRes.data?.data || warehouseRes.data;
+        console.log("Warehouse data:", warehouseData);
 
-      if (!warehouseData || !warehouseData.id) {
-        console.log("No warehouse found");
-        setWarehouse(null);
-        setLoading(false);
-        return;
-      }
+        if (!warehouseData || !warehouseData.id) {
+          console.log("No warehouse found");
+          setWarehouse(null);
+          setLoading(false);
+          return;
+        }
 
-      setWarehouse(warehouseData);
+        setWarehouse(warehouseData);
 
-      // Lấy tất cả zones của warehouse
-      const zonesRes = await zoneService.getZoneByWarehouse(warehouseData.id);
-      console.log("Zones response:", zonesRes);
-      // API trả về { status, message, data: [...] }
-      const zones: Zone[] = zonesRes.data?.data || zonesRes.data;
-      console.log("Zones data:", zones);
+        // Lấy tất cả zones của warehouse
+        const zonesRes = await zoneService.getZoneByWarehouse(warehouseData.id);
+        console.log("Zones response:", zonesRes);
+        // API trả về { status, message, data: [...] }
+        const zones: Zone[] = zonesRes.data?.data || zonesRes.data;
+        console.log("Zones data:", zones);
 
-      if (!zones || zones.length === 0) {
-        console.log("No zones found");
-        setZoneSummaries([]);
-        setLoading(false);
-        return;
-      }
+        if (!zones || zones.length === 0) {
+          console.log("No zones found");
+          setZoneSummaries([]);
+          setLoading(false);
+          return;
+        }
 
-      // Lấy locations cho từng zone
-      const summaries: ZoneSummary[] = await Promise.all(
-        zones.map(async (zone) => {
-          const locationsRes = await locationItemService.getLocationByZone(
-            zone.id
+        // Lấy locations cho từng zone
+        const summaries: ZoneSummary[] = await Promise.all(
+          zones.map(async (zone) => {
+            const locationsRes = await locationItemService.getLocationByZone(
+              zone.id
+            );
+            console.log(`Locations for zone ${zone.zoneCode}:`, locationsRes);
+            // API trả về { status, message, data: [...] }
+            const locations: LocationItem[] =
+              locationsRes.data?.data || locationsRes.data;
+
+            // totalCapacity là quantity của Zone, không phải tổng locations
+            const totalCapacity = zone.quantity;
+            const usedCapacity = locations.reduce(
+              (sum, loc) => sum + (loc.currentQuantity || 0),
+              0
+            );
+            const availableCapacity = totalCapacity - usedCapacity;
+
+            return {
+              zone,
+              locations,
+              totalCapacity,
+              usedCapacity,
+              availableCapacity,
+            };
+          })
+        );
+
+        console.log("Zone summaries:", summaries);
+        setZoneSummaries(summaries);
+      } catch (warehouseError: any) {
+        // Nếu lỗi 404 - chưa có warehouse thì không phải là lỗi
+        if (warehouseError?.response?.status === 404) {
+          console.log(
+            "Warehouse not found (404) - this is normal, no warehouse created yet"
           );
-          console.log(`Locations for zone ${zone.zoneCode}:`, locationsRes);
-          // API trả về { status, message, data: [...] }
-          const locations: LocationItem[] =
-            locationsRes.data?.data || locationsRes.data;
-
-          // totalCapacity là quantity của Zone, không phải tổng locations
-          const totalCapacity = zone.quantity;
-          const usedCapacity = locations.reduce(
-            (sum, loc) => sum + (loc.currentQuantity || 0),
-            0
-          );
-          const availableCapacity = totalCapacity - usedCapacity;
-
-          return {
-            zone,
-            locations,
-            totalCapacity,
-            usedCapacity,
-            availableCapacity,
-          };
-        })
-      );
-
-      console.log("Zone summaries:", summaries);
-      setZoneSummaries(summaries);
+          setWarehouse(null);
+          setZoneSummaries([]);
+          setLoading(false);
+          return;
+        }
+        // Các lỗi khác mới là lỗi thật sự
+        throw warehouseError;
+      }
     } catch (error) {
       console.error("Error loading warehouse:", error);
       setApiError("Lỗi khi tải dữ liệu kho hàng. Vui lòng thử lại sau.");
