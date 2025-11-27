@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingCart,
   Users,
+  Clock,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -23,6 +24,11 @@ export const managerNav = (): RoleNav => ({
       icon: <Warehouse />,
       name: "Sơ đồ kho hàng (Mới)",
       path: DP("warehouse-map"),
+    },
+    {
+      icon: <Clock />,
+      name: "Yêu cầu chuyển kho",
+      path: DP("transfer-requests"),
     },
     { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
     { icon: <Users />, name: "Quản lí nhân viên", path: DP("employees") },

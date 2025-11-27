@@ -42,7 +42,7 @@ const CategoryCard: React.FC<{
         className="h-44 w-full object-cover transition-transform duration-700 group-hover:scale-105"
         onError={onImgError}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4 text-white drop-shadow">
         <div className="flex items-center justify-between">
           <div>
