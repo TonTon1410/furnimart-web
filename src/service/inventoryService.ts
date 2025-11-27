@@ -171,6 +171,11 @@ const inventoryService = {
       params: { productColorId },
     });
   },
+
+  // 🔄 Lấy danh sách yêu cầu chuyển kho đang chờ duyệt
+  getPendingTransfers: async (warehouseId: string) => {
+    return axiosClient.get(`/inventories/transfer/pending/${warehouseId}`);
+  },
 };
 
 export default inventoryService;
