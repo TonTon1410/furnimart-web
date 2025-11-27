@@ -406,7 +406,7 @@ export const authService = {
       // Try a list of candidate employee API bases (primary 8080, fallback 8086) before falling back to user endpoints
       const EMPLOYEE_API_BASES = [
         (import.meta.env.VITE_EMPLOYEE_API_BASE as string) ||
-          "http://152.53.244.124:8080/api",
+          "https://furnimart.click/api",
       ];
 
       for (const base of EMPLOYEE_API_BASES) {
