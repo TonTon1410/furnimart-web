@@ -16,6 +16,8 @@ interface WarehouseZoneLocationSelectorProps {
   selectedZoneId: string | null;
   selectedLocationId: string | null;
   disabled?: boolean;
+  // [MỚI] Prop để điều khiển việc ẩn Zone và Location
+  hideZoneAndLocation?: boolean; 
 }
 
 const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps> = ({
@@ -27,6 +29,8 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
   selectedZoneId,
   selectedLocationId,
   disabled = false,
+  // [MỚI] Mặc định là false (vẫn hiện đủ)
+  hideZoneAndLocation = false, 
 }) => {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
@@ -57,7 +61,7 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
         } catch (error) {
           setZones([]);
         }
-        // Chỉ reset nếu zone hiện tại không còn nằm trong danh sách mới (tuỳ logic, ở đây reset cho an toàn)
+        // Chỉ reset nếu zone hiện tại không còn nằm trong danh sách mới
         onZoneChange(null);
       };
       fetchZones();
@@ -112,7 +116,7 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Kho hàng */}
+      {/* Kho hàng - Luôn hiển thị */}
       <div className={getWrapperClass(isWarehouseDisabled)}>
         <CustomDropdown
           id="warehouse-select"
@@ -125,31 +129,36 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
         />
       </div>
 
-      {/* Khu vực */}
-      <div className={getWrapperClass(isZoneDisabled)}>
-        <CustomDropdown
-          id="zone-select"
-          label={`${labelPrefix} Khu vực`}
-          placeholder={!selectedWarehouseId ? "Vui lòng chọn Kho trước" : "Chọn khu vực..."}
-          value={selectedZoneId || ''}
-          options={mapToOptions(zones, 'id', 'zoneName')}
-          onChange={(val) => onZoneChange(val)}
-          fullWidth
-        />
-      </div>
+      {/* [MỚI] Kiểm tra điều kiện: Nếu hideZoneAndLocation là true thì ẩn 2 block bên dưới */}
+      {!hideZoneAndLocation && (
+        <>
+          {/* Khu vực */}
+          <div className={getWrapperClass(isZoneDisabled)}>
+            <CustomDropdown
+              id="zone-select"
+              label={`${labelPrefix} Khu vực`}
+              placeholder={!selectedWarehouseId ? "Vui lòng chọn Kho trước" : "Chọn khu vực..."}
+              value={selectedZoneId || ''}
+              options={mapToOptions(zones, 'id', 'zoneName')}
+              onChange={(val) => onZoneChange(val)}
+              fullWidth
+            />
+          </div>
 
-      {/* Vị trí */}
-      <div className={getWrapperClass(isLocationDisabled)}>
-        <CustomDropdown
-          id="location-select"
-          label={`${labelPrefix} Vị trí`}
-          placeholder={!selectedZoneId ? "Vui lòng chọn Khu vực trước" : "Chọn vị trí..."}
-          value={selectedLocationId || ''}
-          options={mapToOptions(locations, 'id', 'code')}
-          onChange={(val) => onLocationChange(val)}
-          fullWidth
-        />
-      </div>
+          {/* Vị trí */}
+          <div className={getWrapperClass(isLocationDisabled)}>
+            <CustomDropdown
+              id="location-select"
+              label={`${labelPrefix} Vị trí`}
+              placeholder={!selectedZoneId ? "Vui lòng chọn Khu vực trước" : "Chọn vị trí..."}
+              value={selectedLocationId || ''}
+              options={mapToOptions(locations, 'id', 'code')}
+              onChange={(val) => onLocationChange(val)}
+              fullWidth
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -82,6 +82,10 @@ const CreateInventoryPage: React.FC = () => {
             setToZoneId(null);
             setToLocationId(null);
         }
+
+        if (type !== 'EXPORT') {
+            setOrderId('');
+        }
     }, [type]);
 
     // --- Handlers ---
@@ -365,26 +369,28 @@ const CreateInventoryPage: React.FC = () => {
                             placeholder="Chọn loại phiếu"
                         />
 
-                        <TextField
-                            label="Mã đơn hàng (Order ID)"
-                            value={orderId}
-                            onChange={(e) => setOrderId(e.target.value)}
-                            type="number"
-                            fullWidth
-                            helperText="Nhập nếu phiếu này liên quan đến đơn hàng"
-                            InputProps={{
-                                className: "bg-white dark:!bg-gray-900 dark:!text-white"
-                            }}
-                            InputLabelProps={{
-                                className: "dark:!text-white"
-                            }}
-                            inputProps={{
-                                className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
-                            }}
-                            FormHelperTextProps={{
-                                className: "dark:!text-gray-400"
-                            }}
-                        />
+                        {type === 'EXPORT' && (
+                            <TextField
+                                label="Mã đơn hàng (Order ID)"
+                                value={orderId}
+                                onChange={(e) => setOrderId(e.target.value)}
+                                type="number"
+                                fullWidth
+                                helperText="Nhập nếu phiếu này liên quan đến đơn hàng"
+                                InputProps={{
+                                    className: "bg-white dark:!bg-gray-900 dark:!text-white"
+                                }}
+                                InputLabelProps={{
+                                    className: "dark:!text-white"
+                                }}
+                                inputProps={{
+                                    className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
+                                }}
+                                FormHelperTextProps={{
+                                    className: "dark:!text-gray-400"
+                                }}
+                            />
+                        )}
 
                         <TextField
                             label="Ghi chú nội bộ"
@@ -422,6 +428,8 @@ const CreateInventoryPage: React.FC = () => {
                                         onWarehouseChange={(id) => { setToWarehouseId(id); setToZoneId(null); setToLocationId(null); }}
                                         onZoneChange={(id) => { setToZoneId(id); setToLocationId(null); }}
                                         onLocationChange={(id) => setToLocationId(id)}
+                                        
+                                        hideZoneAndLocation={true} // <--- [MỚI] Thêm dòng này
                                     />
                                 </Box>
                             </div>
@@ -441,7 +449,7 @@ const CreateInventoryPage: React.FC = () => {
                         {submitting ? 'ĐANG LƯU...' : 'HOÀN TẤT & LƯU PHIẾU'}
                     </Button>
                     <Button
-                        variant="outlined"
+                        variant="contained"
                         color="inherit"
                         onClick={() => navigate('/inventory')}
                         sx={{ color: 'text.secondary', borderColor: 'divider' }}
