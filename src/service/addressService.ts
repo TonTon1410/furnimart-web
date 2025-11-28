@@ -21,6 +21,8 @@ export interface Address {
   fullAddress?: string;   // Địa chỉ đầy đủ đã format (từ backend)
   createdAt: string;
   updatedAt: string;
+    latitude?: number;
+  longitude?: number;
 }
 
 export interface CreateAddressPayload {
@@ -32,7 +34,9 @@ export interface CreateAddressPayload {
   street?: string;
   addressLine: string;
   isDefault: boolean;
-  userId?: string;  // Thêm dòng này
+  userId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface UpdateAddressPayload {
@@ -194,10 +198,7 @@ export const addressService = {
     }
   },
 
-  /**
-   * Cập nhật địa chỉ theo ID
-   * PUT /api/addresses/{id}
-   */
+
   updateAddress: async (
     addressId: number | string,
     payload: UpdateAddressPayload
@@ -412,13 +413,6 @@ export const addressService = {
     }
   },
 
-  // ============================================
-  // UTILITY FUNCTIONS
-  // ============================================
-
-  /**
-   * Format địa chỉ đầy đủ thành chuỗi
-   */
   formatAddress: (address: Address): string => {
     const parts = [
       address.addressLine,
@@ -431,17 +425,12 @@ export const addressService = {
     return parts.join(", ");
   },
 
-  /**
-   * Validate phone number (Vietnam format)
-   */
+
   validatePhone: (phone: string): boolean => {
     const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
     return phoneRegex.test(phone);
   },
 
-  /**
-   * Validate địa chỉ đầu vào
-   */
   validateAddress: (address: Partial<CreateAddressPayload>): string[] => {
     const errors: string[] = [];
 

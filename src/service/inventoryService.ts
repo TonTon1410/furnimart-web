@@ -15,11 +15,11 @@ export interface InventoryItemRequest {
 
 // Payload tạo hoặc cập nhật phiếu kho
 export interface CreateInventoryRequest {
-  id?: number;            // Default 0 nếu tạo mới
-  type: string;           // VD: "IN", "OUT", "TRANSFER"
-  purpose: string;        // VD: "STOCK_IN", "BS_STOCK", "TRANSFER"
+  id?: number; // Default 0 nếu tạo mới
+  type: string; // VD: "IN", "OUT", "TRANSFER"
+  purpose: string; // VD: "STOCK_IN", "BS_STOCK", "TRANSFER"
   note?: string;
-  warehouseId?: string;   // Kho nguồn / Kho tác động
+  warehouseId?: string; // Kho nguồn / Kho tác động
   toWarehouseId?: string; // Kho đích (nếu là chuyển kho)
   orderId?: number;
   items: InventoryItemRequest[];
@@ -71,9 +71,9 @@ export interface InventoryItemResponse {
 export interface InventoryResponse {
   id: number;
   employeeId: string;
-  type: string;          // "IN", "OUT"...
-  purpose: string;       // "STOCK_IN"...
-  date: string;          // "2025-11-23"
+  type: string; // "IN", "OUT"...
+  purpose: string; // "STOCK_IN"...
+  date: string; // "2025-11-23"
   note: string;
   warehouseName: string;
   warehouseId: string;
@@ -114,14 +114,17 @@ const inventoryService = {
   },
 
   // 🆕 Tạo hoặc cập nhật inventory
-  createOrUpdateInventory: async (data: CreateInventoryRequest) => { 
+  createOrUpdateInventory: async (data: CreateInventoryRequest) => {
     return axiosClient.post(`/inventories`, data);
   },
 
   // 📍 Lấy vị trí chứa sản phẩm trong kho
-  getLocationsByWarehouse: async ({ productColorId, storeId }: GetLocationsByWarehouseParams) => {
-    return axiosClient.get(`/inventories/stock/locations/by-warehouse`, { 
-      params: { productColorId, storeId } 
+  getLocationsByWarehouse: async ({
+    productColorId,
+    storeId,
+  }: GetLocationsByWarehouseParams) => {
+    return axiosClient.get(`/inventories/stock/locations/by-warehouse`, {
+      params: { productColorId, storeId },
     });
   },
 
@@ -129,30 +132,49 @@ const inventoryService = {
 
   // 📊 Tổng tồn kho vật lý
   getTotalPhysical: async (productColorId: string) => {
-    return axiosClient.get(`/inventories/stock/total-physical`, { 
-      params: { productColorId } 
+    return axiosClient.get(`/inventories/stock/total-physical`, {
+      params: { productColorId },
     });
   },
 
   // 📈 Tổng tồn kho khả dụng
   getTotalAvailable: async (productColorId: string) => {
-    return axiosClient.get(`/inventories/stock/total-available`, { 
-      params: { productColorId } 
+    return axiosClient.get(`/inventories/stock/total-available`, {
+      params: { productColorId },
     });
   },
 
   // ✅ Kiểm tra tồn kho tại một kho cụ thể
-  checkWarehouseStock: async ({ productColorId, warehouseId, requiredQty }: CheckWarehouseStockParams) => {
-    return axiosClient.get(`/inventories/stock/check-warehouse`, { 
-      params: { productColorId, warehouseId, requiredQty } 
+  checkWarehouseStock: async ({
+    productColorId,
+    warehouseId,
+    requiredQty,
+  }: CheckWarehouseStockParams) => {
+    return axiosClient.get(`/inventories/stock/check-warehouse`, {
+      params: { productColorId, warehouseId, requiredQty },
     });
   },
 
   // 🌍 Kiểm tra tồn kho toàn hệ thống
-  checkGlobalStock: async ({ productColorId, requiredQty }: CheckGlobalStockParams) => {
-    return axiosClient.get(`/inventories/stock/check-global`, { 
-      params: { productColorId, requiredQty } 
+  checkGlobalStock: async ({
+    productColorId,
+    requiredQty,
+  }: CheckGlobalStockParams) => {
+    return axiosClient.get(`/inventories/stock/check-global`, {
+      params: { productColorId, requiredQty },
     });
+  },
+
+  // 📍 Lấy tất cả vị trí chứa productColorId (warehouse → zone → location)
+  getAllStockLocations: async (productColorId: string) => {
+    return axiosClient.get(`/inventories/stock/locations/all`, {
+      params: { productColorId },
+    });
+  },
+
+  // 🔄 Lấy danh sách yêu cầu chuyển kho đang chờ duyệt
+  getPendingTransfers: async (warehouseId: string) => {
+    return axiosClient.get(`/inventories/transfer/pending/${warehouseId}`);
   },
 };
 

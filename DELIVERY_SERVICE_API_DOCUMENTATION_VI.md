@@ -7,7 +7,7 @@ Delivery Service quản lý toàn bộ quy trình giao hàng từ việc phân c
 - **Delivery Assignment**: Quản lý việc phân công đơn hàng cho nhân viên giao hàng
 - **Delivery Confirmation**: Quản lý xác nhận giao hàng với quét mã QR
 
-**Base URL**: `http://152.53.244.124:8080/api` (qua API Gateway)
+**Base URL**: `https://furnimart.click/api` (qua API Gateway)
 
 ---
 
