@@ -19,6 +19,7 @@ import {
     Search as SearchIcon // [Mới] Thêm icon tìm kiếm
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { DP } from '@/router/paths';
 
 // Services & Hooks
 import { useToast } from '@/context/ToastContext';
@@ -81,6 +82,10 @@ const CreateInventoryPage: React.FC = () => {
             setToWarehouseId(null);
             setToZoneId(null);
             setToLocationId(null);
+        }
+
+        if (type !== 'EXPORT') {
+            setOrderId('');
         }
     }, [type]);
 
@@ -157,16 +162,44 @@ const CreateInventoryPage: React.FC = () => {
                 })),
             };
 
-            await inventoryService.createOrUpdateInventory(payload);
+            // 1. Gọi API và hứng lấy response
+            const res = await inventoryService.createOrUpdateInventory(payload);
 
+            // 2. [MỚI] Kiểm tra Logic Error dù HTTP 200
+            // Dựa trên ảnh: status = 1211 là lỗi "Location full"
+            const resData = res.data; 
+            
+            if (resData && resData.status === 1211) {
+                showToast({ 
+                    type: 'error', 
+                    title: 'Lỗi nhập kho', 
+                    description: 'Không thể nhập: Vị trí kho đã đầy (Location Full).' 
+                });
+                // Dừng hàm tại đây, KHÔNG chuyển trang, giữ lại dữ liệu để user sửa
+                return; 
+            }
+
+            // Kiểm tra các lỗi logic khác (nếu Backend trả về status != 200 cho lỗi)
+            if (resData && resData.status && resData.status !== 200) {
+                 showToast({ 
+                    type: 'error', 
+                    title: 'Thất bại', 
+                    description: resData.message || 'Có lỗi xảy ra khi xử lý.' 
+                });
+                return;
+            }
+
+            // 3. Nếu không có lỗi logic -> Thông báo thành công và chuyển trang
             showToast({ type: 'success', title: 'Thành công', description: 'Đã tạo phiếu kho thành công!' });
-            navigate('/inventory');
+            navigate(DP('inventory'));
+
         } catch (error: any) {
             console.error(error);
+            // Xử lý lỗi HTTP (400, 401, 500...)
             showToast({
                 type: 'error',
                 title: 'Thất bại',
-                description: error?.response?.data?.message || 'Có lỗi xảy ra khi tạo phiếu.'
+                description: error?.response?.data?.message || 'Có lỗi hệ thống xảy ra.'
             });
         } finally {
             setSubmitting(false);
@@ -210,6 +243,9 @@ const CreateInventoryPage: React.FC = () => {
                         <ProductSelector
                             key={selectorKey}
                             onSelectionChange={setTempSelection}
+                            // [MỚI] Truyền props để switch logic
+                            type={type}
+                            currentWarehouseId={currentWarehouseId}
                         />
                     </div>
                 </div>
@@ -365,26 +401,28 @@ const CreateInventoryPage: React.FC = () => {
                             placeholder="Chọn loại phiếu"
                         />
 
-                        <TextField
-                            label="Mã đơn hàng (Order ID)"
-                            value={orderId}
-                            onChange={(e) => setOrderId(e.target.value)}
-                            type="number"
-                            fullWidth
-                            helperText="Nhập nếu phiếu này liên quan đến đơn hàng"
-                            InputProps={{
-                                className: "bg-white dark:!bg-gray-900 dark:!text-white"
-                            }}
-                            InputLabelProps={{
-                                className: "dark:!text-white"
-                            }}
-                            inputProps={{
-                                className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
-                            }}
-                            FormHelperTextProps={{
-                                className: "dark:!text-gray-400"
-                            }}
-                        />
+                        {type === 'EXPORT' && (
+                            <TextField
+                                label="Mã đơn hàng (Order ID)"
+                                value={orderId}
+                                onChange={(e) => setOrderId(e.target.value)}
+                                type="number"
+                                fullWidth
+                                helperText="Nhập nếu phiếu này liên quan đến đơn hàng"
+                                InputProps={{
+                                    className: "bg-white dark:!bg-gray-900 dark:!text-white"
+                                }}
+                                InputLabelProps={{
+                                    className: "dark:!text-white"
+                                }}
+                                inputProps={{
+                                    className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
+                                }}
+                                FormHelperTextProps={{
+                                    className: "dark:!text-gray-400"
+                                }}
+                            />
+                        )}
 
                         <TextField
                             label="Ghi chú nội bộ"
@@ -422,6 +460,8 @@ const CreateInventoryPage: React.FC = () => {
                                         onWarehouseChange={(id) => { setToWarehouseId(id); setToZoneId(null); setToLocationId(null); }}
                                         onZoneChange={(id) => { setToZoneId(id); setToLocationId(null); }}
                                         onLocationChange={(id) => setToLocationId(id)}
+
+                                        hideZoneAndLocation={true} // <--- [MỚI] Thêm dòng này
                                     />
                                 </Box>
                             </div>
@@ -436,15 +476,24 @@ const CreateInventoryPage: React.FC = () => {
                         onClick={handleSaveTicket}
                         disabled={submitting || items.length === 0}
                         startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                        // [Sửa đổi]: Thêm !text-white để chữ trắng
+                        // [Sửa đổi]: Thêm dark:!bg-gray-700 (xám sáng hơn nền 900) và dark:hover:!bg-gray-600
+                        className="!text-white dark:!bg-gray-700 dark:hover:!bg-gray-600"
                         sx={{ py: 1.5, fontWeight: 'bold' }}
                     >
                         {submitting ? 'ĐANG LƯU...' : 'HOÀN TẤT & LƯU PHIẾU'}
                     </Button>
+
                     <Button
-                        variant="outlined"
-                        color="inherit"
+                        variant="contained"
+                        color="error"
                         onClick={() => navigate('/inventory')}
-                        sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                        // [Sửa đổi]: Xóa 'text.secondary', ép màu trắng và in đậm
+                        sx={{
+                            borderColor: 'divider',
+                            fontWeight: 'bold',
+                            color: 'white'
+                        }}
                     >
                         Hủy bỏ
                     </Button>
