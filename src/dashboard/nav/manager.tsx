@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Users,
   Clock,
+  FilePlus,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -20,6 +21,7 @@ import { DP } from "../../router/paths";
 export const managerNav = (): RoleNav => ({
   main: [
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
+    { icon: <FilePlus />, name: "Tạo phiếu kho", path: DP("inventory/create") },
     {
       icon: <Warehouse />,
       name: "Sơ đồ kho hàng (Mới)",
