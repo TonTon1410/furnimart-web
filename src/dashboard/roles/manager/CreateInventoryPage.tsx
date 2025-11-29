@@ -19,6 +19,7 @@ import {
     Search as SearchIcon // [Mới] Thêm icon tìm kiếm
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { DP } from '@/router/paths';
 
 // Services & Hooks
 import { useToast } from '@/context/ToastContext';
@@ -161,16 +162,44 @@ const CreateInventoryPage: React.FC = () => {
                 })),
             };
 
-            await inventoryService.createOrUpdateInventory(payload);
+            // 1. Gọi API và hứng lấy response
+            const res = await inventoryService.createOrUpdateInventory(payload);
 
+            // 2. [MỚI] Kiểm tra Logic Error dù HTTP 200
+            // Dựa trên ảnh: status = 1211 là lỗi "Location full"
+            const resData = res.data; 
+            
+            if (resData && resData.status === 1211) {
+                showToast({ 
+                    type: 'error', 
+                    title: 'Lỗi nhập kho', 
+                    description: 'Không thể nhập: Vị trí kho đã đầy (Location Full).' 
+                });
+                // Dừng hàm tại đây, KHÔNG chuyển trang, giữ lại dữ liệu để user sửa
+                return; 
+            }
+
+            // Kiểm tra các lỗi logic khác (nếu Backend trả về status != 200 cho lỗi)
+            if (resData && resData.status && resData.status !== 200) {
+                 showToast({ 
+                    type: 'error', 
+                    title: 'Thất bại', 
+                    description: resData.message || 'Có lỗi xảy ra khi xử lý.' 
+                });
+                return;
+            }
+
+            // 3. Nếu không có lỗi logic -> Thông báo thành công và chuyển trang
             showToast({ type: 'success', title: 'Thành công', description: 'Đã tạo phiếu kho thành công!' });
-            navigate('/inventory');
+            navigate(DP('inventory'));
+
         } catch (error: any) {
             console.error(error);
+            // Xử lý lỗi HTTP (400, 401, 500...)
             showToast({
                 type: 'error',
                 title: 'Thất bại',
-                description: error?.response?.data?.message || 'Có lỗi xảy ra khi tạo phiếu.'
+                description: error?.response?.data?.message || 'Có lỗi hệ thống xảy ra.'
             });
         } finally {
             setSubmitting(false);
