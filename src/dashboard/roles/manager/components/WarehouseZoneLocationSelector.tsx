@@ -11,13 +11,15 @@ interface WarehouseZoneLocationSelectorProps {
   labelPrefix: string;
   onWarehouseChange: (id: string | null) => void;
   onZoneChange: (id: string | null) => void;
-  onLocationChange: (id: string | null) => void;
+  // [CẬP NHẬT] Thêm tham số code vào callback để lấy tên hiển thị
+  onLocationChange: (id: string | null, code?: string) => void; 
   selectedWarehouseId: string | null;
   selectedZoneId: string | null;
   selectedLocationId: string | null;
   disabled?: boolean;
-  // [MỚI] Prop để điều khiển việc ẩn Zone và Location
-  hideZoneAndLocation?: boolean; 
+  hideZoneAndLocation?: boolean;
+  // [MỚI] Prop để ẩn Warehouse select
+  hideWarehouse?: boolean;
 }
 
 const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps> = ({
@@ -29,26 +31,29 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
   selectedZoneId,
   selectedLocationId,
   disabled = false,
-  // [MỚI] Mặc định là false (vẫn hiện đủ)
-  hideZoneAndLocation = false, 
+  hideZoneAndLocation = false,
+  // [MỚI] Mặc định false
+  hideWarehouse = false,
 }) => {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
 
-  // 1. Load Kho hàng
+  // 1. Load Kho hàng (Chỉ load nếu không ẩn)
   useEffect(() => {
-    const fetchWarehouses = async () => {
-      try {
-        const res = await warehousesService.getWarehouseList();
-        const warehouseList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        setWarehouses(warehouseList);
-      } catch (error) {
-        setWarehouses([]);
-      }
-    };
-    fetchWarehouses();
-  }, []);
+    if (!hideWarehouse) {
+        const fetchWarehouses = async () => {
+        try {
+            const res = await warehousesService.getWarehouseList();
+            const warehouseList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            setWarehouses(warehouseList);
+        } catch (error) {
+            setWarehouses([]);
+        }
+        };
+        fetchWarehouses();
+    }
+  }, [hideWarehouse]);
 
   // 2. Load Khu vực
   useEffect(() => {
@@ -61,7 +66,7 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
         } catch (error) {
           setZones([]);
         }
-        // Chỉ reset nếu zone hiện tại không còn nằm trong danh sách mới
+        // Reset zone khi warehouse đổi
         onZoneChange(null);
       };
       fetchZones();
@@ -91,7 +96,6 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
     }
   }, [selectedZoneId]);
 
-  // Helper map dữ liệu
   const mapToOptions = (data: any[], valueKey: string, labelKey: string) => {
     if (!Array.isArray(data)) return [];
     return data.map(item => ({
@@ -100,39 +104,31 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
     }));
   };
 
-  // Xác định trạng thái disable cho từng cấp
-  // 1. Disable Kho nếu component bị disable tổng
   const isWarehouseDisabled = disabled;
-  
-  // 2. Disable Zone nếu chưa chọn Kho HOẶC component bị disable tổng
   const isZoneDisabled = disabled || !selectedWarehouseId;
-
-  // 3. Disable Location nếu chưa chọn Zone HOẶC component bị disable tổng
   const isLocationDisabled = disabled || !selectedZoneId;
-
-  // Class chung để tạo hiệu ứng disabled
   const getWrapperClass = (isDisabled: boolean) => 
     `w-full transition-opacity duration-200 ${isDisabled ? 'opacity-50 pointer-events-none grayscale' : ''}`;
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Kho hàng - Luôn hiển thị */}
-      <div className={getWrapperClass(isWarehouseDisabled)}>
-        <CustomDropdown
-          id="warehouse-select"
-          label={`${labelPrefix} Kho hàng`}
-          placeholder="Chọn kho hàng..."
-          value={selectedWarehouseId || ''}
-          options={mapToOptions(warehouses, 'id', 'warehouseName')}
-          onChange={(val) => onWarehouseChange(val)}
-          fullWidth
-        />
-      </div>
+      {/* [SỬA ĐỔI] Chỉ hiển thị nếu hideWarehouse = false */}
+      {!hideWarehouse && (
+          <div className={getWrapperClass(isWarehouseDisabled)}>
+            <CustomDropdown
+              id="warehouse-select"
+              label={`${labelPrefix} Kho hàng`}
+              placeholder="Chọn kho hàng..."
+              value={selectedWarehouseId || ''}
+              options={mapToOptions(warehouses, 'id', 'warehouseName')}
+              onChange={(val) => onWarehouseChange(val)}
+              fullWidth
+            />
+          </div>
+      )}
 
-      {/* [MỚI] Kiểm tra điều kiện: Nếu hideZoneAndLocation là true thì ẩn 2 block bên dưới */}
       {!hideZoneAndLocation && (
         <>
-          {/* Khu vực */}
           <div className={getWrapperClass(isZoneDisabled)}>
             <CustomDropdown
               id="zone-select"
@@ -145,7 +141,6 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
             />
           </div>
 
-          {/* Vị trí */}
           <div className={getWrapperClass(isLocationDisabled)}>
             <CustomDropdown
               id="location-select"
@@ -153,7 +148,11 @@ const WarehouseZoneLocationSelector: React.FC<WarehouseZoneLocationSelectorProps
               placeholder={!selectedZoneId ? "Vui lòng chọn Khu vực trước" : "Chọn vị trí..."}
               value={selectedLocationId || ''}
               options={mapToOptions(locations, 'id', 'code')}
-              onChange={(val) => onLocationChange(val)}
+              onChange={(val) => {
+                // [CẬP NHẬT] Tìm object location để lấy code
+                const foundLoc = locations.find(l => l.id === val);
+                onLocationChange(val, foundLoc?.code);
+              }}
               fullWidth
             />
           </div>

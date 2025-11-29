@@ -214,6 +214,9 @@ const CreateInventoryPage: React.FC = () => {
                         <ProductSelector
                             key={selectorKey}
                             onSelectionChange={setTempSelection}
+                            // [MỚI] Truyền props để switch logic
+                            type={type}
+                            currentWarehouseId={currentWarehouseId}
                         />
                     </div>
                 </div>
@@ -428,7 +431,7 @@ const CreateInventoryPage: React.FC = () => {
                                         onWarehouseChange={(id) => { setToWarehouseId(id); setToZoneId(null); setToLocationId(null); }}
                                         onZoneChange={(id) => { setToZoneId(id); setToLocationId(null); }}
                                         onLocationChange={(id) => setToLocationId(id)}
-                                        
+
                                         hideZoneAndLocation={true} // <--- [MỚI] Thêm dòng này
                                     />
                                 </Box>
@@ -444,15 +447,24 @@ const CreateInventoryPage: React.FC = () => {
                         onClick={handleSaveTicket}
                         disabled={submitting || items.length === 0}
                         startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                        // [Sửa đổi]: Thêm !text-white để chữ trắng
+                        // [Sửa đổi]: Thêm dark:!bg-gray-700 (xám sáng hơn nền 900) và dark:hover:!bg-gray-600
+                        className="!text-white dark:!bg-gray-700 dark:hover:!bg-gray-600"
                         sx={{ py: 1.5, fontWeight: 'bold' }}
                     >
                         {submitting ? 'ĐANG LƯU...' : 'HOÀN TẤT & LƯU PHIẾU'}
                     </Button>
+
                     <Button
                         variant="contained"
-                        color="inherit"
+                        color="error"
                         onClick={() => navigate('/inventory')}
-                        sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                        // [Sửa đổi]: Xóa 'text.secondary', ép màu trắng và in đậm
+                        sx={{
+                            borderColor: 'divider',
+                            fontWeight: 'bold',
+                            color: 'white'
+                        }}
                     >
                         Hủy bỏ
                     </Button>
