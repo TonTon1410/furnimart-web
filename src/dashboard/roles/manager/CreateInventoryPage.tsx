@@ -213,7 +213,7 @@ const CreateInventoryPage: React.FC = () => {
     if (!currentWarehouseId) return (
         <div className="p-10 text-center text-red-500">
             <Typography variant="h6">Lỗi: Không tìm thấy ID kho</Typography>
-            <Button onClick={() => navigate('/inventory')}>Quay về danh sách</Button>
+            <Button onClick={() => navigate(DP('inventory'))}>Quay về danh sách</Button>
         </div>
     );
 
@@ -487,7 +487,7 @@ const CreateInventoryPage: React.FC = () => {
                     <Button
                         variant="contained"
                         color="error"
-                        onClick={() => navigate('/inventory')}
+                        onClick={() => navigate(DP('inventory'))}
                         // [Sửa đổi]: Xóa 'text.secondary', ép màu trắng và in đậm
                         sx={{
                             borderColor: 'divider',
