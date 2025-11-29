@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   TextField, Autocomplete, Typography, Box, CircularProgress, Alert,
-  Avatar, Stack, Grid, Tooltip, Zoom, Divider, Fade, useTheme
+  Avatar, Stack, Grid, Tooltip, Zoom, Divider, Fade, useTheme,
+  Radio, RadioGroup, FormControlLabel, FormControl, FormLabel
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
@@ -15,7 +16,6 @@ import {
 import { productService } from '@/service/homeService';
 import inventoryService, { type InventoryLocationDetail } from '@/service/inventoryService';
 import { useWarehouseData } from '../hook/useWarehouseData';
-// [MỚI] Import selector
 import WarehouseZoneLocationSelector from './WarehouseZoneLocationSelector';
 
 // --- Interfaces ---
@@ -56,20 +56,21 @@ export interface ProductSelectionResult {
 interface ProductSelectorProps {
   onSelectionChange?: (result: ProductSelectionResult | null) => void;
   key?: number;
-  // [MỚI] Thêm prop để xác định loại phiếu và ID kho hiện tại
   type?: string; 
   currentWarehouseId?: string;
 }
 
+// [MỚI] Enum cho phương thức nhập
+type ImportMethod = 'EXISTING' | 'NEW';
+
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   onSelectionChange,
-  type = 'IMPORT', // Mặc định import
+  type = 'IMPORT', 
   currentWarehouseId
 }) => {
   const theme = useTheme();
-  // Chỉ dùng storeId nếu không có currentWarehouseId truyền vào (hoặc logic cũ)
   const { storeId: storeIdFromHook, loading: storeLoading } = useWarehouseData();
-  const activeStoreId = storeIdFromHook; // Vẫn giữ logic lấy storeId nếu cần
+  const activeStoreId = storeIdFromHook; 
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -78,15 +79,18 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProductColorId, setSelectedProductColorId] = useState<string | null>(null);
   
-  // State cho EXPORT/TRANSFER (Chọn từ danh sách có sẵn)
+  // State cho EXPORT/TRANSFER hoặc IMPORT (Option 1 - Vị trí có sẵn)
   const [locations, setLocations] = useState<InventoryLocationDetail[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<InventoryLocationDetail | null>(null);
   const [loadingLocations, setLoadingLocations] = useState(false);
 
-  // State cho IMPORT (Chọn WarehouseZoneLocationSelector)
+  // State cho IMPORT (Option 2 - Chọn Khu vực/Vị trí mới)
   const [importZoneId, setImportZoneId] = useState<string | null>(null);
   const [importLocationId, setImportLocationId] = useState<string | null>(null);
   const [importLocationCode, setImportLocationCode] = useState<string>('');
+
+  // [MỚI] State chọn phương thức nhập: Mặc định là nhập vào vị trí có sẵn nếu có thể
+  const [importMethod, setImportMethod] = useState<ImportMethod>('EXISTING');
 
   const isImportMode = type === 'IMPORT';
 
@@ -120,20 +124,24 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     fetchProducts();
   }, []);
 
-  // [SỬA ĐỔI] Chỉ fetch locations nếu KHÔNG PHẢI là IMPORT
+  // [SỬA ĐỔI QUAN TRỌNG] Fetch locations cho cả IMPORT và EXPORT
+  // Để Import Option 1 có dữ liệu để hiển thị
   useEffect(() => {
     setLocations([]);
     setSelectedLocation(null);
     
-    // Reset state của Import mode
+    // Reset state của Import Option 2
     setImportZoneId(null);
     setImportLocationId(null);
     setImportLocationCode('');
 
+    // Reset Import Method về mặc định
+    setImportMethod('EXISTING');
+
     if (!selectedProductColorId || !activeStoreId) return;
 
-    // Nếu là IMPORT thì không cần fetch inventory location
-    if (isImportMode) return;
+    // [LƯU Ý] Đã xóa dòng chặn: if (isImportMode) return; 
+    // Chúng ta CẦN fetch locations kể cả khi Import để user biết vị trí nào đang có hàng.
 
     const fetchLocations = async () => {
       setLoadingLocations(true);
@@ -150,7 +158,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       }
     };
     fetchLocations();
-  }, [selectedProductColorId, activeStoreId, isImportMode]);
+  }, [selectedProductColorId, activeStoreId]); 
+  // [LƯU Ý] Xóa isImportMode khỏi dependencies để tránh re-fetch không cần thiết khi đổi type bên ngoài
 
   useEffect(() => {
     setSelectedProductColorId(null);
@@ -170,13 +179,22 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         let finalLocationCode = '';
 
         if (isImportMode) {
-            // Logic cho IMPORT
-            if (importLocationId) {
-                finalLocationId = importLocationId;
-                finalLocationCode = importLocationCode;
+            // --- LOGIC IMPORT MỚI ---
+            if (importMethod === 'NEW') {
+                // Option 2: Chọn vị trí từ Selector
+                if (importLocationId) {
+                    finalLocationId = importLocationId;
+                    finalLocationCode = importLocationCode;
+                }
+            } else {
+                // Option 1: Chọn vị trí có sẵn (giống Export)
+                if (selectedLocation) {
+                    finalLocationId = selectedLocation.locationItemId;
+                    finalLocationCode = selectedLocation.locationCode;
+                }
             }
         } else {
-            // Logic cho EXPORT/TRANSFER
+            // Logic cho EXPORT/TRANSFER (Luôn chọn từ danh sách có sẵn)
             if (selectedLocation) {
                 finalLocationId = selectedLocation.locationItemId;
                 finalLocationCode = selectedLocation.locationCode;
@@ -202,12 +220,13 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   }, [
       selectedProductColorId, 
-      selectedLocation, // Cho export
-      importLocationId, // Cho import
+      selectedLocation, 
+      importLocationId, 
       selectedProduct, 
       onSelectionChange, 
       currentDisplayImage,
-      isImportMode
+      isImportMode,
+      importMethod // [MỚI] Thêm dependency này
   ]);
 
   const availableColors = useMemo(() => selectedProduct?.productColors || [], [selectedProduct]);
@@ -220,7 +239,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 160;
   };
 
-  // ... (Giữ nguyên phần Styles commonInputStyle, dropdownPaperStyle, dropdownOptionClass)
   const commonInputStyle = {
     '& .MuiInputLabel-root': { color: 'text.primary' },
     '.dark & .MuiInputLabel-root': { color: 'white' },
@@ -258,7 +276,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   return (
     <Box>
-        {/* 1. Ô TÌM KIẾM SẢN PHẨM (Giữ nguyên) */}
+        {/* 1. Ô TÌM KIẾM SẢN PHẨM */}
         <Autocomplete
           options={allProducts}
           getOptionLabel={(product) => product.name}
@@ -298,7 +316,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         <Fade in={!!selectedProduct} mountOnEnter unmountOnExit>
           <Box sx={{ mt: 3 }}>
             <Grid container spacing={3}>
-              {/* Ảnh sản phẩm (Giữ nguyên) */}
+              {/* Ảnh sản phẩm */}
               <Grid size={{ xs: 12, md: 4 }}>
                 <Box sx={{ p: 2, border: '1px solid', borderColor: 'rgba(128, 128, 128, 0.5)', borderRadius: 1, height: '100%', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {currentDisplayImage ? (
@@ -359,23 +377,51 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     )}
                   </Box>
 
-                  {/* [SỬA ĐỔI] Chọn Vị Trí: Switch logic */}
+                  {/* [SỬA ĐỔI CHÍNH] Chọn Vị Trí */}
                   {selectedProductColorId && (
                     <Zoom in={!!selectedProductColorId}>
                       <Box>
-                         {isImportMode ? (
-                            // --- CASE 1: NHẬP HÀNG (Dùng WarehouseZoneLocationSelector) ---
+                         {/* --- SWITCH CHẾ ĐỘ NHẬP (Chỉ hiện khi IMPORT) --- */}
+                         {isImportMode && (
+                            <Box sx={{ mb: 2 }}>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend" className="dark:text-gray-300 !text-sm !mb-1">Phương thức nhập kho</FormLabel>
+                                    <RadioGroup
+                                        row
+                                        name="importMethod"
+                                        value={importMethod}
+                                        onChange={(e) => setImportMethod(e.target.value as ImportMethod)}
+                                    >
+                                        <FormControlLabel 
+                                            value="EXISTING" 
+                                            control={<Radio size="small" />} 
+                                            label={<Typography variant="body2" className="dark:text-white">Vị trí có sẵn {locations.length > 0 ? `(${locations.length})` : ''}</Typography>} 
+                                            className="mr-4"
+                                        />
+                                        <FormControlLabel 
+                                            value="NEW" 
+                                            control={<Radio size="small" />} 
+                                            label={<Typography variant="body2" className="dark:text-white">Chọn vị trí khác</Typography>} 
+                                        />
+                                    </RadioGroup>
+                                </FormControl>
+                            </Box>
+                         )}
+
+                         {/* --- RENDER INPUT TƯƠNG ỨNG --- */}
+                         {(isImportMode && importMethod === 'NEW') ? (
+                            // --- OPTION 2: NHẬP VÀO VỊ TRÍ MỚI/KHÁC ---
                             currentWarehouseId ? (
                                 <Box className="p-3 border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                                     <Typography variant="subtitle2" className="mb-2 text-emerald-800 dark:text-emerald-300 font-semibold">
-                                        Chọn vị trí để nhập hàng:
+                                        Chọn khu vực & vị trí đích:
                                     </Typography>
                                     <WarehouseZoneLocationSelector
                                         labelPrefix=""
                                         selectedWarehouseId={currentWarehouseId}
                                         selectedZoneId={importZoneId}
                                         selectedLocationId={importLocationId}
-                                        onWarehouseChange={() => {}} // Disabled/Hidden anyway
+                                        onWarehouseChange={() => {}} 
                                         onZoneChange={(id) => {
                                             setImportZoneId(id);
                                             setImportLocationId(null);
@@ -384,14 +430,15 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                                             setImportLocationId(id);
                                             setImportLocationCode(code || '');
                                         }}
-                                        hideWarehouse={true} // Ẩn Warehouse
+                                        hideWarehouse={true} 
                                     />
                                 </Box>
                             ) : (
                                 <Alert severity="warning">Vui lòng chọn Kho nguồn trước khi chọn sản phẩm.</Alert>
                             )
                          ) : (
-                            // --- CASE 2: XUẤT/CHUYỂN (Dùng logic cũ) ---
+                            // --- OPTION 1: NHẬP VÀO VỊ TRÍ CÓ SẴN (Hoặc Export/Transfer) ---
+                            // Sử dụng Autocomplete để hiển thị danh sách locations đã fetch
                             <Autocomplete
                                 options={locations}
                                 disabled={loadingLocations}
@@ -403,8 +450,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                                 renderInput={(params) => (
                                   <TextField 
                                     {...params} 
-                                    label="Chọn Vị trí lấy hàng"
-                                    placeholder={loadingLocations ? "Đang tìm..." : "Kệ hàng / Vị trí"}
+                                    label={isImportMode ? "Chọn vị trí có sẵn để nhập thêm" : "Chọn Vị trí lấy hàng"}
+                                    placeholder={loadingLocations ? "Đang tìm..." : (locations.length === 0 ? "Sản phẩm chưa có trong kho này" : "Kệ hàng / Vị trí")}
                                     variant="outlined"
                                     sx={commonInputStyle}
                                     InputProps={{
@@ -428,13 +475,20 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                                         <Box>
                                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'inherit' }}>{option.locationCode}</Typography>
                                           <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.8 }}>
-                                            Có sẵn: {option.available}
+                                            Đang có: {option.available} sản phẩm
                                           </Typography>
                                         </Box>
                                       </Box>
                                     );
                                 }}
-                                noOptionsText={<Typography className="text-gray-500 dark:text-white">Hết hàng hoặc chưa có vị trí</Typography>}
+                                noOptionsText={
+                                    <Typography className="text-gray-500 dark:text-white">
+                                        {isImportMode 
+                                            ? "Sản phẩm chưa có ở vị trí nào. Vui lòng chọn 'Chọn vị trí khác'." 
+                                            : "Hết hàng hoặc chưa có vị trí"
+                                        }
+                                    </Typography>
+                                }
                             />
                          )}
                       </Box>

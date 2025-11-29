@@ -11,13 +11,17 @@ import {
     Delete as DeleteIcon,
     Add as AddIcon,
     CompareArrows as TransferIcon,
-    Input as ImportIcon,
-    Output as ExportIcon,
+    // ImportIcon, // Lưu ý: Kiểm tra import icon chính xác từ library của bạn
+    // Output as ExportIcon, // Lưu ý: Kiểm tra import icon chính xác từ library của bán
     Description as NoteIcon,
     ArrowBack,
     ImageNotSupported as ImageIcon,
-    Search as SearchIcon // [Mới] Thêm icon tìm kiếm
+    Search as SearchIcon
 } from '@mui/icons-material';
+// Fix import Import/Export icon nếu thư viện không có sẵn tên này, dùng alias
+import InputIcon from '@mui/icons-material/Input'; // Thay thế ImportIcon
+import OutputIcon from '@mui/icons-material/Output'; // Thay thế ExportIcon
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DP } from '@/router/paths';
 
@@ -32,8 +36,8 @@ import CustomDropdown from '@/components/CustomDropdown';
 
 // --- Constants ---
 const TYPE_OPTIONS = [
-    { value: 'IMPORT', label: 'Nhập hàng', icon: <ImportIcon color="success" /> },
-    { value: 'EXPORT', label: 'Xuất hàng', icon: <ExportIcon color="error" /> },
+    { value: 'IMPORT', label: 'Nhập hàng', icon: <InputIcon color="success" /> },
+    { value: 'EXPORT', label: 'Xuất hàng', icon: <OutputIcon color="error" /> },
     { value: 'TRANSFER', label: 'Chuyển kho', icon: <TransferIcon color="warning" /> },
 ];
 
@@ -162,11 +166,7 @@ const CreateInventoryPage: React.FC = () => {
                 })),
             };
 
-            // 1. Gọi API và hứng lấy response
             const res = await inventoryService.createOrUpdateInventory(payload);
-
-            // 2. [MỚI] Kiểm tra Logic Error dù HTTP 200
-            // Dựa trên ảnh: status = 1211 là lỗi "Location full"
             const resData = res.data; 
             
             if (resData && resData.status === 1211) {
@@ -175,11 +175,9 @@ const CreateInventoryPage: React.FC = () => {
                     title: 'Lỗi nhập kho', 
                     description: 'Không thể nhập: Vị trí kho đã đầy (Location Full).' 
                 });
-                // Dừng hàm tại đây, KHÔNG chuyển trang, giữ lại dữ liệu để user sửa
                 return; 
             }
 
-            // Kiểm tra các lỗi logic khác (nếu Backend trả về status != 200 cho lỗi)
             if (resData && resData.status && resData.status !== 200) {
                  showToast({ 
                     type: 'error', 
@@ -189,13 +187,11 @@ const CreateInventoryPage: React.FC = () => {
                 return;
             }
 
-            // 3. Nếu không có lỗi logic -> Thông báo thành công và chuyển trang
             showToast({ type: 'success', title: 'Thành công', description: 'Đã tạo phiếu kho thành công!' });
             navigate(DP('inventory'));
 
         } catch (error: any) {
             console.error(error);
-            // Xử lý lỗi HTTP (400, 401, 500...)
             showToast({
                 type: 'error',
                 title: 'Thất bại',
@@ -228,10 +224,12 @@ const CreateInventoryPage: React.FC = () => {
                     <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>Quay lại</Button>
                 </div>
 
-                {/* 1. Product Selector (Đã được bọc giao diện - MỚI) */}
-                <div className={`${cardBgClass} overflow-hidden`}>
+                {/* 1. Product Selector */}
+                {/* [SỬA LỖI] Xóa class 'overflow-hidden' ở đây để Dropdown có thể hiển thị đè lên các phần tử khác */}
+                <div className={`${cardBgClass}`}> 
                     {/* Header Box */}
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center gap-2">
+                    {/* [SỬA LỖI] Thêm 'rounded-t-xl' để bo góc trên (do parent đã mất overflow-hidden) */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center gap-2 rounded-t-xl">
                         <SearchIcon color="primary" />
                         <Typography variant="subtitle1" className={textTitleClass}>
                             TÌM KIẾM SẢN PHẨM
@@ -243,7 +241,6 @@ const CreateInventoryPage: React.FC = () => {
                         <ProductSelector
                             key={selectorKey}
                             onSelectionChange={setTempSelection}
-                            // [MỚI] Truyền props để switch logic
                             type={type}
                             currentWarehouseId={currentWarehouseId}
                         />
@@ -278,21 +275,11 @@ const CreateInventoryPage: React.FC = () => {
                                                 <Typography className="dark:!text-white">cái</Typography>
                                             </InputAdornment>
                                         ),
-                                        // !bg-gray-900: Ép nền đen
-                                        // !text-white: Ép chữ trắng
                                         className: "bg-white dark:!bg-gray-900 dark:!text-white"
                                     }}
-                                    InputLabelProps={{
-                                        // !text-white: Ép nhãn (Label) màu trắng
-                                        className: "dark:!text-white"
-                                    }}
-                                    inputProps={{
-                                        // Ép màu placeholder
-                                        className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
-                                    }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': { bgcolor: 'bg-white dark:bg-gray-900' }
-                                    }}
+                                    InputLabelProps={{ className: "dark:!text-white" }}
+                                    inputProps={{ className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300" }}
+                                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'bg-white dark:bg-gray-900' } }}
                                     autoFocus
                                 />
                             </Grid>
@@ -313,8 +300,9 @@ const CreateInventoryPage: React.FC = () => {
                 )}
 
                 {/* 2. Danh sách sản phẩm đã thêm */}
-                <div className={`${cardBgClass} overflow-hidden`}>
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
+                {/* [SỬA LỖI] Tương tự, xóa overflow-hidden ở đây nếu cần dropdown (dù bảng ít khi cần) */}
+                <div className={`${cardBgClass}`}>
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center rounded-t-xl">
                         <Typography variant="subtitle1" className={textTitleClass}>
                             DANH SÁCH CHỜ ({items.length})
                         </Typography>
@@ -409,18 +397,10 @@ const CreateInventoryPage: React.FC = () => {
                                 type="number"
                                 fullWidth
                                 helperText="Nhập nếu phiếu này liên quan đến đơn hàng"
-                                InputProps={{
-                                    className: "bg-white dark:!bg-gray-900 dark:!text-white"
-                                }}
-                                InputLabelProps={{
-                                    className: "dark:!text-white"
-                                }}
-                                inputProps={{
-                                    className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
-                                }}
-                                FormHelperTextProps={{
-                                    className: "dark:!text-gray-400"
-                                }}
+                                InputProps={{ className: "bg-white dark:!bg-gray-900 dark:!text-white" }}
+                                InputLabelProps={{ className: "dark:!text-white" }}
+                                inputProps={{ className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300" }}
+                                FormHelperTextProps={{ className: "dark:!text-gray-400" }}
                             />
                         )}
 
@@ -432,15 +412,9 @@ const CreateInventoryPage: React.FC = () => {
                             rows={4}
                             fullWidth
                             placeholder="Nhập ghi chú chi tiết..."
-                            InputProps={{
-                                className: "bg-white dark:!bg-gray-900 dark:!text-white"
-                            }}
-                            InputLabelProps={{
-                                className: "dark:!text-white"
-                            }}
-                            inputProps={{
-                                className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300"
-                            }}
+                            InputProps={{ className: "bg-white dark:!bg-gray-900 dark:!text-white" }}
+                            InputLabelProps={{ className: "dark:!text-white" }}
+                            inputProps={{ className: "placeholder:text-gray-400 dark:placeholder:!text-gray-300" }}
                         />
 
                         {/* Khối Chuyển kho */}
@@ -460,8 +434,7 @@ const CreateInventoryPage: React.FC = () => {
                                         onWarehouseChange={(id) => { setToWarehouseId(id); setToZoneId(null); setToLocationId(null); }}
                                         onZoneChange={(id) => { setToZoneId(id); setToLocationId(null); }}
                                         onLocationChange={(id) => setToLocationId(id)}
-
-                                        hideZoneAndLocation={true} // <--- [MỚI] Thêm dòng này
+                                        hideZoneAndLocation={true} 
                                     />
                                 </Box>
                             </div>
@@ -476,8 +449,6 @@ const CreateInventoryPage: React.FC = () => {
                         onClick={handleSaveTicket}
                         disabled={submitting || items.length === 0}
                         startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                        // [Sửa đổi]: Thêm !text-white để chữ trắng
-                        // [Sửa đổi]: Thêm dark:!bg-gray-700 (xám sáng hơn nền 900) và dark:hover:!bg-gray-600
                         className="!text-white dark:!bg-gray-700 dark:hover:!bg-gray-600"
                         sx={{ py: 1.5, fontWeight: 'bold' }}
                     >
@@ -488,12 +459,7 @@ const CreateInventoryPage: React.FC = () => {
                         variant="contained"
                         color="error"
                         onClick={() => navigate(DP('inventory'))}
-                        // [Sửa đổi]: Xóa 'text.secondary', ép màu trắng và in đậm
-                        sx={{
-                            borderColor: 'divider',
-                            fontWeight: 'bold',
-                            color: 'white'
-                        }}
+                        sx={{ borderColor: 'divider', fontWeight: 'bold', color: 'white' }}
                     >
                         Hủy bỏ
                     </Button>
