@@ -628,13 +628,13 @@ const CreateInventoryPage: React.FC = () => {
                   color="warning.main"
                   fontWeight="bold"
                 >
-                  CHUYỂN ĐẾN (DESTINATION)
+                  CHUYỂN TỪ
                 </Typography>
                 <Divider className="border-orange-200 dark:border-orange-800" />
 
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
                   <WarehouseZoneLocationSelector
-                    labelPrefix="Đích"
+                    labelPrefix="Từ"
                     selectedWarehouseId={toWarehouseId}
                     selectedZoneId={toZoneId}
                     selectedLocationId={toLocationId}
