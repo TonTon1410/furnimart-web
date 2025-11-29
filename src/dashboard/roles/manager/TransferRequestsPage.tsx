@@ -73,7 +73,7 @@ export default function TransferRequestsPage() {
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [productColors, setProductColors] = useState<
     Map<string, ProductColorDetail>
   >(new Map());
@@ -105,14 +105,14 @@ export default function TransferRequestsPage() {
 
   // Load product color details when requests are loaded or expanded
   useEffect(() => {
-    if (expandedId !== null) {
-      const request = requests.find((r) => r.id === expandedId);
-      if (request) {
+    if (expandedIds.size > 0) {
+      const expandedRequests = requests.filter((r) => expandedIds.has(r.id));
+      expandedRequests.forEach((request) => {
         loadProductColors(request.itemResponseList);
-      }
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expandedId, requests]);
+  }, [expandedIds, requests]);
 
   const loadWarehouseAndRequests = async () => {
     try {
@@ -160,7 +160,15 @@ export default function TransferRequestsPage() {
   };
 
   const toggleExpand = (id: number) => {
-    setExpandedId(expandedId === id ? null : id);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -335,7 +343,10 @@ export default function TransferRequestsPage() {
               className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
               {/* Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div
+                className="p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                onClick={() => toggleExpand(request.id)}
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -380,22 +391,24 @@ export default function TransferRequestsPage() {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => toggleExpand(request.id)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    aria-label="Toggle details"
-                  >
-                    {expandedId === request.id ? (
+                  <div className="shrink-0">
+                    {expandedIds.has(request.id) ? (
                       <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     ) : (
                       <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
 
               {/* Expanded Details */}
-              {expandedId === request.id && (
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  expandedIds.has(request.id)
+                    ? "max-h-[2000px] opacity-100"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
                 <div className="p-4 bg-gray-50 dark:bg-gray-900">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                     Chi tiết sản phẩm
@@ -473,7 +486,7 @@ export default function TransferRequestsPage() {
                     })}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
