@@ -6,6 +6,7 @@ import {
   MessageCircle,
   Palette,
   Truck,
+  Warehouse,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -14,6 +15,12 @@ export const sellerNav = (): RoleNav => ({
   main: [
     { icon: <Package />, name: "Quản lí sản phẩm", path: DP("products") },
     { icon: <Palette />, name: "Quản lí màu sắc", path: DP("colors") },
+    { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
+    {
+      icon: <Warehouse />,
+      name: "Sơ đồ kho hàng",
+      path: DP("warehouse-map"),
+    },
     {
       icon: <Truck />,
       name: "Quản lý giao hàng",

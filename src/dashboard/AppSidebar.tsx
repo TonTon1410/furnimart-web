@@ -10,21 +10,37 @@ import { authService } from "@/service/authService";
 import { DP } from "@/router/paths";
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    toggleMobileSidebar,
+  } = useSidebar();
   const location = useLocation();
 
   const role = (authService.getRole?.() as RoleKey) || "seller";
 
-  // ⚡️ Chỉ tính lại khi role thay đổi
-  const { main: navItems, others: othersItems = [] } = useMemo(
-    () => getNavForRole(role),
-    [role]
-  );
+  const [navItems, setNavItems] = useState<any[]>([]);
+  const [othersItems, setOthersItems] = useState<any[]>([]);
 
-  const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(
-    null
+  // ⚡️ Load navigation items asynchronously
+  useEffect(() => {
+    const loadNav = async () => {
+      const nav = await getNavForRole(role);
+      setNavItems(nav.main);
+      setOthersItems(nav.others || []);
+    };
+    loadNav();
+  }, [role]);
+
+  const [openSubmenu, setOpenSubmenu] = useState<{
+    type: "main" | "others";
+    index: number;
+  } | null>(null);
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
+    {}
   );
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const normalize = (p: string) => p.replace(/\/+$/, "");
@@ -82,7 +98,8 @@ const AppSidebar: React.FC = () => {
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => {
         const key = `${type}-${index}`;
-        const isOpen = openSubmenu?.type === type && openSubmenu?.index === index;
+        const isOpen =
+          openSubmenu?.type === type && openSubmenu?.index === index;
         const currentHeight = subMenuHeight[key] || 0;
 
         return (
@@ -94,11 +111,17 @@ const AppSidebar: React.FC = () => {
                   onClick={() => toggleSub(index, type)}
                   className={`menu-item group ${
                     isOpen ? "menu-item-active" : "menu-item-inactive"
-                  } ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
+                  } ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "lg:justify-start"
+                  }`}
                 >
                   <span
                     className={`menu-item-icon-size ${
-                      isOpen ? "menu-item-icon-active" : "menu-item-icon-inactive"
+                      isOpen
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
                     }`}
                   >
                     {nav.icon}
@@ -152,7 +175,9 @@ const AppSidebar: React.FC = () => {
                 <Link
                   to={nav.path}
                   className={`menu-item group ${
-                    isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                    isActive(nav.path)
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
                   }`}
                 >
                   <span
@@ -165,7 +190,19 @@ const AppSidebar: React.FC = () => {
                     {nav.icon}
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">{nav.name}</span>
+                    <>
+                      <span className="menu-item-text">{nav.name}</span>
+                      {nav.badge && (
+                        <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                          {nav.badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {!isExpanded && !isHovered && !isMobileOpen && nav.badge && (
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {nav.badge > 9 ? "9+" : nav.badge}
+                    </span>
                   )}
                 </Link>
               )
@@ -190,8 +227,16 @@ const AppSidebar: React.FC = () => {
         className={`fixed mt-16 lg:mt-0 top-0 left-0 h-screen px-5 z-40 bg-white text-gray-900
           lg:border-r border-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-800
           transition-all duration-300 ease-in-out
-          ${isExpanded || isMobileOpen ? "w-[290px]" : isHovered ? "w-[290px]" : "w-[90px]"}
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+          ${
+            isExpanded || isMobileOpen
+              ? "w-[290px]"
+              : isHovered
+              ? "w-[290px]"
+              : "w-[90px]"
+          }
+          ${
+            isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
         onMouseEnter={() => !isExpanded && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -219,10 +264,16 @@ const AppSidebar: React.FC = () => {
               <div>
                 <h2
                   className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                    !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "justify-start"
                   }`}
                 >
-                  {isExpanded || isHovered || isMobileOpen ? "Menu" : <MoreHorizontal className="size-6" />}
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "Menu"
+                  ) : (
+                    <MoreHorizontal className="size-6" />
+                  )}
                 </h2>
                 {renderItems(navItems, "main")}
               </div>
@@ -231,10 +282,16 @@ const AppSidebar: React.FC = () => {
                 <div>
                   <h2
                     className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                      !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+                      !isExpanded && !isHovered
+                        ? "lg:justify-center"
+                        : "justify-start"
                     }`}
                   >
-                    {isExpanded || isHovered || isMobileOpen ? "Others" : <MoreHorizontal />}
+                    {isExpanded || isHovered || isMobileOpen ? (
+                      "Others"
+                    ) : (
+                      <MoreHorizontal />
+                    )}
                   </h2>
                   {renderItems(othersItems, "others")}
                 </div>

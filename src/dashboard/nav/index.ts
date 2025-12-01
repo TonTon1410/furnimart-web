@@ -6,12 +6,17 @@ import { sellerNav } from "./seller";
 import { managerNav } from "./manager";
 import { deliveryNav } from "./delivery";
 
-export const getNavForRole: GetNav = (role: RoleKey) => {
+export const getNavForRole: GetNav = async (role: RoleKey) => {
   switch (role) {
-    case "admin":    return adminNav();
-    case "seller":   return sellerNav();
-    case "manager":  return managerNav();
-    case "delivery": return deliveryNav();
-    default:         return adminNav();
+    case "admin":
+      return adminNav();
+    case "seller":
+      return sellerNav();
+    case "manager":
+      return await managerNav();
+    case "delivery":
+      return deliveryNav();
+    default:
+      return adminNav();
   }
 };

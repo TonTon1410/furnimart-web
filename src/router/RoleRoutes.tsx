@@ -164,6 +164,8 @@ export default function RoleRoutes() {
         <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
+        <Route path="inventory" element={<InventoryManagement />} />
+        <Route path="warehouse-map" element={<WarehouseMapNew readOnly />} />
         <Route
           path="delivery-management"
           element={<DeliveryManagementPage />}
