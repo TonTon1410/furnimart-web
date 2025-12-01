@@ -60,6 +60,7 @@ interface StoreAvailability {
   storeId: string;
   storeName: string;
   storeAddress: string;
+  addressLine: string;
   storePhone: string;
   totalAvailable: number;
 }
@@ -86,6 +87,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
     StoreAvailability[]
   >([]);
   const [loadingStores, setLoadingStores] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<StoreAvailability | null>(
+    null
+  );
+  const [showStoreDetail, setShowStoreDetail] = useState(false);
 
   const add = useCartStore((s) => s.add);
   const navigate = useNavigate();
@@ -120,9 +125,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         >();
 
         for (const loc of locationsData.locations) {
-          // Lấy storeId từ warehouse (cần gọi API warehouse nếu cần)
-          // Tạm thời dùng storeId từ response nếu có
-          const storeId = locationsData.storeId || loc.warehouseId;
+          // Lấy storeId từ location response
+          const storeId = loc.storeId;
+
+          if (!storeId) continue; // Skip nếu không có storeId
 
           if (!storeMap.has(storeId)) {
             storeMap.set(storeId, { available: 0, warehouseIds: new Set() });
@@ -165,6 +171,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
                 storeId: store.id,
                 storeName: store.name,
                 storeAddress: address,
+                addressLine: store.addressLine || "",
                 storePhone: phone,
                 totalAvailable: data.available,
               } as StoreAvailability;
@@ -249,6 +256,11 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       console.error("Add to cart error:", err);
       alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
     }
+  };
+
+  const handleStoreClick = (store: StoreAvailability) => {
+    setSelectedStore(store);
+    setShowStoreDetail(true);
   };
 
   return (
@@ -374,58 +386,6 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         </div>
       </div>
 
-      {/* Store Availability - Thu gọn hơn */}
-      {selectedColorId && storeAvailability.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm md:text-base font-semibold text-gray-900 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-emerald-600" />
-            Còn hàng tại cửa hàng
-          </h3>
-
-          {loadingStores ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {storeAvailability.map((store) => (
-                <div
-                  key={store.storeId}
-                  className="p-3 border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md transition-all bg-white"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm truncate">
-                        {store.storeName}
-                      </h4>
-
-                      <div className="flex items-start gap-1.5 text-xs text-gray-600">
-                        <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-gray-400" />
-                        <span className="line-clamp-1">
-                          {store.storeAddress}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Phone className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                        <span>{store.storePhone}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 shrink-0">
-                      <Package className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-xs font-semibold text-emerald-700">
-                        {store.totalAvailable}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Nút Thêm giỏ hàng */}
       <button
         onClick={handleOpenConfirm}
@@ -449,6 +409,143 @@ const LeftSection: React.FC<LeftSectionProps> = ({
             : "Thêm vào giỏ hàng"}
         </span>
       </button>
+
+      {/* Store Availability - Thu gọn hơn */}
+      {selectedColorId && storeAvailability.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm md:text-base font-semibold text-gray-900 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-emerald-600" />
+            Còn hàng tại cửa hàng
+          </h3>
+
+          {loadingStores ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {storeAvailability.map((store) => (
+                <div
+                  key={store.storeId}
+                  onClick={() => handleStoreClick(store)}
+                  className="p-3 border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md transition-all bg-white cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-semibold text-gray-900 text-sm flex-1 truncate">
+                      {store.storeName}
+                    </h4>
+
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 shrink-0">
+                      <Package className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-xs font-semibold text-emerald-700">
+                        {store.totalAvailable}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal chi tiết cửa hàng */}
+      {showStoreDetail && selectedStore && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 px-3"
+          onClick={() => setShowStoreDetail(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between">
+              <h3 className="text-xl font-bold text-gray-900">
+                {selectedStore.storeName}
+              </h3>
+              <button
+                onClick={() => setShowStoreDetail(false)}
+                className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                aria-label="Đóng"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Số lượng còn hàng */}
+              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <span className="text-sm font-medium text-gray-700">
+                  Số lượng còn hàng
+                </span>
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-emerald-600" />
+                  <span className="text-lg font-bold text-emerald-700">
+                    {selectedStore.totalAvailable} sản phẩm
+                  </span>
+                </div>
+              </div>
+
+              {/* Địa chỉ */}
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-5 w-5 mt-0.5 shrink-0 text-emerald-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">
+                      Địa chỉ
+                    </p>
+                    {selectedStore.addressLine && (
+                      <p className="text-sm text-gray-700 font-medium">
+                        {selectedStore.addressLine}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {selectedStore.storeAddress}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Số điện thoại */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-5 w-5 shrink-0 text-emerald-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">
+                      Số điện thoại
+                    </p>
+                    <a
+                      href={`tel:${selectedStore.storePhone}`}
+                      className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                    >
+                      {selectedStore.storePhone}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowStoreDetail(false)}
+              className="mt-6 w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       <ConfirmAddToCartModal

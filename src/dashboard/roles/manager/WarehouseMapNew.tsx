@@ -54,7 +54,13 @@ interface ZoneSummary {
   availableCapacity: number;
 }
 
-export default function WarehouseMapNew() {
+interface WarehouseMapNewProps {
+  readOnly?: boolean;
+}
+
+export default function WarehouseMapNew({
+  readOnly = false,
+}: WarehouseMapNewProps) {
   const [warehouse, setWarehouse] = useState<any>(null);
   const [zoneSummaries, setZoneSummaries] = useState<ZoneSummary[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(
@@ -800,7 +806,7 @@ export default function WarehouseMapNew() {
             </div>
           </div>
           <div className="flex gap-3">
-            {warehouse && (
+            {!readOnly && warehouse && (
               <button
                 onClick={handleEditWarehouse}
                 className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -809,13 +815,15 @@ export default function WarehouseMapNew() {
                 Sửa kho
               </button>
             )}
-            <button
-              onClick={handleCreateZone}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 dark:bg-emerald-700 text-white rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Thêm khu vực
-            </button>
+            {!readOnly && (
+              <button
+                onClick={handleCreateZone}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 dark:bg-emerald-700 text-white rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm khu vực
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -834,22 +842,24 @@ export default function WarehouseMapNew() {
                   summary.zone.zoneCode
                 )} relative`}
               >
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <button
-                    onClick={() => handleEditZone(summary.zone)}
-                    className="p-1.5 bg-white rounded-md hover:bg-gray-100 transition-colors"
-                    title="Sửa khu vực"
-                  >
-                    <Edit className="w-3.5 h-3.5 text-gray-600" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteZone(summary.zone.id)}
-                    className="p-1.5 bg-white rounded-md hover:bg-red-50 transition-colors"
-                    title="Xóa khu vực"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                  </button>
-                </div>
+                {!readOnly && (
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      onClick={() => handleEditZone(summary.zone)}
+                      className="p-1.5 bg-white rounded-md hover:bg-gray-100 transition-colors"
+                      title="Sửa khu vực"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteZone(summary.zone.id)}
+                      className="p-1.5 bg-white rounded-md hover:bg-red-50 transition-colors"
+                      title="Xóa khu vực"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                    </button>
+                  </div>
+                )}
                 <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">
                   {summary.zone.zoneName}
                 </div>
@@ -872,15 +882,19 @@ export default function WarehouseMapNew() {
             Chưa có khu vực nào
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            Hãy tạo khu vực đầu tiên để bắt đầu quản lý kho hàng
+            {readOnly
+              ? "Chưa có khu vực nào"
+              : "Hãy tạo khu vực đầu tiên để bắt đầu quản lý kho hàng"}
           </p>
-          <button
-            onClick={handleCreateZone}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo khu vực đầu tiên
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleCreateZone}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Tạo khu vực đầu tiên
+            </button>
+          )}
         </div>
       )}
 
@@ -917,13 +931,15 @@ export default function WarehouseMapNew() {
                       vị trí
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleCreateLocation(summary.zone.id)}
-                    className="flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 rounded-md text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Thêm vị trí
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={() => handleCreateLocation(summary.zone.id)}
+                      className="flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 rounded-md text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Thêm vị trí
+                    </button>
+                  )}
                 </div>
 
                 {/* Locations Grid */}
@@ -947,28 +963,30 @@ export default function WarehouseMapNew() {
                           </div>
                         </button>
                         {/* Quick actions on hover */}
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditLocation(location);
-                            }}
-                            className="p-1 bg-white/90 dark:bg-gray-800/90 rounded hover:bg-white dark:hover:bg-gray-800 transition-colors"
-                            title="Sửa"
-                          >
-                            <Edit className="w-3 h-3 text-gray-700 dark:text-gray-300" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteLocation(location.id);
-                            }}
-                            className="p-1 bg-white/90 dark:bg-gray-800/90 rounded hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-3 h-3 text-red-600 dark:text-red-400" />
-                          </button>
-                        </div>
+                        {!readOnly && (
+                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditLocation(location);
+                              }}
+                              className="p-1 bg-white/90 dark:bg-gray-800/90 rounded hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                              title="Sửa"
+                            >
+                              <Edit className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteLocation(location.id);
+                              }}
+                              className="p-1 bg-white/90 dark:bg-gray-800/90 rounded hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600 dark:text-red-400" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

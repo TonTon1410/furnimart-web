@@ -39,7 +39,17 @@ const SimpleDatePicker: React.FC<{
   label: string;
   value: string | null;
   onChange: (date: string | null) => void;
-}> = ({ label, value, onChange }) => {
+  hasError?: boolean;
+  minDate?: string | null;
+  maxDate?: string | null;
+}> = ({
+  label,
+  value,
+  onChange,
+  hasError = false,
+  minDate = null,
+  maxDate = null,
+}) => {
   const [showPicker, setShowPicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(dayjs(value || undefined));
   const [showYearSelector, setShowYearSelector] = useState(false);
@@ -111,14 +121,22 @@ const SimpleDatePicker: React.FC<{
           const isToday = d.isSame(dayjs(), "day");
           const isSelected = value && d.isSame(dayjs(value), "day");
 
+          // Check if date is disabled based on minDate/maxDate
+          const isDisabled =
+            (minDate && d.isBefore(dayjs(minDate), "day")) ||
+            (maxDate && d.isAfter(dayjs(maxDate), "day"));
+
           return (
             <button
               key={idx}
-              onClick={() => handleDateClick(d)}
+              onClick={() => !isDisabled && handleDateClick(d)}
+              disabled={isDisabled}
               className={`
                 p-2 text-sm rounded-lg transition-all
                 ${
-                  !isCurrentMonth
+                  isDisabled
+                    ? "text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-40"
+                    : !isCurrentMonth
                     ? "text-gray-300 dark:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                     : isSelected
                     ? "bg-emerald-500 text-white font-semibold shadow-md scale-105"
@@ -205,17 +223,31 @@ const SimpleDatePicker: React.FC<{
 
   return (
     <div className="relative flex-1" ref={pickerRef}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <label
+        className={`block text-xs sm:text-sm font-medium mb-1 ${
+          hasError
+            ? "text-red-600 dark:text-red-400"
+            : "text-gray-700 dark:text-gray-300"
+        }`}
+      >
         {label}
       </label>
       <button
         onClick={() => setShowPicker(!showPicker)}
-        className="w-full h-[46px] px-3 py-3 text-left border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors flex items-center justify-between group shadow-sm"
+        className={`w-full h-[42px] sm:h-[46px] px-3 py-2 sm:py-3 text-left rounded-xl text-sm transition-all flex items-center justify-between group shadow-sm ${
+          hasError
+            ? "border-2 border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/10 text-red-900 dark:text-red-100 animate-shake"
+            : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-emerald-400 dark:hover:border-emerald-500"
+        }`}
       >
-        <span className="text-sm">
-          {value ? dayjs(value).format("DD/MM/YYYY") : "Chọn ngày"}
-        </span>
-        <Calendar className="w-4 h-4 text-gray-500 group-hover:text-emerald-500 transition-colors" />
+        <span>{value ? dayjs(value).format("DD/MM/YYYY") : "Chọn ngày"}</span>
+        <Calendar
+          className={`w-4 h-4 transition-colors ${
+            hasError
+              ? "text-red-500"
+              : "text-gray-500 group-hover:text-emerald-500"
+          }`}
+        />
       </button>
 
       {showPicker && (
@@ -371,6 +403,14 @@ export default function InventoryManagement() {
     { value: "EXPORT", label: "Xuất kho" },
     { value: "TRANSFER", label: "Chuyển kho" },
   ];
+
+  // Handle date range change
+  const handleDateRangeChange = (
+    field: "start" | "end",
+    value: string | null
+  ) => {
+    setDateRange({ ...dateRange, [field]: value || "" });
+  };
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -595,67 +635,79 @@ export default function InventoryManagement() {
       </div>
 
       {/* KHỐI 2: Action Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-end">
-        {/* Left: Filters */}
-        <div className="flex flex-col md:flex-row gap-3 w-full lg:flex-1 items-end">
-          {/* Search Box */}
-          <div className="w-full md:flex-1 flex flex-col gap-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-              Tìm kiếm
-            </label>
-            <form onSubmit={handleSearch} className="relative group w-full">
-              <input
-                type="text"
-                placeholder="Nhập mã phiếu..."
-                className="w-full h-[46px] pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 shadow-sm transition-all hover:border-emerald-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:border-emerald-500"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between items-stretch lg:items-end">
+          {/* Left: Filters */}
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 w-full lg:flex-1">
+            {/* Search Box */}
+            <div className="w-full sm:min-w-[200px] sm:flex-1 flex flex-col gap-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200">
+                Tìm kiếm
+              </label>
+              <form onSubmit={handleSearch} className="relative group w-full">
+                <input
+                  type="text"
+                  placeholder="Nhập mã phiếu..."
+                  className="w-full h-[42px] sm:h-[46px] pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 shadow-sm transition-all hover:border-emerald-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:border-emerald-500"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                />
+                <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+              </form>
+            </div>
+
+            <div className="w-full sm:min-w-[180px] sm:flex-1">
+              <CustomDropdown
+                id="filter-type"
+                label="Loại phiếu"
+                value={filterType}
+                options={filterTypeOptions}
+                onChange={(val) => setFilterType(val)}
+                placeholder="Tất cả"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-            </form>
+            </div>
+
+            <div className="w-full sm:w-auto sm:min-w-40">
+              <SimpleDatePicker
+                label="Từ ngày"
+                value={dateRange.start}
+                onChange={(val) => handleDateRangeChange("start", val)}
+                maxDate={dateRange.end || null}
+              />
+            </div>
+
+            <div className="w-full sm:w-auto sm:min-w-40">
+              <SimpleDatePicker
+                label="Đến ngày"
+                value={dateRange.end}
+                onChange={(val) => handleDateRangeChange("end", val)}
+                minDate={dateRange.start || null}
+              />
+            </div>
+
+            {(filterType !== "ALL" || searchId || dateRange.start) && (
+              <div className="w-full sm:w-auto flex items-end">
+                <button
+                  onClick={resetFilters}
+                  className="w-full sm:w-auto px-4 py-2 sm:py-3 h-[42px] sm:h-[46px] text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors whitespace-nowrap border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
+                >
+                  Xóa lọc
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="w-full md:flex-1">
-            <CustomDropdown
-              id="filter-type"
-              label="Loại phiếu"
-              value={filterType}
-              options={filterTypeOptions}
-              onChange={(val) => setFilterType(val)}
-              placeholder="Tất cả"
-            />
-          </div>
-
-          <SimpleDatePicker
-            label="Từ ngày"
-            value={dateRange.start}
-            onChange={(val) => setDateRange({ ...dateRange, start: val || "" })}
-          />
-
-          <SimpleDatePicker
-            label="Đến ngày"
-            value={dateRange.end}
-            onChange={(val) => setDateRange({ ...dateRange, end: val || "" })}
-          />
-
-          {(filterType !== "ALL" || searchId || dateRange.start) && (
+          {/* Right: Primary Action */}
+          <div className="w-full lg:w-auto flex items-end">
             <button
-              onClick={resetFilters}
-              className="px-4 py-3 h-[46px] mb-0.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors whitespace-nowrap border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
+              onClick={handleNavigateToCreate}
+              className="w-full lg:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 h-[42px] sm:h-[46px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
             >
-              Xóa lọc
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Tạo Phiếu Mới
             </button>
-          )}
+          </div>
         </div>
-
-        {/* Right: Primary Action */}
-        <button
-          onClick={handleNavigateToCreate}
-          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 h-[46px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 mb-0.5 whitespace-nowrap"
-        >
-          <Plus className="w-5 h-5" />
-          Tạo Phiếu Mới
-        </button>
       </div>
 
       {/* KHỐI 3: Data Table */}
