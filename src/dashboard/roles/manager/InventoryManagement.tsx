@@ -122,9 +122,10 @@ const SimpleDatePicker: React.FC<{
           const isSelected = value && d.isSame(dayjs(value), "day");
 
           // Check if date is disabled based on minDate/maxDate
-          const isDisabled =
+          const isDisabled = !!(
             (minDate && d.isBefore(dayjs(minDate), "day")) ||
-            (maxDate && d.isAfter(dayjs(maxDate), "day"));
+            (maxDate && d.isAfter(dayjs(maxDate), "day"))
+          );
 
           return (
             <button

@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import type React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { userService } from "@/service/userService";
 import axios from "axios";
 import {
   MapPin,
@@ -494,19 +492,7 @@ export default function AddressPage() {
         const response = await addressService.setDefaultAddress(id);
 
         if (response?.data) {
-          const defaultAddress = response.data;
-          const formattedAddress = addressService.formatAddress(defaultAddress);
-
-          try {
-            const profile = await authService.getProfile();
-            await userService.updateProfile({
-              fullName: profile?.fullName || "",
-              address: formattedAddress,
-            });
-            showToast("success", "Đã đặt làm địa chỉ mặc định!");
-          } catch (error) {
-            showToast("warning", "Đã đặt mặc định nhưng chưa cập nhật profile");
-          }
+          showToast("success", "Đã đặt làm địa chỉ mặc định!");
         }
 
         await fetchAddresses();
@@ -568,6 +554,7 @@ export default function AddressPage() {
             <button
               onClick={() => removeToast(toast.id)}
               className="shrink-0 p-1 hover:opacity-70 transition-opacity"
+              aria-label="Đóng thông báo"
             >
               <X className="h-3 w-3" />
             </button>
@@ -682,6 +669,7 @@ export default function AddressPage() {
                   onClick={handleCancelCreate}
                   disabled={loading.create}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  aria-label="Hủy thêm địa chỉ"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -744,6 +732,7 @@ export default function AddressPage() {
                     }}
                     disabled={loading.create}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    aria-label="Chọn tỉnh/thành phố"
                   >
                     <option value="">-- Chọn tỉnh/thành --</option>
                     {provinces.map((p) => (
@@ -776,6 +765,7 @@ export default function AddressPage() {
                     }}
                     disabled={loading.create || !selectedProvince}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    aria-label="Chọn quận/huyện"
                   >
                     <option value="">-- Chọn quận/huyện --</option>
                     {selectedProvince?.districts.map((d) => (
@@ -808,6 +798,7 @@ export default function AddressPage() {
                     }}
                     disabled={loading.create || !selectedDistrict}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    aria-label="Chọn phường/xã"
                   >
                     <option value="">-- Chọn phường/xã --</option>
                     {selectedDistrict?.wards.map((w) => (
@@ -906,6 +897,7 @@ export default function AddressPage() {
                     }
                     disabled={loading.create}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                    aria-label="Đặt làm địa chỉ mặc định"
                   />
                   <span className="text-sm font-medium text-gray-700">
                     Đặt làm địa chỉ mặc định
@@ -993,6 +985,7 @@ export default function AddressPage() {
                             onClick={handleCancelEdit}
                             disabled={loading.update}
                             className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
+                            aria-label="Hủy chỉnh sửa"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -1014,6 +1007,7 @@ export default function AddressPage() {
                               }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Họ và tên"
                             />
                           </div>
 
@@ -1032,6 +1026,7 @@ export default function AddressPage() {
                               }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Số điện thoại"
                             />
                           </div>
 
@@ -1059,6 +1054,7 @@ export default function AddressPage() {
                               }}
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Chọn tỉnh/thành phố"
                             >
                               <option value="">-- Chọn tỉnh/thành --</option>
                               {provinces.map((p) => (
@@ -1091,6 +1087,7 @@ export default function AddressPage() {
                               }}
                               disabled={loading.update || !editProvince}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Chọn quận/huyện"
                             >
                               <option value="">-- Chọn quận/huyện --</option>
                               {editProvince?.districts.map((d) => (
@@ -1123,6 +1120,7 @@ export default function AddressPage() {
                               }}
                               disabled={loading.update || !editDistrict}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Chọn phường/xã"
                             >
                               <option value="">-- Chọn phường/xã --</option>
                               {editDistrict?.wards.map((w) => (
@@ -1148,6 +1146,7 @@ export default function AddressPage() {
                               }
                               disabled={loading.update}
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              aria-label="Tên đường/phố"
                             />
                           </div>
                         </div>
@@ -1167,6 +1166,7 @@ export default function AddressPage() {
                             rows={3}
                             disabled={loading.update}
                             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
+                            aria-label="Địa chỉ chi tiết"
                           />
                         </div>
 
@@ -1225,6 +1225,7 @@ export default function AddressPage() {
                               }
                               disabled={loading.update}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                              aria-label="Đặt làm địa chỉ mặc định"
                             />
                             <span className="text-sm font-medium text-gray-700">
                               Đặt làm địa chỉ mặc định
@@ -1297,6 +1298,7 @@ export default function AddressPage() {
                                 disabled={loading.update}
                                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
                                 title="Đặt làm mặc định"
+                                aria-label="Đặt làm địa chỉ mặc định"
                               >
                                 <Star className="h-4 w-4" />
                               </button>
@@ -1306,6 +1308,7 @@ export default function AddressPage() {
                               disabled={loading.update}
                               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
                               title="Chỉnh sửa"
+                              aria-label="Chỉnh sửa địa chỉ"
                             >
                               <Edit3 className="h-4 w-4" />
                             </button>
@@ -1314,6 +1317,7 @@ export default function AddressPage() {
                               disabled={loading.delete}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
                               title="Xóa"
+                              aria-label="Xóa địa chỉ"
                             >
                               {loading.delete ? (
                                 <RefreshCw className="h-4 w-4 animate-spin" />

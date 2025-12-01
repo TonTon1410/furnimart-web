@@ -100,7 +100,7 @@ const ProductRow: React.FC<{
       <img
         src={p.thumbnailImage || fallbackImg}
         alt={p.name}
-        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+        className="w-20 h-20 object-cover rounded-lg shrink-0"
         onError={onImgError}
       />
 
@@ -150,7 +150,7 @@ const ProductRow: React.FC<{
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => onViewDetail(p.id)}
           className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
