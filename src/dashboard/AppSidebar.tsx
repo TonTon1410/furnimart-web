@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, MoreHorizontal } from "lucide-react";
 import { useSidebar } from "@/context/SidebarContext";
@@ -10,13 +10,12 @@ import { authService } from "@/service/authService";
 import { DP } from "@/router/paths";
 
 const AppSidebar: React.FC = () => {
-  const {
-    isExpanded,
-    isMobileOpen,
-    isHovered,
-    setIsHovered,
-    toggleMobileSidebar,
-  } = useSidebar();
+  const context = useSidebar();
+  const isExpanded = context?.isExpanded ?? true;
+  const isMobileOpen = context?.isMobileOpen ?? false;
+  const isHovered = context?.isHovered ?? false;
+  const setIsHovered = context?.setIsHovered ?? (() => {});
+  const toggleMobileSidebar = context?.toggleMobileSidebar ?? (() => {});
   const location = useLocation();
 
   const role = (authService.getRole?.() as RoleKey) || "seller";
@@ -56,7 +55,7 @@ const AppSidebar: React.FC = () => {
     (["main", "others"] as const).forEach((type) => {
       const list = type === "main" ? navItems : othersItems;
       list.forEach((nav, i) => {
-        nav.subItems?.forEach((s) => {
+        nav.subItems?.forEach((s: any) => {
           if (isActive(s.path!)) matched = { type, index: i };
         });
       });
@@ -149,7 +148,7 @@ const AppSidebar: React.FC = () => {
                     }}
                   >
                     <ul className="mt-2 space-y-1 ml-9">
-                      {nav.subItems.map((s, si) => {
+                      {nav.subItems.map((s: any, si: number) => {
                         const active = isActive(s.path);
                         return (
                           <li key={`${s.name}-${si}`}>
@@ -263,7 +262,7 @@ const AppSidebar: React.FC = () => {
             <div className="flex flex-col gap-4">
               <div>
                 <h2
-                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
                     !isExpanded && !isHovered
                       ? "lg:justify-center"
                       : "justify-start"
@@ -281,7 +280,7 @@ const AppSidebar: React.FC = () => {
               {othersItems.length > 0 && (
                 <div>
                   <h2
-                    className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                    className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
                       !isExpanded && !isHovered
                         ? "lg:justify-center"
                         : "justify-start"
