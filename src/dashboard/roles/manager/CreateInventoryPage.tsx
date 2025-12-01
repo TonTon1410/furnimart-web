@@ -24,16 +24,13 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   CompareArrows as TransferIcon,
-  // ImportIcon, // Lưu ý: Kiểm tra import icon chính xác từ library của bạn
-  // Output as ExportIcon, // Lưu ý: Kiểm tra import icon chính xác từ library của bán
   Description as NoteIcon,
   ArrowBack,
   ImageNotSupported as ImageIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
-// Fix import Import/Export icon nếu thư viện không có sẵn tên này, dùng alias
-import InputIcon from "@mui/icons-material/Input"; // Thay thế ImportIcon
-import OutputIcon from "@mui/icons-material/Output"; // Thay thế ExportIcon
+import InputIcon from "@mui/icons-material/Input";
+import OutputIcon from "@mui/icons-material/Output";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { DP } from "@/router/paths";
@@ -55,13 +52,20 @@ import CustomDropdown from "@/components/CustomDropdown";
 
 // --- Constants ---
 const TYPE_OPTIONS = [
-  { value: "IMPORT", label: "Nhập hàng", icon: <InputIcon color="success" /> },
-  { value: "EXPORT", label: "Xuất hàng", icon: <OutputIcon color="error" /> },
+  { value: "IMPORT", label: "Nhập kho", icon: <InputIcon color="success" /> },
+  { value: "EXPORT", label: "Xuất kho", icon: <OutputIcon color="error" /> },
   {
     value: "TRANSFER",
     label: "Chuyển kho",
     icon: <TransferIcon color="warning" />,
   },
+];
+
+const PURPOSE_OPTIONS = [
+  { value: "STOCK_IN", label: "Nhập hàng" },
+  { value: "TRANSFER_IN", label: "Nhập điều chuyển" },
+  { value: "STOCK_OUT", label: "Xuất bán hàng" },
+  { value: "TRANSFER_OUT", label: "Xuất điều chuyển" },
 ];
 
 interface CartItem extends ProductSelectionResult {
@@ -106,14 +110,12 @@ const CreateInventoryPage: React.FC = () => {
   // --- Effects ---
   useEffect(() => {
     const fetchWarehouse = async () => {
-      // Nếu đã có warehouseId từ location.state thì không cần fetch
       if (currentWarehouseId) {
         setLoadingWarehouse(false);
         return;
       }
 
       try {
-        // Lấy storeId từ authService
         const storeId = authService.getStoreId();
         if (!storeId) {
           showToast({
@@ -125,19 +127,13 @@ const CreateInventoryPage: React.FC = () => {
           return;
         }
 
-        // Gọi API để lấy warehouse theo storeId
         const response = await warehousesService.getWarehouseByStore(storeId);
-        console.log("Warehouse response:", response.data);
-
-        // Xử lý nhiều cấu trúc response khác nhau
         const warehouseData = response.data?.data || response.data;
         const warehouseId = warehouseData?.id;
 
         if (warehouseId) {
           setCurrentWarehouseId(warehouseId.toString());
-          console.log("Set warehouse ID:", warehouseId);
         } else {
-          console.error("No warehouse ID found in response:", response.data);
           showToast({
             type: "error",
             title: "Lỗi",
@@ -167,7 +163,7 @@ const CreateInventoryPage: React.FC = () => {
     if (type === "EXPORT") setPurpose("STOCK_OUT");
     if (type === "TRANSFER") setPurpose("MOVE");
 
-    if (type !== "TRANSFER") {
+    if (type !== "TRANSFER" && type !== "EXPORT") {
       setToWarehouseId(null);
       setToZoneId(null);
       setToLocationId(null);
@@ -178,17 +174,44 @@ const CreateInventoryPage: React.FC = () => {
     }
   }, [type]);
 
-  // --- Handlers ---
+  // --- Helpers ---
+  const getAvailablePurposeOptions = () => {
+    if (type === "IMPORT") {
+      return PURPOSE_OPTIONS.filter((opt) =>
+        ["STOCK_IN", "TRANSFER_IN"].includes(opt.value)
+      );
+    }
+    if (type === "EXPORT") {
+      return PURPOSE_OPTIONS.filter((opt) =>
+        ["STOCK_OUT", "TRANSFER_OUT"].includes(opt.value)
+      );
+    }
+    return [];
+  };
 
+  // --- Handlers ---
   const handleAddItem = () => {
+    // 1. Kiểm tra sản phẩm
     if (!tempSelection) {
       showToast({
         type: "warning",
         title: "Chưa chọn sản phẩm",
-        description: "Vui lòng chọn sản phẩm và vị trí.",
+        description: "Vui lòng chọn sản phẩm.",
       });
       return;
     }
+
+    // 2. [SỬA ĐỔI] Kiểm tra vị trí: Chỉ bắt buộc nếu KHÔNG PHẢI là TRANSFER
+    if (type !== 'TRANSFER' && !tempSelection.locationItemId) {
+         showToast({
+            type: "warning",
+            title: "Chưa chọn vị trí",
+            description: "Vui lòng chọn vị trí trong kho.",
+          });
+          return;
+    }
+
+    // 3. Kiểm tra số lượng
     if (!tempQuantity || Number(tempQuantity) <= 0) {
       showToast({
         type: "warning",
@@ -198,11 +221,16 @@ const CreateInventoryPage: React.FC = () => {
       return;
     }
 
-    const exists = items.find(
-      (i) =>
-        i.productColorId === tempSelection.productColorId &&
-        i.locationItemId === tempSelection.locationItemId
-    );
+    // 4. [SỬA ĐỔI] Logic tìm sản phẩm trùng để cộng dồn
+    const exists = items.find((i) => {
+        // Nếu là TRANSFER: Chỉ so sánh màu/sản phẩm
+        if (type === 'TRANSFER') {
+            return i.productColorId === tempSelection.productColorId;
+        }
+        // Nếu là IMPORT/EXPORT: So sánh cả màu và vị trí
+        return i.productColorId === tempSelection.productColorId &&
+               i.locationItemId === tempSelection.locationItemId;
+    });
 
     if (exists) {
       showToast({
@@ -212,16 +240,23 @@ const CreateInventoryPage: React.FC = () => {
           "Sản phẩm này đã có trong danh sách, đã cộng dồn số lượng.",
       });
       setItems((prev) =>
-        prev.map((item) =>
-          item.productColorId === tempSelection.productColorId &&
-          item.locationItemId === tempSelection.locationItemId
+        prev.map((item) => {
+            // Logic so sánh lại để map
+            const isMatch = type === 'TRANSFER' 
+                ? item.productColorId === tempSelection.productColorId
+                : (item.productColorId === tempSelection.productColorId && item.locationItemId === tempSelection.locationItemId);
+            
+            return isMatch
             ? { ...item, quantity: item.quantity + Number(tempQuantity) }
-            : item
-        )
+            : item;
+        })
       );
     } else {
       const newItem: CartItem = {
         ...tempSelection,
+        // Đảm bảo không undefined
+        locationItemId: tempSelection.locationItemId || "", 
+        locationCode: tempSelection.locationCode || "---",
         quantity: Number(tempQuantity),
         tempId: Date.now().toString(),
       };
@@ -255,7 +290,11 @@ const CreateInventoryPage: React.FC = () => {
       });
       return;
     }
-    if (type === "TRANSFER" && !toWarehouseId) {
+
+    const isTransferMode = type === "TRANSFER";
+    const isExportTransfer = type === "EXPORT" && purpose === "TRANSFER_OUT";
+
+    if ((isTransferMode || isExportTransfer) && !toWarehouseId) {
       showToast({
         type: "warning",
         title: "Thiếu thông tin",
@@ -272,9 +311,14 @@ const CreateInventoryPage: React.FC = () => {
         purpose,
         warehouseId: currentWarehouseId,
         toWarehouseId:
-          type === "TRANSFER" && toWarehouseId ? toWarehouseId : undefined,
+          (isTransferMode || isExportTransfer) && toWarehouseId
+            ? toWarehouseId
+            : undefined,
         note: note,
-        orderId: orderId ? Number(orderId) : undefined,
+        orderId:
+          type === "EXPORT" && purpose === "STOCK_OUT" && orderId
+            ? Number(orderId)
+            : undefined,
         items: items.map((item) => ({
           productColorId: item.productColorId,
           locationItemId: item.locationItemId,
@@ -349,23 +393,19 @@ const CreateInventoryPage: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* === CỘT TRÁI: DANH SÁCH SẢN PHẨM === */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-        {/* Header Mobile */}
-        <div className="lg:hidden flex items-center justify-between mb-4">
-          <Typography variant="h6" className="dark:text-white">
-            Tạo phiếu kho
-          </Typography>
-          <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>
-            Quay lại
-          </Button>
-        </div>
-
+      
+      {/* === 1. PHẦN DANH SÁCH SẢN PHẨM (Màu xám) === */}
+      {/* - Mobile: order-2 (Nằm dưới)
+         - Desktop: order-none (Mặc định nằm trái)
+         - flex-1: Chiếm toàn bộ không gian còn lại
+      */}
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 order-2 lg:order-none bg-gray-50 dark:bg-gray-900">
+        
+        {/* Header Mobile - Chỉ hiện ở đây khi Desktop, nhưng ở Mobile thì nút Back nên nằm ở phần Info trên cùng.
+            Tuy nhiên để đơn giản, ta ẩn ở đây trên Mobile */}
+        
         {/* 1. Product Selector */}
-        {/* [SỬA LỖI] Xóa class 'overflow-hidden' ở đây để Dropdown có thể hiển thị đè lên các phần tử khác */}
         <div className={`${cardBgClass}`}>
-          {/* Header Box */}
-          {/* [SỬA LỖI] Thêm 'rounded-t-xl' để bo góc trên (do parent đã mất overflow-hidden) */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center gap-2 rounded-t-xl">
             <SearchIcon color="primary" />
             <Typography variant="subtitle1" className={textTitleClass}>
@@ -373,7 +413,6 @@ const CreateInventoryPage: React.FC = () => {
             </Typography>
           </div>
 
-          {/* Content Box */}
           <div className="p-4">
             <ProductSelector
               key={selectorKey}
@@ -384,7 +423,7 @@ const CreateInventoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Khối nhập số lượng (Chỉ hiện khi đã chọn sản phẩm) */}
+        {/* Khối nhập số lượng */}
         {tempSelection && (
           <div className="p-4 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-800 shadow-sm rounded-xl animate-in fade-in slide-in-from-top-2">
             <Grid container spacing={2} alignItems="center">
@@ -400,7 +439,7 @@ const CreateInventoryPage: React.FC = () => {
                   className="text-gray-600 dark:text-gray-400"
                 >
                   Màu: {tempSelection.colorName} | Vị trí:{" "}
-                  {tempSelection.locationCode}
+                  {tempSelection.locationCode || "---"}
                 </Typography>
               </Grid>
               <Grid size={{ xs: 6, md: 4 }}>
@@ -429,11 +468,6 @@ const CreateInventoryPage: React.FC = () => {
                     className:
                       "placeholder:text-gray-400 dark:placeholder:!text-gray-300",
                   }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      bgcolor: "bg-white dark:bg-gray-900",
-                    },
-                  }}
                   autoFocus
                 />
               </Grid>
@@ -454,7 +488,6 @@ const CreateInventoryPage: React.FC = () => {
         )}
 
         {/* 2. Danh sách sản phẩm đã thêm */}
-        {/* [SỬA LỖI] Tương tự, xóa overflow-hidden ở đây nếu cần dropdown (dù bảng ít khi cần) */}
         <div className={`${cardBgClass}`}>
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center rounded-t-xl">
             <Typography variant="subtitle1" className={textTitleClass}>
@@ -535,7 +568,7 @@ const CreateInventoryPage: React.FC = () => {
                         </Stack>
                       </TableCell>
                       <TableCell className="dark:text-white!">
-                        {item.locationCode}
+                        {item.locationCode || "---"}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -561,17 +594,33 @@ const CreateInventoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* === CỘT PHẢI: THÔNG TIN PHIẾU === */}
-      <div className="w-full lg:w-[400px] shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-auto lg:h-full shadow-xl z-20">
-        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-900">
-          <NoteIcon color="primary" />
-          <Typography variant="h6" className={textTitleClass}>
-            THÔNG TIN PHIẾU
-          </Typography>
+      {/* === 2. PHẦN THÔNG TIN PHIẾU (Màu trắng) === */}
+      {/* - Mobile: order-1 (Nằm trên cùng) 
+          - Mobile Height: h-auto (tự động co giãn theo nội dung) hoặc max-h-[50vh] để không chiếm hết màn hình
+          - Desktop: order-none (Mặc định nằm phải), w-[400px], h-full
+      */}
+      <div className="w-full lg:w-[400px] shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-auto lg:h-full shadow-xl z-20 order-1 lg:order-none max-h-[60vh] lg:max-h-none">
+        
+        {/* Header Thông tin phiếu */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900">
+          <div className="flex items-center gap-2">
+            <NoteIcon color="primary" />
+            <Typography variant="h6" className={textTitleClass}>
+              THÔNG TIN PHIẾU
+            </Typography>
+          </div>
+          {/* Nút quay lại hiển thị ở đây trên Mobile cho tiện tay */}
+          <div className="lg:hidden">
+             <IconButton onClick={() => navigate(-1)} size="small">
+                <ArrowBack />
+             </IconButton>
+          </div>
         </div>
 
+        {/* Form Content - Scrollable bên trong */}
         <div className="flex-1 overflow-y-auto p-5">
           <Stack spacing={3}>
+            {/* 1. Loại phiếu */}
             <CustomDropdown
               id="inventory-type-select"
               label="Loại phiếu"
@@ -582,7 +631,21 @@ const CreateInventoryPage: React.FC = () => {
               placeholder="Chọn loại phiếu"
             />
 
-            {type === "EXPORT" && (
+            {/* 2. Mục đích (Chỉ hiện cho Nhập/Xuất) */}
+            {(type === "IMPORT" || type === "EXPORT") && (
+              <CustomDropdown
+                id="inventory-purpose-select"
+                label="Mục đích"
+                value={purpose}
+                options={getAvailablePurposeOptions()}
+                onChange={(newValue) => setPurpose(newValue)}
+                fullWidth={true}
+                placeholder="Chọn mục đích"
+              />
+            )}
+
+            {/* 3. Mã đơn hàng (Chỉ hiện khi Xuất bán hàng) */}
+            {type === "EXPORT" && purpose === "STOCK_OUT" && (
               <TextField
                 label="Mã đơn hàng (Order ID)"
                 value={orderId}
@@ -602,6 +665,7 @@ const CreateInventoryPage: React.FC = () => {
               />
             )}
 
+            {/* 4. Ghi chú */}
             <TextField
               label="Ghi chú nội bộ"
               value={note}
@@ -620,21 +684,31 @@ const CreateInventoryPage: React.FC = () => {
               }}
             />
 
-            {/* Khối Chuyển kho */}
-            {type === "TRANSFER" && (
+            {/* 5. Kho Đích (Hiện khi: Chuyển kho HOẶC Xuất điều chuyển) */}
+            {(type === "TRANSFER" ||
+              (type === "EXPORT" && purpose === "TRANSFER_OUT")) && (
               <div className="p-4 border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-800 rounded-lg space-y-3">
                 <Typography
                   variant="subtitle2"
                   color="warning.main"
                   fontWeight="bold"
                 >
-                  CHUYỂN TỪ
+                  {type === "EXPORT" && purpose === "TRANSFER_OUT"
+                    ? "XUẤT ĐẾN KHO"
+                    : "CHUYỂN ĐẾN KHO"}
                 </Typography>
                 <Divider className="border-orange-200 dark:border-orange-800" />
 
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    mt: 2,
+                  }}
+                >
                   <WarehouseZoneLocationSelector
-                    labelPrefix="Từ"
+                    labelPrefix="Đến"
                     selectedWarehouseId={toWarehouseId}
                     selectedZoneId={toZoneId}
                     selectedLocationId={toLocationId}
@@ -656,6 +730,7 @@ const CreateInventoryPage: React.FC = () => {
           </Stack>
         </div>
 
+        {/* Footer Button - Luôn hiển thị ở dưới cùng của khối Thông tin */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col gap-3">
           <Button
             variant="contained"
@@ -674,12 +749,13 @@ const CreateInventoryPage: React.FC = () => {
           >
             {submitting ? "ĐANG LƯU..." : "HOÀN TẤT & LƯU PHIẾU"}
           </Button>
-
+          
           <Button
-            variant="contained"
-            color="error"
-            onClick={() => navigate(DP("inventory"))}
-            sx={{ borderColor: "divider", fontWeight: "bold", color: "white" }}
+             variant="contained"
+             color="error"
+             onClick={() => navigate(DP("inventory"))}
+             sx={{ borderColor: "divider", fontWeight: "bold", color: "white" }}
+             className="lg:flex hidden" // Ẩn nút Hủy trên Mobile ở footer này cho đỡ chật, vì đã có nút Back ở trên Header
           >
             Hủy bỏ
           </Button>
