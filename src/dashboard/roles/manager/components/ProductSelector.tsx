@@ -45,7 +45,7 @@ interface Product {
 
 export interface ProductSelectionResult {
   productColorId: string;
-  locationItemId: string;
+  locationItemId: string; // Có thể là chuỗi rỗng nếu là TRANSFER
   locationCode?: string;
   productName?: string;
   colorName?: string;
@@ -79,12 +79,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProductColorId, setSelectedProductColorId] = useState<string | null>(null);
   
-  // State cho EXPORT/TRANSFER hoặc IMPORT (Option 1 - Vị trí có sẵn)
+  // State cho EXPORT hoặc IMPORT (Option 1 - Vị trí có sẵn)
   const [locations, setLocations] = useState<InventoryLocationDetail[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<InventoryLocationDetail | null>(null);
   const [loadingLocations, setLoadingLocations] = useState(false);
 
-  // State cho IMPORT/TRANSFER (Option 2 - Chọn Khu vực/Vị trí mới/cụ thể)
+  // State cho IMPORT (Option 2 - Chọn Khu vực/Vị trí mới/cụ thể)
   const [importZoneId, setImportZoneId] = useState<string | null>(null);
   const [importLocationId, setImportLocationId] = useState<string | null>(null);
   const [importLocationCode, setImportLocationCode] = useState<string>('');
@@ -93,8 +93,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [importMethod, setImportMethod] = useState<ImportMethod>('EXISTING');
 
   const isImportMode = type === 'IMPORT';
-  // [MỚI] Chế độ linh hoạt: Cho phép chọn vị trí thủ công (manual) cho cả Import và Transfer
-  const isFlexibleMode = type === 'IMPORT' || type === 'TRANSFER';
+  // [SỬA ĐỔI] Transfer mode
+  const isTransferMode = type === 'TRANSFER';
+  
+  // [SỬA ĐỔI] Flexible chỉ dành cho Import, vì Transfer giờ đây không chọn vị trí nữa
+  const isFlexibleMode = type === 'IMPORT';
 
   // --- Logic Hình ảnh hiển thị ---
   const currentDisplayImage = useMemo(() => {
@@ -141,6 +144,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
     if (!selectedProductColorId || !activeStoreId) return;
 
+    // [SỬA ĐỔI] Nếu là Transfer mode thì không cần fetch location có sẵn làm gì cả
+    if (isTransferMode) return;
+
     const fetchLocations = async () => {
       setLoadingLocations(true);
       try {
@@ -156,7 +162,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       }
     };
     fetchLocations();
-  }, [selectedProductColorId, activeStoreId]); 
+  }, [selectedProductColorId, activeStoreId, isTransferMode]); 
 
   useEffect(() => {
     setSelectedProductColorId(null);
@@ -175,23 +181,36 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         let finalLocationId = '';
         let finalLocationCode = '';
 
-        // [LOGIC MỚI] Áp dụng cho cả IMPORT và TRANSFER (isFlexibleMode)
+        // [LOGIC MỚI] Xử lý riêng cho trường hợp TRANSFER
+        if (isTransferMode) {
+             // Trả về kết quả ngay lập tức mà không cần Location
+             onSelectionChange({
+                productColorId: selectedProductColorId,
+                locationItemId: "", // Không có ID vị trí
+                locationCode: "---", // Placeholder hiển thị
+                productName: selectedProduct.name,
+                colorName: colorObj?.color.colorName || '',
+                imageUrl: currentDisplayImage || '',
+                hexCode: colorObj?.color.hexCode
+              });
+              return; // Kết thúc effect tại đây
+        }
+
+        // --- Logic cũ cho IMPORT / EXPORT ---
         if (isFlexibleMode) {
             if (importMethod === 'NEW') {
-                // Option 2: Chọn vị trí cụ thể từ Selector
                 if (importLocationId) {
                     finalLocationId = importLocationId;
                     finalLocationCode = importLocationCode;
                 }
             } else {
-                // Option 1: Chọn vị trí có sẵn
                 if (selectedLocation) {
                     finalLocationId = selectedLocation.locationItemId;
                     finalLocationCode = selectedLocation.locationCode;
                 }
             }
         } else {
-            // Logic cho EXPORT (Chỉ chọn từ danh sách có sẵn)
+            // Logic cho EXPORT
             if (selectedLocation) {
                 finalLocationId = selectedLocation.locationItemId;
                 finalLocationCode = selectedLocation.locationCode;
@@ -222,12 +241,14 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       selectedProduct, 
       onSelectionChange, 
       currentDisplayImage,
-      isFlexibleMode, // Thay đổi dependency
-      importMethod
+      isFlexibleMode, 
+      importMethod,
+      isTransferMode // Thêm dependency
   ]);
 
   const availableColors = useMemo(() => selectedProduct?.productColors || [], [selectedProduct]);
 
+  // ... (giữ nguyên logic helper functions: isLightColor, commonInputStyle...)
   const isLightColor = (hex: string) => {
     if (!hex || !hex.startsWith('#')) return true;
     const r = parseInt(hex.substring(1, 3), 16);
@@ -256,7 +277,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   const dropdownOptionClass = "text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 selected:bg-emerald-50 dark:selected:bg-emerald-900/30";
 
-
+  // ... (giữ nguyên logic loading/error)
   if (loadingProducts || storeLoading) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
@@ -273,7 +294,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   return (
     <Box>
-        {/* 1. Ô TÌM KIẾM SẢN PHẨM */}
+        {/* 1. Ô TÌM KIẾM SẢN PHẨM (GIỮ NGUYÊN) */}
         <Autocomplete
           options={allProducts}
           getOptionLabel={(product) => product.name}
@@ -374,11 +395,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     )}
                   </Box>
 
-                  {/* [SỬA ĐỔI CHÍNH] Chọn Vị Trí */}
-                  {selectedProductColorId && (
+                  {/* [SỬA ĐỔI] CHỌN VỊ TRÍ - ẨN NẾU LÀ TRANSFER */}
+                  {!isTransferMode && selectedProductColorId && (
                     <Zoom in={!!selectedProductColorId}>
                       <Box>
-                         {/* --- SWITCH CHẾ ĐỘ NHẬP (Chỉ hiện khi IMPORT hoặc TRANSFER) --- */}
+                         {/* --- SWITCH CHẾ ĐỘ NHẬP (Chỉ hiện khi IMPORT) --- */}
                          {isFlexibleMode && (
                             <Box sx={{ mb: 2 }}>
                                 <FormControl component="fieldset">
@@ -433,8 +454,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                                 <Alert severity="warning">Vui lòng chọn Kho trước khi chọn sản phẩm.</Alert>
                             )
                          ) : (
-                            // --- OPTION 1: NHẬP VÀO VỊ TRÍ CÓ SẴN (Hoặc Export/Transfer) ---
-                            // Sử dụng Autocomplete để hiển thị danh sách locations đã fetch
+                            // --- OPTION 1: NHẬP VÀO VỊ TRÍ CÓ SẴN (Hoặc Export) ---
                             <Autocomplete
                                 options={locations}
                                 disabled={loadingLocations}
