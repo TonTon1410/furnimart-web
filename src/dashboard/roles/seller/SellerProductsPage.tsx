@@ -259,10 +259,10 @@ const SellerProductsPage: React.FC = () => {
     setSelectedId(null);
     setServerMsg(null);
     setServerErr(null);
-    
+
     // Tăng formKey để force re-render form
-    setFormKey(prev => prev + 1);
-    
+    setFormKey((prev) => prev + 1);
+
     // Nếu đang mở drawer edit, đóng rồi mở lại với form mới
     if (open) {
       setOpen(false);
@@ -270,7 +270,8 @@ const SellerProductsPage: React.FC = () => {
     } else {
       setOpen(true);
     }
-  };  const openDetail = async (id: string) => {
+  };
+  const openDetail = async (id: string) => {
     try {
       const res = await axiosClient.get(`/products/${id}`);
       setDetailProduct(res.data.data);
