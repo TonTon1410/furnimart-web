@@ -176,6 +176,25 @@ const inventoryService = {
   getPendingTransfers: async (warehouseId: string) => {
     return axiosClient.get(`/inventories/transfer/pending/${warehouseId}`);
   },
+
+  // ✅ Duyệt hoặc từ chối phiếu chuyển kho
+  approveOrRejectTransfer: async (
+    inventoryId: number,
+    transferStatus:
+      | "PENDING"
+      | "ACCEPTED"
+      | "CANCELLED"
+      | "FINISHED"
+      | "REJECTED"
+  ) => {
+    return axiosClient.post(
+      `/inventories/transfer/${inventoryId}/approve`,
+      null,
+      {
+        params: { transferStatus },
+      }
+    );
+  },
 };
 
 export default inventoryService;

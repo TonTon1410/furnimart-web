@@ -12,7 +12,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   // Hỗ trợ async để hiển thị loading đúng
-  onConfirm: (opts: { quantity: number; productColorId: string | null }) => void | Promise<void>;
+  onConfirm: (opts: {
+    quantity: number;
+    productColorId: string | null;
+  }) => void | Promise<void>;
   productName: string;
   price: number;
   colors: Color[];
@@ -33,7 +36,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
   initialQty = 1,
 }) => {
   const [qty, setQty] = useState(Math.max(1, initialQty));
-  const [productColorId, setProductColorId] = useState<string | null>(initialColorId);
+  const [productColorId, setProductColorId] = useState<string | null>(
+    initialColorId
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Khoá scroll khi mở modal
@@ -56,12 +61,15 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, submitting, onClose]);
 
-  // Preselect & reset qty khi mở
+  // Reset state khi mở modal với sản phẩm mới
   useEffect(() => {
     if (!open) return;
-    if (!productColorId && colors.length > 0) setProductColorId(colors[0].id);
+    // Reset về màu được chọn từ props hoặc màu đầu tiên
+    setProductColorId(
+      initialColorId || (colors.length > 0 ? colors[0].id : null)
+    );
     setQty(Math.max(1, initialQty));
-  }, [open, colors, productColorId, initialQty]);
+  }, [open, colors, initialColorId, initialQty]);
 
   const color = useMemo(
     () => colors.find((c) => c.id === productColorId) || null,
@@ -70,9 +78,10 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
   const thumbs = color?.images ?? [];
   const [mainImg, setMainImg] = useState<string | null>(null);
 
+  // Cập nhật hình ảnh chính khi thumbs hoặc productColorId thay đổi
   useEffect(() => {
     setMainImg(thumbs[0] || null);
-  }, [productColorId]);
+  }, [thumbs, productColorId]);
 
   if (!open) return null;
 
@@ -93,7 +102,7 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-3"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 px-3"
       role="dialog"
       aria-modal="true"
       onMouseDown={handleBackdropMouseDown}
@@ -101,10 +110,14 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
       <div className="w-full max-w-xl rounded-xl bg-white p-4 shadow-2xl">
         {/* Header */}
         <div className="mb-3">
-          <h3 className="text-lg font-bold text-gray-900">Xác nhận thêm vào giỏ</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            Xác nhận thêm vào giỏ
+          </h3>
           <p className="text-sm text-gray-600">
             {productName} •{" "}
-            <span className="font-semibold text-amber-600">{fmtVND(price)}</span>
+            <span className="font-semibold text-amber-600">
+              {fmtVND(price)}
+            </span>
           </p>
         </div>
 
@@ -119,7 +132,8 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                   alt="preview"
                   className="h-full w-full object-contain"
                   onError={(e) =>
-                    ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")
+                    ((e.currentTarget as HTMLImageElement).style.visibility =
+                      "hidden")
                   }
                 />
               ) : (
@@ -134,7 +148,7 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                     type="button"
                     onClick={() => setMainImg(img)}
                     disabled={submitting}
-                    className={`h-12 w-12 flex-shrink-0 overflow-hidden rounded border transition ${
+                    className={`h-12 w-12 shrink-0 overflow-hidden rounded border transition ${
                       mainImg === img
                         ? "border-emerald-600"
                         : "border-gray-300 hover:border-emerald-300"
@@ -146,7 +160,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                       alt={`thumb-${i}`}
                       className="h-full w-full object-cover"
                       onError={(e) =>
-                        ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")
+                        ((
+                          e.currentTarget as HTMLImageElement
+                        ).style.visibility = "hidden")
                       }
                     />
                   </button>
@@ -160,7 +176,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
             {/* Chọn màu */}
             {colors.length > 0 && (
               <div>
-                <div className="mb-2 text-xs font-medium text-gray-700">Màu sắc</div>
+                <div className="mb-2 text-xs font-medium text-gray-700">
+                  Màu sắc
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {colors.map((c) => {
                     const active = productColorId === c.id;
@@ -188,7 +206,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                       className="inline-block h-3 w-3 rounded-full border"
                       style={{ backgroundColor: color.hexCode }}
                     />
-                    <span className="font-medium text-gray-800">{color.colorName}</span>
+                    <span className="font-medium text-gray-800">
+                      {color.colorName}
+                    </span>
                   </div>
                 )}
               </div>
@@ -196,7 +216,9 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
 
             {/* Số lượng */}
             <div>
-              <div className="mb-2 text-xs font-medium text-gray-700">Số lượng</div>
+              <div className="mb-2 text-xs font-medium text-gray-700">
+                Số lượng
+              </div>
               <div className="inline-flex items-center overflow-hidden rounded-md border">
                 <button
                   type="button"
@@ -242,7 +264,6 @@ const ConfirmAddToCartModal: React.FC<Props> = ({
                 type="button"
                 onClick={handleConfirm}
                 disabled={!productColorId || submitting}
-                aria-busy={submitting}
                 className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting && (

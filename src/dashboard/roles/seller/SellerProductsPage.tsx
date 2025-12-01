@@ -202,6 +202,7 @@ const SellerProductsPage: React.FC = () => {
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [initial, setInitial] = useState<ProductFormValues | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [formKey, setFormKey] = useState(0); // Key để force re-render form
 
   // Color drawer (bước 2 sau khi tạo sản phẩm)
   const [colorDrawerOpen, setColorDrawerOpen] = useState(false);
@@ -238,6 +239,7 @@ const SellerProductsPage: React.FC = () => {
   }, []);
 
   const openCreate = () => {
+    // Reset về chế độ tạo mới
     setMode("create");
     setInitial({
       code: "",
@@ -257,10 +259,18 @@ const SellerProductsPage: React.FC = () => {
     setSelectedId(null);
     setServerMsg(null);
     setServerErr(null);
-    setOpen(true);
-  };
-
-  const openDetail = async (id: string) => {
+    
+    // Tăng formKey để force re-render form
+    setFormKey(prev => prev + 1);
+    
+    // Nếu đang mở drawer edit, đóng rồi mở lại với form mới
+    if (open) {
+      setOpen(false);
+      setTimeout(() => setOpen(true), 100);
+    } else {
+      setOpen(true);
+    }
+  };  const openDetail = async (id: string) => {
     try {
       const res = await axiosClient.get(`/products/${id}`);
       setDetailProduct(res.data.data);
@@ -372,9 +382,10 @@ const SellerProductsPage: React.FC = () => {
           // Đóng drawer tạo sản phẩm
           setOpen(false);
 
-          // Mở drawer thêm màu sắc
-          setNewProductForColor({ id: created.id, name: created.name });
-          setColorDrawerOpen(true);
+          // Mở modal chỉnh sửa sản phẩm vừa tạo
+          setTimeout(() => {
+            openEdit(created.id);
+          }, 300);
         } else {
           setServerMsg(
             res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả"
@@ -658,6 +669,7 @@ const SellerProductsPage: React.FC = () => {
           </div>
         ) : (
           <ProductForm
+            key={formKey}
             mode={mode}
             initial={
               initial ?? {
@@ -931,7 +943,7 @@ const SellerProductsPage: React.FC = () => {
                                 {/* Color Header - Compact */}
                                 <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
                                   <div
-                                    className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0"
+                                    className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 shrink-0"
                                     style={{
                                       backgroundColor: pc.color.hexCode,
                                     }}
@@ -945,7 +957,7 @@ const SellerProductsPage: React.FC = () => {
                                     </p>
                                   </div>
                                   <span
-                                    className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${
+                                    className={`px-2 py-0.5 text-xs rounded shrink-0 ${
                                       pc.status === "ACTIVE"
                                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                         : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
@@ -988,7 +1000,7 @@ const SellerProductsPage: React.FC = () => {
                                       <img
                                         src={model3D.previewImage}
                                         alt="3D Model"
-                                        className="w-12 h-12 rounded object-cover flex-shrink-0"
+                                        className="w-12 h-12 rounded object-cover shrink-0"
                                         onError={onImgError}
                                       />
                                     )}
@@ -1011,7 +1023,7 @@ const SellerProductsPage: React.FC = () => {
                                       )}
                                     </div>
                                     <span
-                                      className={`px-1.5 py-0.5 text-xs rounded flex-shrink-0 ${
+                                      className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${
                                         model3D.status === "ACTIVE"
                                           ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                           : "bg-gray-200 text-gray-700"

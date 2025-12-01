@@ -6,6 +6,7 @@ export type NavItem = {
   name: string;
   icon: ReactNode;
   path?: string;
+  badge?: number | string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -14,4 +15,4 @@ export type RoleNav = {
   others?: NavItem[];
 };
 
-export type GetNav = (role: RoleKey) => RoleNav;
+export type GetNav = (role: RoleKey) => RoleNav | Promise<RoleNav>;
