@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export type Product = {
-  id: string;                // vẫn giữ trong type, nhưng KHÔNG dùng để route
+  id: string; // vẫn giữ trong type, nhưng KHÔNG dùng để route
   slug: string;
   description: string;
   price: number;
@@ -29,7 +29,9 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className={`group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-soft focus-within:shadow-soft ${className || ""}`}
+      className={`group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-soft focus-within:shadow-soft ${
+        className || ""
+      }`}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -47,7 +49,7 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
       {/* Ảnh → Link tới chi tiết (relative để đặt chip/CTA absolute) */}
       <Link
         to={detailHref}
-        className="relative block aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-100"
+        className="relative block aspect-4/3 w-full overflow-hidden rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-100"
         aria-label={`Xem chi tiết: ${titleText}`}
         title={titleText}
       >
@@ -64,21 +66,31 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
         </div>
 
         {/* CTA khi hover/focus */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-center justify-between gap-2 rounded-b-xl px-3 py-2 text-sm opacity-0 transition
-                        group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
-          <div className="absolute inset-x-0 -bottom-0 h-20 rounded-b-xl bg-gradient-to-t from-black/35 to-transparent" />
-          <span className="relative z-10 font-medium text-white">Xem chi tiết</span>
-          <ArrowRight className="relative z-10 h-4 w-4 text-white" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-center justify-between gap-2 rounded-b-xl px-3 py-2 text-sm opacity-0 transition
+                        group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+        >
+          <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl bg-linear-to-t from-black/35 to-transparent" />
+          <span className="relative z-10 font-medium text-white">
+            Xem chi tiết
+          </span>
+          <ArrowRight
+            className="relative z-10 h-4 w-4 text-white"
+            aria-hidden
+          />
         </div>
       </Link>
 
       {/* Nội dung */}
       <div className="mt-3">
-        <Link to={detailHref} className="line-clamp-2 text-base font-semibold text-gray-900 hover:underline">
+        <Link
+          to={detailHref}
+          className="line-clamp-2 text-base font-semibold text-gray-900 hover:underline"
+        >
           {titleText}
         </Link>
 
-        <div className="mt-2 h-px w-full bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
+        <div className="mt-2 h-px w-full bg-linear-to-r from-gray-100 via-gray-200 to-gray-100" />
 
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-gray-500 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
@@ -103,4 +115,4 @@ const ProductCard: React.FC<Props> = ({ data, className }) => {
   );
 };
 
-export default ProductCard;
+export default React.memo(ProductCard);

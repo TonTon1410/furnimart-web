@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface DropdownOption {
   value: string;
@@ -15,7 +15,7 @@ interface CustomDropdownProps {
   fullWidth?: boolean; // Có chiếm full width hay không
 }
 
-export default function CustomDropdown({
+function CustomDropdown({
   id,
   label,
   value,
@@ -112,3 +112,5 @@ export default function CustomDropdown({
     </div>
   );
 }
+
+export default React.memo(CustomDropdown);

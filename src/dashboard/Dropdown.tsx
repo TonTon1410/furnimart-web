@@ -1,19 +1,39 @@
 // src/dashboard/Dropdown.tsx
 import type React from "react";
 import { Link } from "react-router-dom";
+import { memo, type ComponentType } from "react";
 
 type DropdownProps = {
   isOpen: boolean;
   onClose?: () => void;
   className?: string;
   labelledById?: string; // id của button trigger
-  menuId?: string;       // id cho <ul role="menu">
+  menuId?: string; // id cho <ul role="menu">
   children: React.ReactNode;
 };
 
-export const Dropdown: React.FC<DropdownProps> & {
+type DropdownItemProps = {
+  to?: string;
+  onClick?: () => void;
+  onItemClick?: () => void;
+  className?: string;
+  children: React.ReactNode;
+  baseClassName?: string;
+};
+
+// Define compound component type
+type DropdownComponentType = ComponentType<DropdownProps> & {
   Item: React.FC<DropdownItemProps>;
-} = ({ isOpen, onClose, className = "", labelledById, menuId, children }) => {
+};
+
+const DropdownComponent: React.FC<DropdownProps> = ({
+  isOpen,
+  onClose,
+  className = "",
+  labelledById,
+  menuId,
+  children,
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -25,20 +45,16 @@ export const Dropdown: React.FC<DropdownProps> & {
       }}
     >
       {/* container role="menu" + aria-labelledby */}
-      <ul id={menuId} role="menu" aria-labelledby={labelledById} className="py-1">
+      <ul
+        id={menuId}
+        role="menu"
+        aria-labelledby={labelledById}
+        className="py-1"
+      >
         {children}
       </ul>
     </div>
   );
-};
-
-type DropdownItemProps = {
-  to?: string;
-  onClick?: () => void;
-  onItemClick?: () => void;
-  className?: string;
-  children: React.ReactNode;
-  baseClassName?: string;
 };
 
 const DropdownItemImpl: React.FC<DropdownItemProps> = ({
@@ -58,7 +74,7 @@ const DropdownItemImpl: React.FC<DropdownItemProps> = ({
   };
 
   return (
-    <li role="none">
+    <li>
       {to ? (
         <Link
           to={to}
@@ -84,6 +100,8 @@ const DropdownItemImpl: React.FC<DropdownItemProps> = ({
   );
 };
 
-Dropdown.Item = DropdownItemImpl;
+const MemoizedDropdown = memo(DropdownComponent) as DropdownComponentType;
+MemoizedDropdown.Item = DropdownItemImpl;
 
+export const Dropdown = MemoizedDropdown;
 export default Dropdown;
