@@ -28,7 +28,7 @@ interface BottomSectionProps {
   product: Product;
 }
 
-const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
+const BottomSection = React.memo<BottomSectionProps>(({ related, product }) => {
   const [activeTab, setActiveTab] = useState<"desc" | "detail">("desc");
 
   return (
@@ -157,6 +157,6 @@ const BottomSection: React.FC<BottomSectionProps> = ({ related, product }) => {
       </div>
     </>
   );
-};
+});
 
 export default BottomSection;

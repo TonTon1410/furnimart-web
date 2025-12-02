@@ -9,7 +9,7 @@ type Props = {
   loading: boolean;
 };
 
-const OrderSummary: React.FC<Props> = ({ cart, onCheckout, loading }) => {
+const OrderSummary = React.memo<Props>(({ cart, onCheckout, loading }) => {
   return (
     <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-md">
       <h3 className="mb-4 text-lg font-semibold text-gray-800">
@@ -62,6 +62,6 @@ const OrderSummary: React.FC<Props> = ({ cart, onCheckout, loading }) => {
       </button>
     </div>
   );
-};
+});
 
 export default OrderSummary;

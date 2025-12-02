@@ -1,3 +1,4 @@
+import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
@@ -8,7 +9,7 @@ interface PaginationProps {
   totalItems: number;
 }
 
-export default function Pagination({
+function Pagination({
   currentPage,
   totalPages,
   onPageChange,
@@ -129,3 +130,5 @@ export default function Pagination({
     </div>
   );
 }
+
+export default React.memo(Pagination);
