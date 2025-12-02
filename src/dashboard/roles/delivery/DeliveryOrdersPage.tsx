@@ -3,18 +3,9 @@ import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
-import orderService from "@/service/orderService";
-import type { OrderItem } from "@/types/order";
-import { productService, type ProductColor } from "@/service/productService";
 
 export default function DeliveryOrders() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
-    new Map()
-  );
-  const [productDetails, setProductDetails] = useState<
-    Map<string, ProductColor>
-  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,55 +24,8 @@ export default function DeliveryOrders() {
       }
 
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
+      console.log("Delivery assignments loaded:", data.length);
       setAssignments(data);
-
-      // Fetch order details for each assignment
-      const orderDetailsMap = new Map<number, OrderItem>();
-      const productDetailsMap = new Map<string, ProductColor>();
-
-      await Promise.all(
-        data.map(async (assignment) => {
-          try {
-            const orderDetail = await orderService.getOrderById(
-              assignment.orderId
-            );
-            orderDetailsMap.set(assignment.orderId, orderDetail);
-
-            // Fetch product color details for each order detail
-            if (orderDetail.orderDetails) {
-              await Promise.all(
-                orderDetail.orderDetails.map(async (detail) => {
-                  if (
-                    detail.productColorId &&
-                    !productDetailsMap.has(detail.productColorId)
-                  ) {
-                    try {
-                      const productColorResponse =
-                        await productService.getProductColorById(
-                          detail.productColorId
-                        );
-                      productDetailsMap.set(
-                        detail.productColorId,
-                        productColorResponse.data.data
-                      );
-                    } catch (err) {
-                      console.error(
-                        `Failed to load product color ${detail.productColorId}:`,
-                        err
-                      );
-                    }
-                  }
-                })
-              );
-            }
-          } catch (err) {
-            console.error(`Failed to load order ${assignment.orderId}:`, err);
-          }
-        })
-      );
-
-      setOrderDetails(orderDetailsMap);
-      setProductDetails(productDetailsMap);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError("Không thể tải danh sách đơn hàng");
@@ -114,11 +58,11 @@ export default function DeliveryOrders() {
     return colors[status] || colors.ASSIGNED;
   };
 
-  const handleCallCustomer = (orderId: number) => {
-    const order = orderDetails.get(orderId);
-    if (order?.phone) {
-      if (confirm(`Gọi cho khách hàng:\n${order.phone}`)) {
-        window.location.href = `tel:${order.phone}`;
+  const handleCallCustomer = (assignment: DeliveryAssignment) => {
+    const phone = assignment.order?.address?.phone;
+    if (phone) {
+      if (confirm(`Gọi cho khách hàng:\n${phone}`)) {
+        window.location.href = `tel:${phone}`;
       }
     } else {
       alert("Không tìm thấy số điện thoại khách hàng");
@@ -279,7 +223,7 @@ export default function DeliveryOrders() {
           assignments
             .filter((a) => a.status !== "DELIVERED" && a.status !== "CANCELLED")
             .map((assignment) => {
-              const order = orderDetails.get(assignment.orderId);
+              const order = assignment.order;
               return (
                 <div
                   key={assignment.id}
@@ -294,7 +238,7 @@ export default function DeliveryOrders() {
                       <div>
                         <p className="text-xs opacity-90">Đơn hàng</p>
                         <p className="text-lg sm:text-xl font-bold">
-                          #{assignment.orderId}
+                          #{order?.id || "N/A"}
                         </p>
                       </div>
                       <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-1 text-xs font-medium whitespace-nowrap">
@@ -308,7 +252,8 @@ export default function DeliveryOrders() {
                     <div className="flex items-start gap-2 text-sm">
                       <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                         <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">
-                          {order?.shopName?.charAt(0)?.toUpperCase() || "K"}
+                          {order?.address?.userName?.charAt(0)?.toUpperCase() ||
+                            "K"}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -316,7 +261,9 @@ export default function DeliveryOrders() {
                           Khách hàng
                         </p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {order?.shopName || "Chưa có tên"}
+                          {order?.address?.userName ||
+                            order?.address?.name ||
+                            "Chưa có tên"}
                         </p>
                       </div>
                     </div>
@@ -326,7 +273,17 @@ export default function DeliveryOrders() {
                       <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-gray-900 dark:text-white font-medium">
-                          {order?.address || "Chưa có địa chỉ"}
+                          {order?.address?.fullAddress ||
+                            [
+                              order?.address?.addressLine,
+                              order?.address?.street,
+                              order?.address?.ward,
+                              order?.address?.district,
+                              order?.address?.city,
+                            ]
+                              .filter(Boolean)
+                              .join(", ") ||
+                            "Chưa có địa chỉ"}
                         </p>
                       </div>
                     </div>
@@ -335,7 +292,7 @@ export default function DeliveryOrders() {
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-gray-400 shrink-0" />
                       <span className="text-gray-700 dark:text-gray-300">
-                        {order?.phone || "Chưa có SĐT"}
+                        {order?.address?.phone || "Chưa có SĐT"}
                       </span>
                     </div>
 
@@ -347,12 +304,9 @@ export default function DeliveryOrders() {
                         </p>
                         <div className="space-y-2">
                           {order.orderDetails.map((detail, index) => {
-                            const productColor = detail.productColorId
-                              ? productDetails.get(detail.productColorId)
-                              : null;
+                            const productColor = detail.productColor;
                             const productImage =
-                              productColor?.images?.[0]?.image ||
-                              productColor?.product?.thumbnailImage;
+                              productColor?.images?.[0]?.image;
                             return (
                               <div
                                 key={index}
@@ -376,9 +330,9 @@ export default function DeliveryOrders() {
                                       {productColor?.product?.name ||
                                         `Sản phẩm #${index + 1}`}
                                     </p>
-                                    {productColor?.product?.code && (
+                                    {productColor?.color && (
                                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Mã: {productColor.product.code}
+                                        Màu: {productColor.color.colorName}
                                       </p>
                                     )}
 
@@ -394,25 +348,8 @@ export default function DeliveryOrders() {
                                     {/* Material & Color */}
                                     {productColor && (
                                       <div className="flex flex-wrap gap-1 mt-1">
-                                        {productColor.product?.materials &&
-                                          productColor.product.materials
-                                            .length > 0 && (
-                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                              {
-                                                productColor.product
-                                                  .materials[0].materialName
-                                              }
-                                            </span>
-                                          )}
                                         {productColor.color && (
                                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                            <span
-                                              className="w-2 h-2 rounded-full border border-gray-300"
-                                              style={{
-                                                backgroundColor:
-                                                  productColor.color.hexCode,
-                                              }}
-                                            />
                                             {productColor.color.colorName}
                                           </span>
                                         )}
@@ -439,7 +376,7 @@ export default function DeliveryOrders() {
                             Tổng cộng:
                           </span>
                           <span className="text-base font-bold text-gray-900 dark:text-white">
-                            {order.price?.toLocaleString()}đ
+                            {order.total?.toLocaleString()}đ
                           </span>
                         </div>
                       </div>
@@ -460,7 +397,7 @@ export default function DeliveryOrders() {
 
                       {/* Nút gọi điện */}
                       <button
-                        onClick={() => handleCallCustomer(assignment.orderId)}
+                        onClick={() => handleCallCustomer(assignment)}
                         className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg font-medium text-sm hover:bg-green-700 active:bg-green-800 transition-colors"
                       >
                         <Phone className="h-5 w-5" />

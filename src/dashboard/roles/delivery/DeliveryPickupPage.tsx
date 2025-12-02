@@ -3,18 +3,9 @@ import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
-import orderService from "@/service/orderService";
-import type { OrderItem } from "@/types/order";
-import { productService, type ProductColor } from "@/service/productService";
 
 export default function DeliveryPickupPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
-    new Map()
-  );
-  const [productDetails, setProductDetails] = useState<
-    Map<string, ProductColor>
-  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,56 +29,6 @@ export default function DeliveryPickupPage() {
         (assignment) => assignment.status === "READY"
       );
       setAssignments(readyOrders);
-
-      // Fetch order details for each assignment
-      const orderDetailsMap = new Map<number, OrderItem>();
-      const productDetailsMap = new Map<string, ProductColor>();
-
-      await Promise.all(
-        readyOrders.map(async (assignment) => {
-          try {
-            const orderDetail = await orderService.getOrderById(
-              assignment.orderId
-            );
-            orderDetailsMap.set(assignment.orderId, orderDetail);
-
-            // Fetch product color details for each order detail
-            if (orderDetail.orderDetails) {
-              await Promise.all(
-                orderDetail.orderDetails.map(async (detail) => {
-                  if (
-                    detail.productColorId &&
-                    !productDetailsMap.has(detail.productColorId)
-                  ) {
-                    try {
-                      const productColorResponse =
-                        await productService.getProductColorById(
-                          detail.productColorId
-                        );
-                      if (productColorResponse?.data?.data) {
-                        productDetailsMap.set(
-                          detail.productColorId,
-                          productColorResponse.data.data
-                        );
-                      }
-                    } catch (err) {
-                      console.error(
-                        `Error fetching product color ${detail.productColorId}:`,
-                        err
-                      );
-                    }
-                  }
-                })
-              );
-            }
-          } catch (err) {
-            console.error(`Error fetching order ${assignment.orderId}:`, err);
-          }
-        })
-      );
-
-      setOrderDetails(orderDetailsMap);
-      setProductDetails(productDetailsMap);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError((err as Error).message || "Không thể tải danh sách đơn hàng");
@@ -110,12 +51,12 @@ export default function DeliveryPickupPage() {
     }
   };
 
-  const handleCallCustomer = (orderId: number) => {
-    const order = orderDetails.get(orderId);
-    if (order?.phone) {
-      window.location.href = `tel:${order.phone}`;
+  const handleCallCustomer = (assignment: DeliveryAssignment) => {
+    const phone = assignment.order?.address?.phone;
+    if (phone) {
+      window.location.href = `tel:${phone}`;
     } else {
-      alert("Đã sao chép số điện thoại khách hàng");
+      alert("Không tìm thấy số điện thoại khách hàng");
     }
   };
 
@@ -199,7 +140,7 @@ export default function DeliveryPickupPage() {
           </div>
         ) : (
           assignments.map((assignment) => {
-            const order = orderDetails.get(assignment.orderId);
+            const order = assignment.order;
             const totalQuantity =
               order?.orderDetails?.reduce(
                 (sum, detail) => sum + detail.quantity,
@@ -218,11 +159,13 @@ export default function DeliveryPickupPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <Package className="h-5 w-5 text-green-600" />
                         <span className="font-semibold text-gray-800">
-                          Đơn #{assignment.orderId}
+                          Đơn #{order?.id || "N/A"}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 font-medium">
-                        {order?.shopName || "Đang tải..."}
+                        {order?.address?.userName ||
+                          order?.address?.name ||
+                          "Đang tải..."}
                       </p>
                     </div>
                     <span className={getStatusBadgeClass(assignment.status)}>
@@ -234,12 +177,22 @@ export default function DeliveryPickupPage() {
                   <div className="space-y-1 text-sm">
                     <div className="flex items-start gap-2 text-gray-600">
                       <Phone className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
-                      <span>{order?.phone || "N/A"}</span>
+                      <span>{order?.address?.phone || "N/A"}</span>
                     </div>
                     <div className="flex items-start gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
                       <span className="line-clamp-2">
-                        {order?.address || "N/A"}
+                        {order?.address?.fullAddress ||
+                          [
+                            order?.address?.addressLine,
+                            order?.address?.street,
+                            order?.address?.ward,
+                            order?.address?.district,
+                            order?.address?.city,
+                          ]
+                            .filter(Boolean)
+                            .join(", ") ||
+                          "N/A"}
                       </span>
                     </div>
                   </div>
@@ -255,12 +208,8 @@ export default function DeliveryPickupPage() {
                         Sản phẩm ({order.orderDetails.length})
                       </h4>
                       {order.orderDetails.map((detail, idx) => {
-                        const productColor = detail.productColorId
-                          ? productDetails.get(detail.productColorId)
-                          : null;
-                        const productImage =
-                          productColor?.images?.[0]?.image ||
-                          productColor?.product?.thumbnailImage;
+                        const productColor = detail.productColor;
+                        const productImage = productColor?.images?.[0]?.image;
                         return (
                           <div
                             key={idx}
@@ -313,7 +262,7 @@ export default function DeliveryPickupPage() {
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Tổng tiền</p>
                       <p className="text-lg font-bold text-green-600">
-                        {formatCurrency(order?.price || 0)}
+                        {formatCurrency(order?.total || 0)}
                       </p>
                     </div>
                   </div>
@@ -331,7 +280,7 @@ export default function DeliveryPickupPage() {
 
                     {/* Nút gọi điện */}
                     <button
-                      onClick={() => handleCallCustomer(assignment.orderId)}
+                      onClick={() => handleCallCustomer(assignment)}
                       className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-lg font-medium text-sm hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md"
                     >
                       <Phone className="h-5 w-5" />
