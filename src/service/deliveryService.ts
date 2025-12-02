@@ -1,9 +1,75 @@
 import axiosClient from "./axiosClient";
 
+export interface OrderAddress {
+  id: number;
+  name: string;
+  phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  street: string;
+  addressLine: string;
+  isDefault: boolean;
+  userId: string;
+  userName: string;
+  fullAddress: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface ProductColor {
+  id: string;
+  product: {
+    id: string;
+    name: string;
+  };
+  color: {
+    id: string;
+    colorName: string;
+  };
+  images: Array<{
+    image: string;
+  }>;
+  status: "ACTIVE" | "INACTIVE";
+}
+
+export interface OrderDetail {
+  id: number;
+  productColorId: string;
+  quantity: number;
+  productColor: ProductColor;
+  price: number;
+}
+
+export interface Payment {
+  id: number;
+  transactionCode: string;
+  total: number;
+  paymentMethod: "COD" | "VNPAY" | "MOMO";
+  paymentStatus: "NOT_PAID" | "PAID" | "REFUNDED" | "PENDING";
+  date: string;
+}
+
+export interface Order {
+  id: number;
+  storeId: string;
+  address: OrderAddress;
+  total: number;
+  note: string;
+  orderDate: string;
+  reason: string;
+  orderDetails: OrderDetail[];
+  payment: Payment;
+  qrCode: string;
+  depositPrice: number;
+  qrCodeGeneratedAt: string;
+  pdfFilePath: string;
+}
+
 export interface DeliveryAssignment {
   id: number;
-  orderId: number;
   storeId: string;
+  storeName: string;
   deliveryStaffId: string;
   assignedBy: string;
   assignedAt: string;
@@ -16,12 +82,12 @@ export interface DeliveryAssignment {
     | "DELIVERED"
     | "CANCELLED";
   notes: string;
-  invoiceGenerated: boolean;
-  invoiceGeneratedAt: string;
   productsPrepared: boolean;
   productsPreparedAt: string;
-  order: unknown;
-  store: unknown;
+  rejectReason: string;
+  rejectedAt: string;
+  rejectedBy: string;
+  order: Order;
 }
 
 export interface DeliveryConfirmation {
@@ -47,11 +113,8 @@ export interface DeliveryConfirmation {
 
 export interface CreateDeliveryConfirmationRequest {
   orderId: number;
-  deliveryPhotos?: string[];
+  deliveryPhotos: string[];
   deliveryNotes?: string;
-  deliveryLatitude?: number;
-  deliveryLongitude?: number;
-  deliveryAddress?: string;
 }
 
 export interface ScanQRRequest {

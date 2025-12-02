@@ -78,7 +78,11 @@ const Footer = React.memo(() => {
             <a href="#" className="hover:text-yellow-400" aria-label="Facebook">
               <Facebook className="h-5 w-5" />
             </a>
-            <a href="#" className="hover:text-yellow-400" aria-label="Instagram">
+            <a
+              href="#"
+              className="hover:text-yellow-400"
+              aria-label="Instagram"
+            >
               <Instagram className="h-5 w-5" />
             </a>
             <a href="#" className="hover:text-yellow-400" aria-label="Twitter">
