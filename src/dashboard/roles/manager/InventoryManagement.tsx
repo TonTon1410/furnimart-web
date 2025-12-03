@@ -27,14 +27,22 @@ import { useToast } from "@/context/ToastContext";
 
 // Components
 import CustomDropdown from "@/components/CustomDropdown";
-import InventoryDetailModal from "./components/InventoryDetailModal"; // Đảm bảo đường dẫn đúng tới file Modal bạn vừa tạo
+import InventoryDetailModal from "./components/InventoryDetailModal";
 
 // Router
 import { DP } from "@/router/paths";
 
 dayjs.extend(isBetween);
 
-// --- SimpleDatePicker Component ---
+// --- Cấu hình Map hiển thị Mục đích (Requirement 3) ---
+const PURPOSE_MAP: Record<string, string> = {
+  STOCK_IN: "Nhập hàng",
+  STOCK_OUT: "Xuất bán hàng",
+  MOVE: "Xuất điều chuyển",
+  REQUEST: "Gửi yêu cầu",
+};
+
+// ... (Giữ nguyên component SimpleDatePicker) ...
 const SimpleDatePicker: React.FC<{
   label: string;
   value: string | null;
@@ -119,13 +127,11 @@ const SimpleDatePicker: React.FC<{
         {days.map((d, idx) => {
           const isCurrentMonth = d.month() === currentMonth.month();
           const isToday = d.isSame(dayjs(), "day");
-          const isSelected = value && d.isSame(dayjs(value), "day");
+          const isSelected = !!value && d.isSame(dayjs(value), "day");
 
-          // Check if date is disabled based on minDate/maxDate
-          const isDisabled = !!(
-            (minDate && d.isBefore(dayjs(minDate), "day")) ||
-            (maxDate && d.isAfter(dayjs(maxDate), "day"))
-          );
+          const isDisabled =
+            (!!minDate && d.isBefore(dayjs(minDate), "day")) ||
+            (!!maxDate && d.isAfter(dayjs(maxDate), "day"));
 
           return (
             <button
@@ -329,7 +335,7 @@ const SimpleDatePicker: React.FC<{
   );
 };
 
-// --- StatusBadge Component ---
+// ... (Giữ nguyên StatusBadge) ...
 const StatusBadge = ({ type }: { type: string }) => {
   let styles = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   let label = type;
@@ -460,6 +466,7 @@ export default function InventoryManagement() {
         );
         const list = res.data?.data || res.data;
 
+        // Requirement 2: Sắp xếp giảm dần theo ID
         const sortedList = Array.isArray(list)
           ? list.sort((a: any, b: any) => b.id - a.id)
           : [];
@@ -578,7 +585,7 @@ export default function InventoryManagement() {
 
   return (
     <div className="p-4 lg:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen font-sans">
-      {/* Header with Inline Stats */}
+      {/* ... (Giữ nguyên Header & Stats) ... */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -593,8 +600,8 @@ export default function InventoryManagement() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Inline Stats - Desktop */}
-          <div className="hidden md:flex items-center gap-3">
+           {/* ... (Inline Stats Logic giữ nguyên) ... */}
+           <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
@@ -609,16 +616,15 @@ export default function InventoryManagement() {
             </div>
           </div>
 
-          {/* Date Badge */}
           <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             Hôm nay:{" "}
             <span className="font-medium text-gray-900 dark:text-white">
               {dayjs().format("DD/MM/YYYY")}
             </span>
           </div>
-
-          {/* Inline Stats - Mobile */}
-          <div className="md:hidden w-full grid grid-cols-2 gap-2">
+          
+           {/* ... (Mobile Stats Logic giữ nguyên) ... */}
+           <div className="md:hidden w-full grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
@@ -635,7 +641,7 @@ export default function InventoryManagement() {
         </div>
       </div>
 
-      {/* KHỐI 2: Action Bar */}
+      {/* ... (Giữ nguyên Action Bar) ... */}
       <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between items-stretch lg:items-end">
           {/* Left: Filters */}
@@ -765,13 +771,12 @@ export default function InventoryManagement() {
                         <StatusBadge type={inv.type} />
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {inv.purpose}
+                         {/* Requirement 3: Hiển thị mục đích theo map */}
+                        {PURPOSE_MAP[inv.purpose] || inv.purpose}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        {/* Requirement 1: Chỉ hiển thị ngày, xóa giờ */}
                         {dayjs(inv.date).format("DD/MM/YYYY")}
-                        <div className="text-xs opacity-70">
-                          {dayjs(inv.date).format("HH:mm")}
-                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                         {inv.warehouseName}
@@ -788,6 +793,7 @@ export default function InventoryManagement() {
               </table>
             </div>
 
+            {/* ... (Giữ nguyên Pagination) ... */}
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 Hiển thị {(currentPage - 1) * itemsPerPage + 1} -{" "}

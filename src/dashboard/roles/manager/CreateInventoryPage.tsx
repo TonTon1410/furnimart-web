@@ -176,6 +176,12 @@ const CreateInventoryPage: React.FC = () => {
     }
   }, [type]);
 
+  useEffect(() => {
+    if (purpose !== "STOCK_OUT") {
+      setOrderId("");
+    }
+  }, [purpose]);
+
   // --- Helpers ---
   const getAvailablePurposeOptions = () => {
     if (type === "IMPORT") {
