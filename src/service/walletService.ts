@@ -31,7 +31,13 @@ export interface TransactionResponse {
 }
 
 export const walletService = {
-  // Get wallet by User ID
+  // Get current user's wallet
+  getMyWallet: async () => {
+    const url = `/wallets/my-wallet`
+    return axiosClient.get<{ data: Wallet }>(url)
+  },
+
+  // Get wallet by User ID (for admin)
   getWalletByUserId: async (userId: string) => {
     const url = `/wallets/user/${userId}`
     return axiosClient.get<{ data: Wallet }>(url)
@@ -39,7 +45,6 @@ export const walletService = {
 
   // Get transactions with pagination
   getTransactions: async (walletId: string, page = 0, size = 10) => {
-    // Adjust endpoint based on the image: /api/wallets/{walletId}/transactions/paged
     const url = `/wallets/${walletId}/transactions/paged?page=${page}&size=${size}`
     return axiosClient.get<{ data: TransactionResponse }>(url)
   },

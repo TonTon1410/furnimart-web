@@ -20,16 +20,12 @@ export default function MyWalletPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // 1. Get User Profile to get ID
-        const profile = await authService.getProfile()
-        if (!profile?.id) throw new Error("Không tìm thấy thông tin người dùng")
-
-        // 2. Get Wallet
-        const walletRes = await walletService.getWalletByUserId(profile.id)
+        // 1. Get My Wallet directly
+        const walletRes = await walletService.getMyWallet()
         const walletData = walletRes.data.data
         setWallet(walletData)
 
-        // 3. Get Transactions if wallet exists
+        // 2. Get Transactions if wallet exists
         if (walletData?.id) {
           fetchTransactions(walletData.id, 0)
         }
