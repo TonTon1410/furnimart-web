@@ -1,7 +1,5 @@
 // src/config/nav/manager.tsx
 import {
-  ClipboardCheck,
-  Truck,
   BarChart3,
   MessageSquare,
   Warehouse,
@@ -9,7 +7,6 @@ import {
   ShoppingCart,
   Users,
   Clock,
-  FilePlus,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -53,11 +50,6 @@ export const managerNav = async (): Promise<RoleNav> => {
         path: DP("inventory"),
       },
       {
-        icon: <FilePlus />,
-        name: "Tạo phiếu kho",
-        path: DP("inventory/create"),
-      },
-      {
         icon: <Warehouse />,
         name: "Sơ đồ kho hàng (Mới)",
         path: DP("warehouse-map"),
@@ -70,16 +62,6 @@ export const managerNav = async (): Promise<RoleNav> => {
       },
       { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
       { icon: <Users />, name: "Quản lí nhân viên", path: DP("employees") },
-      {
-        icon: <ClipboardCheck />,
-        name: "Orders",
-        subItems: [{ name: "Approve Orders", path: DP("orders/approval") }],
-      },
-      {
-        icon: <Truck />,
-        name: "Deliveries",
-        subItems: [{ name: "Assign Delivery", path: DP("deliveries/assign") }],
-      },
     ],
     others: [
       {
