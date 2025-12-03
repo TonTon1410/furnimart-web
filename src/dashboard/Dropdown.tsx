@@ -100,7 +100,7 @@ const DropdownItemImpl: React.FC<DropdownItemProps> = ({
   );
 };
 
-const MemoizedDropdown = memo(DropdownComponent) as DropdownComponentType;
+const MemoizedDropdown = memo(DropdownComponent) as unknown as DropdownComponentType;
 MemoizedDropdown.Item = DropdownItemImpl;
 
 export const Dropdown = MemoizedDropdown;

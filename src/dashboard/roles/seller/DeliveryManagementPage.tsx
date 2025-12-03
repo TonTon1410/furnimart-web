@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import CustomDropdown from "../../../components/CustomDropdown";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
@@ -462,20 +463,24 @@ export default function DeliveryManagementPage() {
           />
         </div>
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          aria-label="Lọc theo trạng thái"
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="ASSIGNED">Đã phân công</option>
-          <option value="PREPARING">Đang chuẩn bị</option>
-          <option value="READY">Sẵn sàng</option>
-          <option value="IN_TRANSIT">Đang giao</option>
-          <option value="DELIVERED">Đã giao</option>
-          <option value="CANCELLED">Đã hủy</option>
-        </select>
+        <div className="min-w-[200px]">
+          <CustomDropdown
+            id="filterStatus"
+            label="Trạng thái"
+            value={filterStatus}
+            onChange={(value) => setFilterStatus(value)}
+            options={[
+              { value: "all", label: "Tất cả trạng thái" },
+              { value: "ASSIGNED", label: "Đã phân công" },
+              { value: "PREPARING", label: "Đang chuẩn bị" },
+              { value: "READY", label: "Sẵn sàng" },
+              { value: "IN_TRANSIT", label: "Đang giao" },
+              { value: "DELIVERED", label: "Đã giao" },
+              { value: "CANCELLED", label: "Đã hủy" },
+            ]}
+            placeholder="Chọn trạng thái..."
+          />
+        </div>
       </div>
 
       {/* Orders List */}
@@ -681,28 +686,30 @@ export default function DeliveryManagementPage() {
                         </button>
                       )}
 
-                      <button
-                        onClick={() => handlePrepareProducts(order.id)}
-                        disabled={
-                          assignment.productsPrepared ||
-                          preparingProducts === order.id
-                        }
-                        className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
-                      >
-                        {preparingProducts === order.id ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          <>
-                            <CheckSquare className="h-4 w-4" />
-                            {assignment.productsPrepared
-                              ? "Đã chuẩn bị"
-                              : "Chuẩn bị SP"}
-                          </>
-                        )}
-                      </button>
+                      {assignment.status === "PREPARING" && (
+                        <button
+                          onClick={() => handlePrepareProducts(order.id)}
+                          disabled={
+                            assignment.productsPrepared ||
+                            preparingProducts === order.id
+                          }
+                          className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
+                        >
+                          {preparingProducts === order.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              <CheckSquare className="h-4 w-4" />
+                              {assignment.productsPrepared
+                                ? "Đã chuẩn bị"
+                                : "Chuẩn bị SP"}
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
