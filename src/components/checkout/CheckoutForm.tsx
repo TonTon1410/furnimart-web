@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 
 type Props = {
   addresses: any[];
@@ -11,7 +11,10 @@ type Props = {
   voucherCode: string;
   setVoucherCode: (code: string) => void;
   onCreateAddress: () => void;
+  totalPrice: number;
 };
+
+const COD_LIMIT = 20000000; // 20 triệu VND
 
 const CheckoutForm = React.memo<Props>(
   ({
@@ -23,7 +26,16 @@ const CheckoutForm = React.memo<Props>(
     voucherCode,
     setVoucherCode,
     onCreateAddress,
+    totalPrice,
   }) => {
+    const isCODDisabled = totalPrice > COD_LIMIT;
+
+    // Auto switch to VNPAY if COD is disabled and currently selected
+    React.useEffect(() => {
+      if (isCODDisabled && paymentMethod === "COD") {
+        setPaymentMethod("VNPAY");
+      }
+    }, [isCODDisabled, paymentMethod, setPaymentMethod]);
     return (
       <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-md">
         {/* Địa chỉ */}
@@ -100,16 +112,49 @@ const CheckoutForm = React.memo<Props>(
           <h3 className="mb-3 text-lg font-semibold text-gray-800">
             Phương thức thanh toán
           </h3>
+
+          {/* Warning message when COD is disabled */}
+          {isCODDisabled && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800">
+                  Đơn hàng trên 20.000.000đ không hỗ trợ COD
+                </p>
+                <p className="mt-1 text-amber-700">
+                  Vui lòng chọn phương thức thanh toán trực tuyến qua VNPAY để
+                  hoàn tất đơn hàng.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+            <label
+              className={`flex items-center gap-3 rounded-lg border p-3 ${
+                isCODDisabled
+                  ? "cursor-not-allowed bg-gray-100 opacity-60"
+                  : "cursor-pointer hover:bg-gray-50"
+              }`}
+            >
               <input
                 type="radio"
                 value="COD"
                 checked={paymentMethod === "COD"}
                 onChange={() => setPaymentMethod("COD")}
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                disabled={isCODDisabled}
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed"
               />
-              <span>Thanh toán khi nhận hàng (COD)</span>
+              <div className="flex-1">
+                <span className={isCODDisabled ? "text-gray-500" : ""}>
+                  Thanh toán khi nhận hàng (COD)
+                </span>
+                {isCODDisabled && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Chỉ áp dụng cho đơn hàng dưới 20.000.000đ
+                  </p>
+                )}
+              </div>
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
               <input

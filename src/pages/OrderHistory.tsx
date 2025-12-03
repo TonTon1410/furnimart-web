@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Search,
   Package,
@@ -9,213 +9,299 @@ import {
   Truck,
   CheckCircle,
   XCircle,
-  RotateCcw,
   ShoppingBag,
   Calendar,
   MapPin,
   CreditCard,
   FileText,
-} from "lucide-react"
-import { orderService } from "@/service/orderService"
-import type { OrderItem, OrderFilters } from "../types/order"
+  Phone,
+} from "lucide-react";
+import { orderService } from "@/service/orderService";
+import type { OrderItem } from "../types/order";
 
 const orderTabs = [
   { key: "all", label: "Tất cả", icon: ShoppingBag },
-  { key: "pending", label: "Chờ xác nhận", icon: Clock },
-  { key: "confirmed", label: "Đã xác nhận", icon: CheckCircle },
-  { key: "delivered", label: "Đã giao hàng", icon: Truck },
-  { key: "completed", label: "Hoàn thành", icon: CheckCircle },
-  { key: "cancelled", label: "Đã hủy", icon: XCircle },
-]
+  { key: "PRE_ORDER", label: "Đặt trước", icon: Clock },
+  { key: "PENDING_GROUP", label: "Chờ xử lý", icon: Clock },
+  { key: "CONFIRMED_GROUP", label: "Đã xác nhận", icon: CheckCircle },
+  { key: "SHIPPING", label: "Đang giao", icon: Truck },
+  { key: "DELIVERED", label: "Đã giao", icon: CheckCircle },
+  { key: "FINISHED", label: "Hoàn thành", icon: CheckCircle },
+  { key: "CANCELLED", label: "Đã hủy", icon: XCircle },
+];
 
 const getStatusColor = (status: string) => {
   const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400",
-    confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
-    shipping: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400",
-    delivered: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
-    completed: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
-    cancelled: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
-  }
-  return statusColors[status as keyof typeof statusColors] || statusColors.pending
-}
+    PRE_ORDER:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400",
+    PENDING:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400",
+    PAYMENT: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
+    ASSIGN_ORDER_STORE:
+      "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-400",
+    MANAGER_ACCEPT:
+      "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
+    READY_FOR_INVOICE:
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400",
+    MANAGER_REJECT:
+      "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
+    MANAGER_EXPORT_ORDER:
+      "bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-400",
+    CONFIRMED:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
+    PACKAGED:
+      "bg-violet-100 text-violet-800 dark:bg-violet-900/20 dark:text-violet-400",
+    SHIPPING:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400",
+    DELIVERED:
+      "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
+    FINISHED:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400",
+    CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
+  };
+  return (
+    statusColors[status as keyof typeof statusColors] || statusColors.PENDING
+  );
+};
 
 const getStatusLabel = (status: string) => {
   const statusLabels = {
-    pending: "Chờ xác nhận",
-    confirmed: "Đã xác nhận",
-    shipping: "Đang giao hàng",
-    delivered: "Đã giao hàng",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy",
-  }
-  return statusLabels[status as keyof typeof statusLabels] || "Không xác định"
-}
+    PRE_ORDER: "Đặt trước",
+    PENDING: "Chờ xử lý",
+    PAYMENT: "Chờ thanh toán",
+    ASSIGN_ORDER_STORE: "Phân phối cho cửa hàng",
+    MANAGER_ACCEPT: "Quản lý chấp nhận",
+    READY_FOR_INVOICE: "Sẵn sàng xuất hóa đơn",
+    MANAGER_REJECT: "Quản lý từ chối",
+    MANAGER_EXPORT_ORDER: "Quản lý xuất đơn",
+    CONFIRMED: "Đã xác nhận",
+    PACKAGED: "Đã đóng gói",
+    SHIPPING: "Đang giao hàng",
+    DELIVERED: "Đã giao hàng",
+    FINISHED: "Hoàn thành",
+    CANCELLED: "Đã hủy",
+  };
+  return statusLabels[status as keyof typeof statusLabels] || status;
+};
 
 const getPaymentMethodLabel = (method: string) => {
   const labels: Record<string, string> = {
-    'COD': 'Thanh toán khi nhận hàng',
-    'VNPAY': 'VNPay',
-    'MOMO': 'MoMo',
-    'BANK': 'Chuyển khoản ngân hàng'
-  }
-  return labels[method] || method
-}
+    COD: "Thanh toán khi nhận hàng",
+    VNPAY: "VNPay",
+    MOMO: "MoMo",
+    BANK: "Chuyển khoản ngân hàng",
+  };
+  return labels[method] || method;
+};
 
-const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }
+const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 export default function OrderHistory() {
-  const [activeTab, setActiveTab] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filteredOrders, setFilteredOrders] = useState<OrderItem[]>([])
-  const [allOrders, setAllOrders] = useState<OrderItem[]>([]) // Cache tất cả orders
-  const [loading, setLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalOrders, setTotalOrders] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const ordersPerPage = 10
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredOrders, setFilteredOrders] = useState<OrderItem[]>([]);
+  const [allOrders, setAllOrders] = useState<OrderItem[]>([]); // Cache tất cả orders
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
+    null
+  );
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedOrderToCancel, setSelectedOrderToCancel] =
+    useState<OrderItem | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const ordersPerPage = 10;
 
   // Load tất cả orders một lần khi component mount
   useEffect(() => {
     const loadAllOrders = async () => {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       try {
-        // Lấy TẤT CẢ orders không filter
-        const result = await orderService.fetchOrders({
+        // Gọi API search/customer
+        const result = await orderService.searchOrdersByCustomer({
           page: 1,
           limit: 100, // Lấy nhiều để cache
-        })
-        
-        setAllOrders(result.orders || [])
-      } catch (error: any) {
-        console.error("Error loading orders:", error)
-        setError(error.message || "Không thể tải danh sách đơn hàng")
-        setAllOrders([])
-      } finally {
-        setLoading(false)
-      }
-    }
+        });
 
-    loadAllOrders()
-  }, []) // Chỉ chạy 1 lần khi mount
+        setAllOrders(result.orders || []);
+      } catch (error) {
+        console.error("Error loading orders:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Không thể tải danh sách đơn hàng"
+        );
+        setAllOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllOrders();
+  }, []); // Chỉ chạy 1 lần khi mount
 
   // Filter và pagination ở frontend
   useEffect(() => {
-    let filtered = [...allOrders]
-    
+    let filtered = [...allOrders];
+
+    // Đảo ngược để hiển thị đơn hàng mới nhất trước (từ dưới lên)
+    filtered.reverse();
+
     // Filter theo status
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(order => order.status === activeTab)
+    if (activeTab !== "all") {
+      if (activeTab === "PENDING_GROUP") {
+        // Chờ xử lý: PENDING, PAYMENT, ASSIGN_ORDER_STORE
+        filtered = filtered.filter((order) =>
+          ["PENDING", "PAYMENT", "ASSIGN_ORDER_STORE"].includes(
+            order.rawStatus || order.status
+          )
+        );
+      } else if (activeTab === "CONFIRMED_GROUP") {
+        // Đã xác nhận: MANAGER_ACCEPT, CONFIRMED, PACKAGED
+        filtered = filtered.filter((order) =>
+          ["MANAGER_ACCEPT", "CONFIRMED", "PACKAGED"].includes(
+            order.rawStatus || order.status
+          )
+        );
+      } else {
+        filtered = filtered.filter(
+          (order) => (order.rawStatus || order.status) === activeTab
+        );
+      }
     }
-    
+
     // Filter theo search
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(order => 
-        order.id.toLowerCase().includes(query) ||
-        order.productName.toLowerCase().includes(query) ||
-        order.shopName.toLowerCase().includes(query)
-      )
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (order) =>
+          order.id.toLowerCase().includes(query) ||
+          order.productName?.toLowerCase().includes(query) ||
+          order.shopName?.toLowerCase().includes(query)
+      );
     }
-    
+
     // Pagination
-    const totalFiltered = filtered.length
-    const startIndex = (currentPage - 1) * ordersPerPage
-    const endIndex = startIndex + ordersPerPage
-    const paginatedOrders = filtered.slice(startIndex, endIndex)
-    
-    setFilteredOrders(paginatedOrders)
-    setTotalOrders(totalFiltered)
-    
-  }, [allOrders, activeTab, searchQuery, currentPage])
+    const totalFiltered = filtered.length;
+    const startIndex = (currentPage - 1) * ordersPerPage;
+    const endIndex = startIndex + ordersPerPage;
+    const paginatedOrders = filtered.slice(startIndex, endIndex);
+
+    setFilteredOrders(paginatedOrders);
+    setTotalOrders(totalFiltered);
+  }, [allOrders, activeTab, searchQuery, currentPage]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN").format(price) + "đ"
-  }
+    return new Intl.NumberFormat("vi-VN").format(price) + "đ";
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    })
-  }
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  const handleOrderAction = async (orderId: string, action: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const orderIdNum = parseInt(orderId)
-      
-      switch (action) {
-        case "cancel":
-          await orderService.cancelOrder(orderIdNum, "Khách hàng yêu cầu hủy")
-          break
-        case "confirm":
-          await orderService.updateOrderStatus(orderIdNum, "confirmed")
-          break
-      }
-      
-      // Reload tất cả orders sau khi action
-      setTimeout(async () => {
-        try {
-          const result = await orderService.fetchOrders({
-            page: 1,
-            limit: 100,
-          })
-          setAllOrders(result.orders || [])
-        } catch (reloadError: any) {
-          setError("Thao tác thành công nhưng không thể tải lại danh sách")
-        }
-      }, 1000)
-      
-    } catch (error: any) {
-      setError(error.message || "Không thể thực hiện thao tác")
-    } finally {
-      setLoading(false)
+  // Check if order can be cancelled (before MANAGER_ACCEPT status)
+  const canCancelOrder = (order: OrderItem) => {
+    const cancelableStatuses = [
+      "PRE_ORDER",
+      "PENDING",
+      "PAYMENT",
+      "ASSIGN_ORDER_STORE",
+    ];
+    return cancelableStatuses.includes(order.rawStatus || order.status);
+  };
+
+  const handleCancelOrder = (order: OrderItem) => {
+    setSelectedOrderToCancel(order);
+    setShowCancelModal(true);
+    setCancelReason("");
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!selectedOrderToCancel) return;
+
+    if (!cancelReason.trim()) {
+      setError("Vui lòng nhập lý do hủy đơn hàng");
+      return;
     }
-  }
+
+    setCancellingOrderId(selectedOrderToCancel.id);
+    setShowCancelModal(false);
+
+    try {
+      await orderService.cancelOrder(
+        Number(selectedOrderToCancel.id),
+        cancelReason
+      );
+
+      // Refresh orders
+      const result = await orderService.searchOrdersByCustomer({
+        page: 1,
+        limit: 100,
+      });
+      setAllOrders(result.orders || []);
+
+      setError(null);
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      setError(
+        error instanceof Error ? error.message : "Không thể hủy đơn hàng"
+      );
+    } finally {
+      setCancellingOrderId(null);
+      setSelectedOrderToCancel(null);
+      setCancelReason("");
+    }
+  };
 
   return (
     <motion.div
       initial="hidden"
       animate="show"
       variants={fadeUp}
-      className="bg-card rounded-2xl shadow-xl border border-border/50 overflow-hidden"
+      className="bg-card rounded-xl shadow-xl border border-border/50 overflow-hidden"
     >
-      <div className="p-6 border-b border-border/50">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-primary/10 rounded-xl">
+      <div className="p-3 sm:p-4 border-b border-border/50">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
             <ShoppingBag className="h-5 w-5 text-primary" />
           </div>
-          <h3 className="text-xl font-bold text-foreground">Đơn hàng nội thất</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-foreground">
+            Đơn hàng nội thất
+          </h3>
         </div>
 
-        <div className="relative mb-6">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Tìm kiếm theo mã đơn hàng"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground"
+            className="w-full pl-9 pr-3 py-2 sm:py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground text-sm"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {orderTabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.key
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
                 onClick={() => {
-                  setActiveTab(tab.key)
-                  setCurrentPage(1) // Reset về trang 1 khi đổi tab
+                  setActiveTab(tab.key);
+                  setCurrentPage(1); // Reset về trang 1 khi đổi tab
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -224,20 +310,23 @@ export default function OrderHistory() {
                 <Icon className="h-4 w-4" />
                 {tab.label}
               </button>
-            )
+            );
           })}
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4">
         {error && (
-          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+          <div className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">{error}</p>
-              <button 
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                {error}
+              </p>
+              <button
                 onClick={() => setError(null)}
                 className="ml-auto text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+                aria-label="Đóng thông báo"
               >
                 <XCircle className="h-4 w-4" />
               </button>
@@ -246,71 +335,113 @@ export default function OrderHistory() {
         )}
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
+            <p className="text-sm text-muted-foreground">
+              Đang tải đơn hàng...
+            </p>
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Không có đơn hàng nào</h3>
-            <p className="text-muted-foreground">
-              {searchQuery ? "Không tìm thấy đơn hàng phù hợp" : "Bạn chưa có đơn hàng nào"}
+          <div className="text-center py-8">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-foreground mb-1">
+              Không có đơn hàng nào
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery
+                ? "Không tìm thấy đơn hàng phù hợp"
+                : "Bạn chưa có đơn hàng nào"}
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredOrders.map((order) => (
               <motion.div
                 key={order.id}
                 variants={fadeUp}
-                className="bg-muted/30 rounded-xl border border-border/50 p-5 hover:shadow-lg transition-all duration-200"
+                className="bg-muted/30 rounded-lg border border-border/50 p-3 sm:p-4 hover:shadow-lg transition-all duration-200"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <ShoppingBag className="h-5 w-5 text-primary" />
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-primary/10 rounded-lg">
+                      <ShoppingBag className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground">{order.shopName}</h4>
-                      <p className="text-sm text-muted-foreground">Mã đơn: #{order.id}</p>
+                      <h4 className="text-sm sm:text-base font-semibold text-foreground">
+                        {order.shopName}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Mã đơn: #{order.id}
+                      </p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {getStatusLabel(order.status)}
+                  <span
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
+                      order.rawStatus || order.status
+                    )}`}
+                  >
+                    {getStatusLabel(order.rawStatus || order.status)}
                   </span>
                 </div>
 
                 {/* Summary Info */}
-                <div className="mb-4 p-3 bg-background/50 rounded-lg">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="mb-3 p-2 sm:p-3 bg-background/50 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                    {/* Số điện thoại khách hàng */}
+                    {(order.user?.phone || order.phone) && (
+                      <div className="flex items-center gap-2 col-span-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          SĐT khách hàng:
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {order.user?.phone || order.phone}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Số lượng:</span>
-                      <span className="font-medium text-foreground">{order.quantity} sản phẩm</span>
+                      <span className="font-medium text-foreground">
+                        {order.quantity} sản phẩm
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Đặt hàng:</span>
-                      <span className="font-medium text-foreground">{formatDate(order.orderDate)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatDate(order.orderDate)}
+                      </span>
                     </div>
                     {order.address && (
                       <div className="flex items-start gap-2 col-span-2">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <span className="text-muted-foreground">Địa chỉ: </span>
-                          <span className="font-medium text-foreground">{order.address}</span>
+                          <span className="text-muted-foreground">
+                            Địa chỉ:{" "}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {typeof order.address === "string"
+                              ? order.address
+                              : order.address.fullAddress}
+                          </span>
                         </div>
                       </div>
                     )}
                     {order.paymentMethod && (
                       <div className="flex items-center gap-2 col-span-2">
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Thanh toán:</span>
-                        <span className="font-medium text-foreground">{getPaymentMethodLabel(order.paymentMethod)}</span>
+                        <span className="text-muted-foreground">
+                          Thanh toán:
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {getPaymentMethodLabel(order.paymentMethod)}
+                        </span>
                         {order.transactionCode && (
-                          <span className="text-xs text-muted-foreground">({order.transactionCode})</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({order.transactionCode})
+                          </span>
                         )}
                       </div>
                     )}
@@ -318,7 +449,9 @@ export default function OrderHistory() {
                       <div className="flex items-start gap-2 col-span-2">
                         <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <span className="text-muted-foreground">Ghi chú: </span>
+                          <span className="text-muted-foreground">
+                            Ghi chú:{" "}
+                          </span>
                           <span className="text-foreground">{order.note}</span>
                         </div>
                       </div>
@@ -328,47 +461,83 @@ export default function OrderHistory() {
 
                 {/* Order Details */}
                 {order.orderDetails && order.orderDetails.length > 0 && (
-                  <div className="mb-4 space-y-2">
-                    <h5 className="text-sm font-semibold text-foreground mb-2">Chi tiết sản phẩm:</h5>
+                  <div className="mb-3 space-y-1.5">
+                    <h5 className="text-xs sm:text-sm font-semibold text-foreground mb-1.5">
+                      Chi tiết sản phẩm:
+                    </h5>
                     {order.orderDetails.map((detail, idx) => (
-                      <div key={detail.id} className="flex justify-between items-center p-2 bg-background/30 rounded-lg text-sm">
-                        <span className="text-muted-foreground">Sản phẩm {idx + 1}</span>
-                        <div className="flex items-center gap-4">
-                          <span className="text-foreground">x{detail.quantity}</span>
-                          <span className="font-medium text-foreground">{formatPrice(detail.price)}</span>
+                      <div
+                        key={detail.id}
+                        className="flex gap-2 items-center p-2 bg-background/30 rounded-lg text-xs sm:text-sm"
+                      >
+                        {detail.productColor?.images?.[0]?.image && (
+                          <img
+                            src={detail.productColor.images[0].image}
+                            alt={
+                              detail.productColor?.product?.name ||
+                              `Sản phẩm ${idx + 1}`
+                            }
+                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate text-xs sm:text-sm">
+                            {detail.productColor?.product?.name ||
+                              `Sản phẩm ${idx + 1}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Màu:{" "}
+                            {detail.productColor?.color?.colorName || "N/A"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-foreground text-xs">
+                            x{detail.quantity}
+                          </span>
+                          <span className="font-medium text-foreground min-w-16 sm:min-w-20 text-right text-xs sm:text-sm">
+                            {formatPrice(detail.price)}
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Total & Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-border/30">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm text-muted-foreground">Tổng tiền:</span>
-                    <span className="text-2xl font-bold text-primary">{formatPrice(order.price)}</span>
+                {/* Total */}
+                <div className="flex items-center justify-between pt-3 border-t border-border/30">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
+                      Tổng tiền:
+                    </span>
+                    <span className="text-lg sm:text-xl font-bold text-primary">
+                      {formatPrice(order.price)}
+                    </span>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    {order.status === "pending" && (
-                      <>
-                        <button
-                          onClick={() => handleOrderAction(order.id, "cancel")}
-                          disabled={loading}
-                          className="px-4 py-2 text-sm font-medium text-destructive border border-destructive rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50"
-                        >
-                          Hủy đơn
-                        </button>
-                        <button
-                          onClick={() => handleOrderAction(order.id, "confirm")}
-                          disabled={loading}
-                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                        >
-                          Xác nhận
-                        </button>
-                      </>
-                    )}
-                  </div>
+
+                  {/* Cancel Button - Only show for cancelable orders */}
+                  {canCancelOrder(order) && (
+                    <button
+                      onClick={() => handleCancelOrder(order)}
+                      disabled={cancellingOrderId === order.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
+                    >
+                      {cancellingOrderId === order.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600"></div>
+                          <span className="text-xs sm:text-sm font-medium">
+                            Đang hủy...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-3.5 w-3.5" />
+                          <span className="text-xs sm:text-sm font-medium">
+                            Hủy đơn hàng
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -376,7 +545,7 @@ export default function OrderHistory() {
         )}
 
         {totalOrders > ordersPerPage && (
-          <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t border-border/30">
+          <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-border/30">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1 || loading}
@@ -388,8 +557,14 @@ export default function OrderHistory() {
               Trang {currentPage} / {Math.ceil(totalOrders / ordersPerPage)}
             </span>
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalOrders / ordersPerPage), prev + 1))}
-              disabled={currentPage >= Math.ceil(totalOrders / ordersPerPage) || loading}
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(Math.ceil(totalOrders / ordersPerPage), prev + 1)
+                )
+              }
+              disabled={
+                currentPage >= Math.ceil(totalOrders / ordersPerPage) || loading
+              }
               className="px-3 py-2 text-sm border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             >
               Sau
@@ -397,6 +572,73 @@ export default function OrderHistory() {
           </div>
         )}
       </div>
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && selectedOrderToCancel && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4"
+          onClick={() => setShowCancelModal(false)}
+        >
+          <div
+            className="bg-card rounded-xl max-w-md w-full p-4 sm:p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                Xác nhận hủy đơn hàng
+              </h3>
+            </div>
+
+            <div className="mb-3">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1.5">
+                Bạn có chắc chắn muốn hủy đơn hàng #{selectedOrderToCancel.id}?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Tổng tiền:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatPrice(selectedOrderToCancel.price)}
+                </span>
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="cancelReason"
+                className="block text-xs sm:text-sm font-medium text-foreground mb-1.5"
+              >
+                Lý do hủy đơn <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="cancelReason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Nhập lý do hủy đơn hàng..."
+                rows={3}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground resize-none text-sm"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors text-xs sm:text-sm"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={confirmCancelOrder}
+                disabled={!cancelReason.trim()}
+                className="flex-1 px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
+              >
+                Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
-  )
+  );
 }

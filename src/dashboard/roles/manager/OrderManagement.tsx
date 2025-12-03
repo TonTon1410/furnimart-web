@@ -66,6 +66,12 @@ const processStatusConfig: Record<
       "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
     icon: <ThumbsDown className="h-3 w-3" />,
   },
+  READY_FOR_INVOICE: {
+    label: "Chuẩn bị xuất hóa đơn",
+    color:
+      "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800",
+    icon: <Package className="h-3 w-3" />,
+  },
   CONFIRMED: {
     label: "Đã xác nhận",
     color:
@@ -471,9 +477,9 @@ const OrderManagement: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen w-full bg-gray-50 px-6 py-8 dark:bg-gray-950">
+    <main className="min-h-screen w-full bg-gray-50 px-3 sm:px-4 py-4 sm:py-6 dark:bg-gray-950">
       {/* Breadcrumb */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-3 sm:mb-4 flex items-center justify-between">
         <nav className="text-sm text-gray-600 dark:text-gray-300">
           <ol className="flex items-center gap-2">
             <li>
@@ -488,19 +494,19 @@ const OrderManagement: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <div className="mb-3 sm:mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
           Quản lý đơn hàng
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Quản lý và theo dõi đơn hàng của cửa hàng
         </p>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
         {/* Search */}
-        <div className="flex flex-1 flex-col gap-1.5 min-w-[200px]">
+        <div className="flex flex-1 flex-col gap-1 min-w-[180px]">
           <label
             htmlFor="search"
             className="text-xs font-medium text-gray-600 dark:text-gray-400"
@@ -508,7 +514,7 @@ const OrderManagement: React.FC = () => {
             Tìm kiếm
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             <input
               id="search"
               type="text"
@@ -518,13 +524,13 @@ const OrderManagement: React.FC = () => {
                 setCurrentPage(1);
               }}
               placeholder="Tìm theo mã đơn, khách hàng..."
-              className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             />
           </div>
         </div>
 
         {/* Status filter - CustomDropdown */}
-        <div className="min-w-[280px]">
+        <div className="min-w-[220px] sm:min-w-[260px]">
           <CustomDropdown
             id="statusFilter"
             label="Trạng thái"
@@ -554,8 +560,8 @@ const OrderManagement: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 flex items-center gap-2 text-gray-700 dark:text-gray-200">
-        <Package className="h-4 w-4 text-emerald-600" />
+      <div className="mb-3 sm:mb-4 flex items-center gap-1.5 text-gray-700 dark:text-gray-200">
+        <Package className="h-3.5 w-3.5 text-emerald-600" />
         <span className="text-sm">
           Tổng: {loading ? "-" : totalOrders} đơn hàng
           {statusFilter !== "all" &&
@@ -568,42 +574,42 @@ const OrderManagement: React.FC = () => {
       {/* Orders List */}
       <section>
         {loading ? (
-          <div className="flex items-center gap-2 rounded-3xl border border-gray-200 bg-white p-6 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
             <Loader2 className="h-4 w-4 animate-spin" />
             Đang tải đơn hàng...
           </div>
         ) : error ? (
-          <div className="rounded-3xl border border-red-300 bg-red-50 p-6 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
             {error}
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
             Không có đơn hàng nào phù hợp.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <table className="min-w-full text-xs sm:text-sm text-gray-700 dark:text-gray-300">
               <thead className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50">
                 <tr>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Mã đơn
                   </th>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Khách hàng
                   </th>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Số lượng
                   </th>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Tổng tiền
                   </th>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Trạng thái
                   </th>
-                  <th className="px-4 py-4 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Ngày đặt
                   </th>
-                  <th className="px-4 py-4 text-center font-semibold text-gray-900 dark:text-gray-100">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Thao tác
                   </th>
                 </tr>
@@ -614,28 +620,30 @@ const OrderManagement: React.FC = () => {
                     key={order.id}
                     className="border-t border-gray-100 transition-colors hover:bg-gray-50/50 dark:border-gray-800 dark:hover:bg-gray-800/30"
                   >
-                    <td className="px-4 py-4">
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
+                      <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
                         #{order.id}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                         {order.shopName}
                       </div>
                       {order.address && (
                         <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                          {order.address}
+                          {typeof order.address === "string"
+                            ? order.address
+                            : order.address.fullAddress}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4">
-                      <span className="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                        {order.quantity} sản phẩm
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
+                      <span className="inline-flex items-center rounded-lg bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {order.quantity} sp
                       </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
+                      <div className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(order.price)}
                       </div>
                       {order.paymentMethod && (
@@ -644,25 +652,27 @@ const OrderManagement: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
+                        className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs font-medium ring-1 ${
                           processStatusConfig[order.rawStatus || order.status]
                             ?.color || "bg-gray-50 text-gray-700 ring-gray-200"
                         }`}
                       >
                         {processStatusConfig[order.rawStatus || order.status]
                           ?.icon || <Clock className="h-3 w-3" />}
-                        {processStatusConfig[order.rawStatus || order.status]
-                          ?.label ||
-                          order.rawStatus ||
-                          order.status}
+                        <span className="hidden sm:inline">
+                          {processStatusConfig[order.rawStatus || order.status]
+                            ?.label ||
+                            order.rawStatus ||
+                            order.status}
+                        </span>
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-gray-600 dark:text-gray-400">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-xs text-gray-600 dark:text-gray-400">
                       {formatDate(order.orderDate)}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3">
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleViewDetail(order)}
@@ -682,27 +692,31 @@ const OrderManagement: React.FC = () => {
                               <button
                                 onClick={() => handleAcceptOrder(order.id)}
                                 disabled={acceptingOrderId === order.id}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-600 transition-all hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-green-800 dark:bg-gray-900 dark:text-green-300 dark:hover:bg-green-900/20"
+                                className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-white px-2 py-1 text-xs font-medium text-green-600 transition-all hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-green-800 dark:bg-gray-900 dark:text-green-300 dark:hover:bg-green-900/20"
                               >
                                 {acceptingOrderId === order.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
-                                  <ThumbsUp className="h-3.5 w-3.5" />
+                                  <ThumbsUp className="h-3 w-3" />
                                 )}
-                                Chấp nhận
+                                <span className="hidden sm:inline">
+                                  Chấp nhận
+                                </span>
                               </button>
 
                               <button
                                 onClick={() => handleRejectOrder(order.id)}
                                 disabled={rejectingOrderId === order.id}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-900/20"
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-900/20"
                               >
                                 {rejectingOrderId === order.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
-                                  <ThumbsDown className="h-3.5 w-3.5" />
+                                  <ThumbsDown className="h-3 w-3" />
                                 )}
-                                Từ chối
+                                <span className="hidden sm:inline">
+                                  Từ chối
+                                </span>
                               </button>
                             </>
                           )}
@@ -712,10 +726,12 @@ const OrderManagement: React.FC = () => {
                           order.rawStatus === "MANAGER_ACCEPT" && (
                             <button
                               onClick={() => handleAssignDelivery(order.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-600 transition-all hover:bg-purple-50 active:scale-95 dark:border-purple-800 dark:bg-gray-900 dark:text-purple-300 dark:hover:bg-purple-900/20"
+                              className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-white px-2 py-1 text-xs font-medium text-purple-600 transition-all hover:bg-purple-50 active:scale-95 dark:border-purple-800 dark:bg-gray-900 dark:text-purple-300 dark:hover:bg-purple-900/20"
                             >
-                              <Truck className="h-3.5 w-3.5" />
-                              Phân công giao hàng
+                              <Truck className="h-3 w-3" />
+                              <span className="hidden sm:inline">
+                                Phân công
+                              </span>
                             </button>
                           )}
                       </div>
@@ -730,7 +746,7 @@ const OrderManagement: React.FC = () => {
 
       {/* Pagination */}
       {!loading && !error && filteredOrders.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-3 sm:mt-4">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPagesCalculated}
@@ -752,8 +768,8 @@ const OrderManagement: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                 Chi tiết đơn hàng #{selectedOrder.id}
               </h2>
               <button
@@ -766,10 +782,10 @@ const OrderManagement: React.FC = () => {
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
               {/* Status & Store Info */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     Trạng thái đơn hàng
                   </div>
@@ -814,7 +830,7 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Customer Info - Enhanced with full user data */}
-              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
                   Thông tin khách hàng
                 </div>
@@ -912,28 +928,31 @@ const OrderManagement: React.FC = () => {
                       Địa chỉ giao hàng
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      📍 {selectedOrder.address}
+                      📍{" "}
+                      {typeof selectedOrder.address === "string"
+                        ? selectedOrder.address
+                        : selectedOrder.address.fullAddress}
                     </div>
                   </div>
                 )
               )}
 
               {/* Payment Info - Enhanced */}
-              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                   Thông tin thanh toán
                 </div>
                 {fullOrderDetail?.payment ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-600 dark:text-gray-400">
                         Tổng tiền:
                       </span>
-                      <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(fullOrderDetail.payment.total)}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                       <div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Phương thức
@@ -979,7 +998,7 @@ const OrderManagement: React.FC = () => {
                   </div>
                 ) : (
                   <div>
-                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(selectedOrder.price)}
                     </div>
                     <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
@@ -997,8 +1016,8 @@ const OrderManagement: React.FC = () => {
 
               {/* QR Code - If available */}
               {fullOrderDetail?.qrCode && (
-                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     Mã QR đơn hàng
                   </div>
                   <div className="space-y-3">
@@ -1030,7 +1049,7 @@ const OrderManagement: React.FC = () => {
               )}
 
               {/* Order Date */}
-              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                   Ngày đặt hàng
                 </div>
@@ -1041,8 +1060,8 @@ const OrderManagement: React.FC = () => {
 
               {/* Process History Timeline */}
               {loadingOrderDetail ? (
-                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                  <div className="flex items-center justify-center py-4">
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                  <div className="flex items-center justify-center py-3">
                     <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                     <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
                       Đang tải lịch sử đơn hàng...
@@ -1052,8 +1071,8 @@ const OrderManagement: React.FC = () => {
               ) : (
                 fullOrderDetail?.processOrders &&
                 fullOrderDetail.processOrders.length > 0 && (
-                  <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                       Lịch sử xử lý đơn hàng
                     </div>
                     <div className="relative space-y-4">
@@ -1115,7 +1134,7 @@ const OrderManagement: React.FC = () => {
 
               {/* Note */}
               {(fullOrderDetail?.note || selectedOrder.note) && (
-                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     Ghi chú
                   </div>
@@ -1129,8 +1148,8 @@ const OrderManagement: React.FC = () => {
               {(fullOrderDetail?.orderDetails || selectedOrder.orderDetails) &&
                 (fullOrderDetail?.orderDetails || selectedOrder.orderDetails)
                   .length > 0 && (
-                  <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                       Chi tiết sản phẩm
                     </div>
                     {loadingProducts ? (
@@ -1221,7 +1240,7 @@ const OrderManagement: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+            <div className="sticky bottom-0 border-t border-gray-200 bg-white px-4 sm:px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-98 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
@@ -1243,25 +1262,25 @@ const OrderManagement: React.FC = () => {
                   <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-center text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1.5">
                 Xác nhận chấp nhận đơn hàng
               </h3>
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Bạn có chắc chắn muốn chấp nhận đơn hàng #
                 {confirmAcceptModal.orderId}?
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() =>
                     setConfirmAcceptModal({ open: false, orderId: null })
                   }
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={confirmAcceptOrder}
-                  className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500"
+                  className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500"
                 >
                   Chấp nhận
                 </button>
