@@ -7,7 +7,6 @@ import {
   ShoppingCart,
   Users,
   Clock,
-  FilePlus,
   LayoutDashboard,
 } from "lucide-react";
 import type { RoleNav } from "./types";
