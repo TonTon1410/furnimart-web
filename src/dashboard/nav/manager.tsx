@@ -7,6 +7,8 @@ import {
   ShoppingCart,
   Users,
   Clock,
+  FilePlus,
+  LayoutDashboard,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -44,6 +46,7 @@ export const managerNav = async (): Promise<RoleNav> => {
 
   return {
     main: [
+      { icon: <LayoutDashboard />, name: "Dashboard", path: DP("dashboard") },
       {
         icon: <Package />,
         name: "Quản lí xuất nhập kho",

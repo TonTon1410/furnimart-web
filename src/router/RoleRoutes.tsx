@@ -74,6 +74,19 @@ const DeliveryPODPage = lazy(
   () => import("@/dashboard/roles/delivery/DeliveryPODPage")
 );
 
+//Dashboard
+const AdminDashboard = lazy(
+  () => import("@/dashboard/pages/AdminDashboard")
+);
+
+const ManagerDashboard = lazy(
+  () => import("@/dashboard/pages/ManagerDashboard")
+);
+
+const StaffDashboard = lazy(
+  () => import("@/dashboard/pages/StaffDashboard")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -107,6 +120,7 @@ export default function RoleRoutes() {
       <Routes>
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogManagement />} />
         <Route path="users" element={<AdminUsersPage />} />
@@ -130,6 +144,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
@@ -170,6 +185,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
+        <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogManagement />} />
         <Route path="products" element={<SellerProductsPage />} />
