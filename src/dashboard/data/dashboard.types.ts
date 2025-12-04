@@ -50,3 +50,34 @@ export interface OrderStatusData {
   count: number;
   color: string;
 }
+
+// --- STAFF DASHBOARD TYPES ---
+export interface StaffWorkStats {
+  pendingOrders: number;    // Đơn chờ xác nhận (Quan trọng nhất)
+  unreadMessages: number;   // Tin nhắn khách chưa đọc
+  processedToday: number;   // Đơn đã xử lý trong ngày
+  lowStockAlerts: number;   // SP sắp hết tại kho
+}
+
+export interface StaffWorkloadData {
+  hour: string;             // Khung giờ (8h, 9h...)
+  ordersProcessed: number;
+  messagesReplied: number;
+}
+
+export interface RecentOrderLite {
+  id: string;
+  customerName: string;
+  total: number;
+  status: 'PENDING' | 'CONFIRMED' | 'SHIPPING'; // Staff chỉ quan tâm các trạng thái này để xử lý
+  time: string;
+}
+
+export interface RecentMessage {
+  id: string;
+  customerName: string;
+  avatar: string;
+  preview: string;
+  time: string;
+  isUnread: boolean;
+}

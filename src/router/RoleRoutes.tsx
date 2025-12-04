@@ -76,6 +76,10 @@ const ManagerDashboard = lazy(
   () => import("@/dashboard/pages/ManagerDashboard")
 );
 
+const StaffDashboard = lazy(
+  () => import("@/dashboard/pages/StaffDashboard")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -172,6 +176,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
+        <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
