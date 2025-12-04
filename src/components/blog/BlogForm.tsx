@@ -52,13 +52,23 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
           <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
             Nội dung <span className="text-destructive">*</span>
           </label>
-          <textarea
-            value={formData.content}
-            onChange={(e) => onFormChange({ ...formData, content: e.target.value })}
-            rows={8}
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground text-sm leading-relaxed"
-            placeholder="Viết nội dung blog của bạn..."
-          />
+          <div className="h-64 mb-12">
+            <ReactQuill
+              theme="snow"
+              value={formData.content}
+              onChange={(content) => onFormChange({ ...formData, content })}
+              className="h-full"
+              modules={{
+                toolbar: [
+                  [{ 'header': [1, 2, 3, false] }],
+                  ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                  [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                  ['link', 'image'],
+                  ['clean']
+                ],
+              }}
+            />
+          </div>
         </div>
 
         <div>

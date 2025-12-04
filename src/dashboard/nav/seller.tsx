@@ -6,7 +6,6 @@ import {
   MessageCircle,
   Palette,
   Truck,
-  FileText,
   Warehouse,
   LayoutDashboard
 } from "lucide-react";

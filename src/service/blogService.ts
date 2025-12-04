@@ -104,3 +104,61 @@ export const updateBlog = async (blogId: string, payload: UpdateBlogPayload) => 
   }
 }
 
+
+export const getBlogsByUserId = async (employeeId: string) => {
+  try {
+    const response = await axiosClient.get<ApiResponse<Blog[]>>(`/blogs/employee/${employeeId}`)
+    return response.data
+  } catch (error: any) {
+    console.error("getBlogsByUserId error:", error)
+    throw new Error(
+      error.response?.data?.message ||
+      "Khong the lay danh sach blog cua user"
+    )
+  }
+}
+
+export const toggleBlogStatus = async (blogId: string) => {
+  try {
+    const response = await axiosClient.patch<ApiResponse<void>>(`/blogs/${blogId}/status`)
+    return response.data
+  } catch (error: any) {
+    console.error("toggleBlogStatus error:", error)
+    throw new Error(
+      error.response?.data?.message ||
+      "Khong the cap nhat trang thai blog"
+    )
+  }
+}
+
+
+export const getSafeImageUrl = (url?: string) => {
+  if (!url) return null
+  if (url.startsWith("http")) return url
+  return url
+}
+
+export const truncateContent = (content: string, maxLength: number) => {
+  if (!content) return ""
+  const stripped = content.replace(/<[^>]+>/g, "")
+  if (stripped.length <= maxLength) return stripped
+  return stripped.substring(0, maxLength) + "..."
+}
+
+export const formatDate = (dateString: string) => {
+  if (!dateString) return ""
+  return new Date(dateString).toLocaleDateString("vi-VN")
+}
+
+export const blogService = {
+  getAllBlog,
+  getBlogById,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  getBlogsByUserId,
+  toggleBlogStatus,
+  getSafeImageUrl,
+  truncateContent,
+  formatDate
+}
