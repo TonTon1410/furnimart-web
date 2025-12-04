@@ -27,7 +27,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = (options: ToastOptions) => {
     setToastData(options);
     setOpen(false);
-    // Dùng requestAnimationFrame thay vì setTimeout(0) để re-trigger animation
     requestAnimationFrame(() => {
       setOpen(true);
     });
@@ -41,40 +40,58 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }[toastData.type || "info"];
 
   return (
-    // ✅ BƯỚC 1: Bọc MỌI THỨ bằng <Toast.Provider> gốc của Radix
     <Toast.Provider swipeDirection="right">
-      
-      {/* Provider tùy chỉnh của bạn để truyền hàm showToast */}
       <ToastContext.Provider value={{ showToast }}>
         {children}
       </ToastContext.Provider>
-      
-      {/* Component Toast.Root hiển thị toast (nằm BÊN TRONG <Toast.Provider>) */}
+
       <Toast.Root
         open={open}
         onOpenChange={setOpen}
         duration={4000}
-        // 👇 ĐÃ THAY ĐỔI: Tăng kích thước lên max-w-md và padding px-8 py-5
-        className={`rounded-xl max-w-md w-full px-8 py-5 shadow-2xl border ${colorClass}`}
+        // 👇 THAY ĐỔI 1: Thêm 'relative' để làm điểm neo cho nút đóng
+        className={`relative rounded-xl max-w-md w-full px-8 py-5 shadow-2xl border ${colorClass} data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right-100 data-[state=open]:slide-in-from-right-100`}
       >
-        {/* 👇 ĐÃ THAY ĐỔI: Tăng font size lên text-xl */}
-        <Toast.Title className="font-bold text-xl">{toastData.title}</Toast.Title>
-        {toastData.description && (
-          // 👇 ĐÃ THAY ĐỔI: Tăng font size lên text-lg
-          <Toast.Description className="text-lg opacity-95 mt-1">
-            {toastData.description}
-          </Toast.Description>
-        )}
+        <div className="flex flex-col gap-1">
+          <Toast.Title className="font-bold text-xl pr-6">
+            {toastData.title}
+          </Toast.Title>
+          {toastData.description && (
+            <Toast.Description className="text-lg opacity-95">
+              {toastData.description}
+            </Toast.Description>
+          )}
+        </div>
+
+        {/* 👇 THAY ĐỔI 2: Thêm nút Close (dùng Toast.Close của Radix để tự động xử lý đóng) */}
+        <Toast.Close 
+          className="absolute top-3 right-3 p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 transition-all outline-none focus:ring-2 focus:ring-black/20"
+          aria-label="Close"
+        >
+          {/* Icon X (SVG) */}
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </Toast.Close>
+
       </Toast.Root>
 
-      {/* ✅ BƯỚC 2: Thêm Viewport để toast có nơi hiển thị */}
       <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" />
-
     </Toast.Provider>
   );
 }
 
-// Hook để các component con sử dụng
 // eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const context = useContext(ToastContext);
