@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, Sparkles } from "lucide-react"
+import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, Sparkles, AlertCircle } from "lucide-react"
 import { authService } from "@/service/authService"
 import { blogService, type Blog, type CreateBlogPayload, type UpdateBlogPayload } from "@/service/blogService"
 import { useNavigate } from "react-router-dom"
+import BlogEditor from "@/components/blog/BlogEditor"
 
 interface UserProfile {
   id: string
   fullName: string
+  role?: string
 }
 
 export default function OwnBlog() {
@@ -17,6 +19,7 @@ export default function OwnBlog() {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [role, setRole] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     content: "",
@@ -25,7 +28,6 @@ export default function OwnBlog() {
   const [creating, setCreating] = useState(false)
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null)
 
-  // Kiểm tra authentication và lấy thông tin user
   useEffect(() => {
     const checkAuth = async () => {
       if (!authService.isAuthenticated()) {
@@ -36,30 +38,55 @@ export default function OwnBlog() {
 
       try {
         const profile = await authService.getProfile()
+        console.log("👤 [OwnBlog] User profile:", profile)
+
         if (profile && profile.id) {
           const userData = {
             id: profile.id,
             fullName: profile.fullName || profile.email || "User",
+            role: profile.role || "",
           }
-          console.log("[v0] ✅ User profile loaded:", userData)
+          console.log("✅ [OwnBlog] User data set:", userData)
           setUser(userData)
+
+          try {
+            const userRole = authService.getRole?.() ?? null
+            console.log("🔑 [OwnBlog] User role:", userRole)
+            setRole(userRole)
+          } catch (e) {
+            console.error("❌ [OwnBlog] Error getting role:", e)
+            setRole(null)
+          }
         } else {
-          // Fallback to getUserId from token
           const userId = authService.getUserId()
           if (userId) {
-            console.log("[v0] ⚠️ Using userId from token:", userId)
+            console.log("[OwnBlog] ⚠️ Using userId from token:", userId)
             setUser({ id: userId, fullName: "User" })
+
+            try {
+              const userRole = authService.getRole?.() ?? null
+              setRole(userRole)
+            } catch (e) {
+              setRole(null)
+            }
           } else {
-            console.error("[v0] ❌ Cannot get user ID")
+            console.error("[OwnBlog] ❌ Cannot get user ID")
             navigate("/login")
           }
         }
       } catch (err) {
-        console.error("[v0] ❌ Error getting user info:", err)
+        console.error("[OwnBlog] ❌ Error getting user info:", err)
         const userId = authService.getUserId()
         if (userId) {
-          console.log("[v0] ⚠️ Fallback to userId from token:", userId)
+          console.log("[OwnBlog] ⚠️ Fallback to userId from token:", userId)
           setUser({ id: userId, fullName: "User" })
+
+          try {
+            const userRole = authService.getRole?.() ?? null
+            setRole(userRole)
+          } catch (e) {
+            setRole(null)
+          }
         } else {
           navigate("/login")
         }
@@ -69,7 +96,6 @@ export default function OwnBlog() {
     checkAuth()
   }, [navigate])
 
-  // Lấy danh sách blogs của user
   const fetchMyBlogs = async () => {
     if (!user?.id) return
 
@@ -77,14 +103,13 @@ export default function OwnBlog() {
       setLoading(true)
       const response = await blogService.getBlogsByUserId(user.id)
       if (response.status === 200) {
-        // Sắp xếp theo ngày tạo mới nhất
         const sortedBlogs = response.data.sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )
         setMyBlogs(sortedBlogs)
       }
     } catch (err: any) {
-      console.error("Lỗi tải blogs:", err)
+      console.error("[OwnBlog] Lỗi tải blogs:", err)
       alert(err.message || "Có lỗi xảy ra khi tải danh sách blogs")
     } finally {
       setLoading(false)
@@ -97,10 +122,17 @@ export default function OwnBlog() {
     }
   }, [user])
 
-  // Tạo blog mới
+  const canCreate = !!role && ["admin", "manager", "seller"].includes(role.toLowerCase())
+  const isCustomer = role?.toLowerCase() === "customer"
+
   const handleCreateBlog = async () => {
     if (!user) {
       alert("Vui lòng đăng nhập để tạo blog!")
+      return
+    }
+
+    if (!canCreate) {
+      alert("Bạn không có quyền tạo blog. Chức năng này chỉ dành cho nhân viên!")
       return
     }
 
@@ -116,12 +148,14 @@ export default function OwnBlog() {
         name: formData.name.trim(),
         content: formData.content.trim(),
         userId: user.id,
+        status: true,
       }
 
       if (formData.image && formData.image.trim()) {
         payload.image = formData.image.trim()
       }
 
+      console.log("[OwnBlog] 📤 Creating blog with payload:", payload)
       const response = await blogService.createBlog(payload)
 
       if (response.status === 201) {
@@ -131,16 +165,26 @@ export default function OwnBlog() {
         fetchMyBlogs()
       }
     } catch (err: any) {
-      console.error("❌ Lỗi tạo blog:", err)
-      alert(err.message || "Có lỗi xảy ra khi tạo blog")
+      console.error("[OwnBlog] ❌ Lỗi tạo blog:", err)
+      console.error("[OwnBlog] ❌ Error response:", err.response?.data)
+
+      if (err.response?.data?.message?.includes("User not found")) {
+        alert("Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại!")
+      } else {
+        alert(err.message || "Có lỗi xảy ra khi tạo blog")
+      }
     } finally {
       setCreating(false)
     }
   }
 
-  // Cập nhật blog
   const handleUpdateBlog = async () => {
     if (!editingBlog || !user) return
+
+    if (!canCreate) {
+      alert("Bạn không có quyền cập nhật blog!")
+      return
+    }
 
     if (!formData.name.trim() || !formData.content.trim()) {
       alert("Vui lòng nhập đầy đủ tiêu đề và nội dung!")
@@ -153,11 +197,11 @@ export default function OwnBlog() {
         name: formData.name.trim(),
         content: formData.content.trim(),
         userId: user.id,
-        status: editingBlog.status, // Keep current status
+        status: editingBlog.status,
         image: formData.image.trim(),
       }
 
-      console.log("[v0] 📤 Updating blog with payload:", payload)
+      console.log("[OwnBlog] 📤 Updating blog with payload:", payload)
       const response = await blogService.updateBlog(editingBlog.id, payload)
 
       if (response.status === 200) {
@@ -168,14 +212,13 @@ export default function OwnBlog() {
         fetchMyBlogs()
       }
     } catch (err: any) {
-      console.error("[v0] ❌ Update error:", err)
+      console.error("[OwnBlog] ❌ Update error:", err)
       alert(err.message || "Có lỗi xảy ra khi cập nhật blog")
     } finally {
       setCreating(false)
     }
   }
 
-  // Xóa blog
   const handleDeleteBlog = async (blogId: string) => {
     if (!confirm("Bạn có chắc muốn xóa blog này?")) return
 
@@ -187,12 +230,11 @@ export default function OwnBlog() {
         fetchMyBlogs()
       }
     } catch (err: any) {
-      console.error("Lỗi xóa blog:", err)
+      console.error("[OwnBlog] Lỗi xóa blog:", err)
       alert(err.message || "Có lỗi xảy ra khi xóa blog")
     }
   }
 
-  // Toggle status blog
   const handleToggleStatus = async (blogId: string) => {
     try {
       const response = await blogService.toggleBlogStatus(blogId)
@@ -202,7 +244,7 @@ export default function OwnBlog() {
         fetchMyBlogs()
       }
     } catch (err: any) {
-      console.error("Lỗi toggle status:", err)
+      console.error("[OwnBlog] Lỗi toggle status:", err)
       alert(err.message || "Có lỗi xảy ra")
     }
   }
@@ -223,7 +265,6 @@ export default function OwnBlog() {
     setShowCreateForm(false)
   }
 
-  // Thống kê
   const stats = {
     total: myBlogs.length,
     published: myBlogs.filter((b) => b.status).length,
@@ -258,45 +299,75 @@ export default function OwnBlog() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Tổng số blog</p>
-                <p className="font-serif text-3xl font-bold text-foreground">{stats.total}</p>
+        {isCustomer && (
+          <div className="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-yellow-600" />
               </div>
-              <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-accent" />
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Quyền truy cập bị hạn chế</h3>
+                <p className="text-yellow-700 text-sm leading-relaxed mb-3">
+                  Bạn đang đăng nhập với vai trò <span className="font-semibold">Khách hàng</span>. Chức năng tạo và
+                  quản lý blog chỉ dành cho <span className="font-semibold">Nhân viên</span> (Admin, Manager, Seller).
+                </p>
+                <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+                  <p className="font-medium mb-1">💡 Gợi ý:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Nếu bạn là nhân viên, vui lòng đăng nhập bằng tài khoản nhân viên</li>
+                    <li>
+                      Khách hàng có thể xem blog tại trang <strong>Tin Tức & Blog</strong>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đang hiển thị</p>
-                <p className="font-serif text-3xl font-bold text-accent">{stats.published}</p>
+        {canCreate && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Tổng số blog</p>
+                  <p className="font-serif text-3xl font-bold text-foreground">{stats.total}</p>
+                </div>
+                <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-accent" />
+                </div>
               </div>
-              <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Eye className="h-5 w-5 text-accent" />
+            </div>
+
+            <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">
+                    Đang hiển thị
+                  </p>
+                  <p className="font-serif text-3xl font-bold text-accent">{stats.published}</p>
+                </div>
+                <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                  <Eye className="h-5 w-5 text-accent" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đã ẩn</p>
+                  <p className="font-serif text-3xl font-bold text-muted-foreground">{stats.hidden}</p>
+                </div>
+                <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
+                  <EyeOff className="h-5 w-5 text-muted-foreground" />
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          <div className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đã ẩn</p>
-                <p className="font-serif text-3xl font-bold text-muted-foreground">{stats.hidden}</p>
-              </div>
-              <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
-                <EyeOff className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {!showCreateForm && (
+        {canCreate && !showCreateForm && (
           <div className="mb-8">
             <button
               onClick={() => setShowCreateForm(true)}
@@ -308,7 +379,7 @@ export default function OwnBlog() {
           </div>
         )}
 
-        {showCreateForm && (
+        {canCreate && showCreateForm && (
           <div className="bg-card rounded-xl shadow-lg p-8 mb-8 border border-border">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-serif text-2xl font-bold text-foreground">
@@ -340,11 +411,9 @@ export default function OwnBlog() {
                 <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
                   Nội dung <span className="text-destructive">*</span>
                 </label>
-                <textarea
+                <BlogEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={8}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground text-sm leading-relaxed"
+                  onChange={(content) => setFormData({ ...formData, content })}
                   placeholder="Viết nội dung blog của bạn..."
                 />
               </div>
@@ -401,55 +470,30 @@ export default function OwnBlog() {
           </div>
         ) : myBlogs.length === 0 ? (
           <div className="text-center py-16 bg-gradient-to-br from-card via-background to-accent/5 rounded-xl shadow-sm border border-border relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.05),transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(251,146,60,0.05),transparent_50%)]"></div>
-
             <div className="relative z-10 max-w-xl mx-auto px-6">
               <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-full mb-6 shadow-lg">
                 <Sparkles className="h-12 w-12 text-accent" />
               </div>
 
               <h3 className="font-serif text-2xl font-bold text-foreground mb-3 text-balance">
-                Bắt Đầu Hành Trình Viết Blog
+                {isCustomer ? "Chức năng không khả dụng" : "Bắt Đầu Hành Trình Viết Blog"}
               </h3>
 
               <p className="text-muted-foreground text-sm mb-6 text-pretty leading-relaxed">
-                Bạn chưa có blog nào. Hãy chia sẻ câu chuyện, kiến thức và trải nghiệm của bạn với thế giới!
+                {isCustomer
+                  ? "Bạn cần đăng nhập với tài khoản nhân viên để sử dụng chức năng quản lý blog."
+                  : "Bạn chưa có blog nào. Hãy chia sẻ câu chuyện, kiến thức và trải nghiệm của bạn!"}
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-left">
-                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
-                  <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-3">
-                    <Edit className="h-5 w-5 text-accent" />
-                  </div>
-                  <h4 className="font-semibold text-foreground mb-1 text-sm">Viết Tự Do</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Thể hiện suy nghĩ và ý tưởng của bạn</p>
-                </div>
-
-                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
-                  <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center mb-3">
-                    <Eye className="h-5 w-5 text-secondary" />
-                  </div>
-                  <h4 className="font-semibold text-foreground mb-1 text-sm">Kiểm Soát</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Quản lý trạng thái hiển thị</p>
-                </div>
-
-                <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border border-border/50">
-                  <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-3">
-                    <Sparkles className="h-5 w-5 text-accent" />
-                  </div>
-                  <h4 className="font-semibold text-foreground mb-1 text-sm">Chia Sẻ</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Kết nối với cộng đồng</p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-all font-semibold shadow-lg hover:shadow-xl text-sm"
-              >
-                <Plus className="h-4 w-4" />
-                Tạo Blog Đầu Tiên
-              </button>
+              {!isCustomer && canCreate && (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-all font-semibold shadow-lg hover:shadow-xl text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Tạo Blog Đầu Tiên
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -479,58 +523,56 @@ export default function OwnBlog() {
                       </>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleToggleStatus(blog.id)}
-                    className="text-xs text-accent hover:text-accent/80 font-semibold transition-colors"
-                  >
-                    Thay đổi
-                  </button>
-                </div>
-
-                {blog.image && (
-                  <div className="h-40 overflow-hidden bg-muted">
-                    <img
-                      src={blogService.getSafeImageUrl(blog.image) || "/placeholder.svg"}
-                      alt={blog.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src =
-                          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f5f2ee" width="400" height="300"/%3E%3Ctext fill="%23999" fontFamily="sans-serif" fontSize="20" dy="10.5" fontWeight="bold" x="50%25" y="50%25" textAnchor="middle"%3EKhông có ảnh%3C/text%3E%3C/svg%3E'
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div className="p-5">
-                  <h3 className="font-serif text-lg font-bold text-foreground mb-3 line-clamp-2 leading-tight group-hover:text-accent transition-colors">
-                    {blog.name}
-                  </h3>
-
-                  <p className="text-muted-foreground mb-4 line-clamp-2 leading-relaxed text-sm">
-                    {blogService.truncateContent(blog.content, 100)}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-3 border-t border-border mb-4">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>Tạo: {blogService.formatDate(blog.createdAt)}</span>
-                  </div>
-
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleToggleStatus(blog.id)}
+                      className="p-1.5 hover:bg-muted rounded-lg transition-all"
+                      title={blog.status ? "Ẩn blog" : "Hiển thị blog"}
+                    >
+                      {blog.status ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-accent" />
+                      )}
+                    </button>
                     <button
                       onClick={() => handleEditClick(blog)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-accent bg-accent/10 hover:bg-accent/20 rounded-lg transition-all font-semibold text-xs"
+                      className="p-1.5 hover:bg-muted rounded-lg transition-all"
+                      title="Chỉnh sửa"
                     >
-                      <Edit className="h-3.5 w-3.5" />
-                      Sửa
+                      <Edit className="h-4 w-4 text-accent" />
                     </button>
                     <button
                       onClick={() => handleDeleteBlog(blog.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-all font-semibold text-xs"
+                      className="p-1.5 hover:bg-destructive/10 rounded-lg transition-all"
+                      title="Xóa"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Xóa
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </button>
                   </div>
+                </div>
+
+                {blog.image && (
+                  <img
+                    src={blogService.getSafeImageUrl(blog.image) || "/placeholder.svg"}
+                    alt={blog.name}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+
+                <div className="p-4">
+                  <h3 className="font-serif text-lg font-bold text-foreground mb-2 line-clamp-2 text-balance">
+                    {blog.name}
+                  </h3>
+
+                  <div
+                    className="text-sm text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert mb-4"
+                    dangerouslySetInnerHTML={{
+                      __html: blogService.truncateContent(blog.content, 100),
+                    }}
+                  />
+
+                  <p className="text-xs text-muted-foreground">{blogService.formatDate(blog.createdAt)}</p>
                 </div>
               </article>
             ))}

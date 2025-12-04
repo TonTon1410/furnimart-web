@@ -23,7 +23,13 @@ const AdminEmployeesPage = lazy(
 const AdminStoresPage = lazy(
   () => import("@/dashboard/roles/admin/AdminStoresPage")
 );
+const BlogManagement = lazy(
+  () => import("@/dashboard/roles/admin/OwnBlog")
+);
+
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
+
+
 
 const SellerProductsPage = lazy(
   () => import("@/dashboard/roles/seller/SellerProductsPage")
@@ -50,6 +56,7 @@ const TransferRequestsPage = lazy(
 const OrderManagement = lazy(
   () => import("@/dashboard/roles/manager/OrderManagement")
 );
+
 const ManagerEmployeesPage = lazy(
   () => import("@/dashboard/roles/manager/ManagerEmployeesPage")
 );
@@ -101,6 +108,7 @@ export default function RoleRoutes() {
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
         <Route path="profile" element={<UserProfile />} />
+        <Route path="blog" element={<BlogManagement />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="employees" element={<AdminEmployeesPage />} />
         <Route path="stores" element={<AdminStoresPage />} />
@@ -123,6 +131,7 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
         <Route path="profile" element={<UserProfile />} />
+        <Route path="blog" element={<BlogManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="inventory/create" element={<CreateInventoryPage />} />
         <Route path="warehouse-map" element={<WarehouseMapNew />} />
@@ -162,6 +171,7 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
         <Route path="profile" element={<UserProfile />} />
+        <Route path="blog" element={<BlogManagement />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
         <Route path="inventory" element={<InventoryManagement />} />
