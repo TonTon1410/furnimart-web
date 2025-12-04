@@ -13,7 +13,8 @@ import {
     DescriptionOutlined,
     LocalShipping,
     CreditCard,
-    AttachMoney
+    AttachMoney,
+    LocalAtm
 } from "@mui/icons-material";
 import { authService } from "@/service/authService";
 import AddressSelector, { type Address } from "@/components/AddressSelector";
@@ -43,7 +44,7 @@ const StaffOrderPage: React.FC = () => {
     const [specificAddress, setSpecificAddress] = useState("");
     const [addressDetails, setAddressDetails] = useState<Address | null>(null);
     const [note, setNote] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState<"COD" | "VN_PAY">("COD");
+    const [paymentMethod, setPaymentMethod] = useState<"COD" | "VN_PAY" | "CASH">("COD");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -241,6 +242,21 @@ const StaffOrderPage: React.FC = () => {
                                     <CreditCard color={paymentMethod === "VN_PAY" ? "primary" : "disabled"} />
                                     <Box>
                                         <Typography fontWeight="bold" color={paymentMethod === "VN_PAY" ? "primary.main" : "text.primary"} className={paymentMethod !== "VN_PAY" ? "dark:!text-gray-300" : ""}>VNPAY</Typography>
+                                    </Box>
+                                </Box>
+
+                                <Box
+                                    onClick={() => setPaymentMethod("CASH")}
+                                    className={`
+                                        cursor-pointer p-4 rounded-xl border transition-all flex items-center gap-4
+                                        ${paymentMethod === "CASH"
+                                            ? 'border-green-500 bg-green-50 dark:!bg-green-900/30 dark:!border-green-400'
+                                            : 'border-gray-200 dark:!border-gray-600 hover:bg-gray-50 dark:hover:!bg-gray-700'}
+                                    `}
+                                >
+                                    <LocalAtm color={paymentMethod === "CASH" ? "success" : "disabled"} />
+                                    <Box>
+                                        <Typography fontWeight="bold" color={paymentMethod === "CASH" ? "success.main" : "text.primary"} className={paymentMethod !== "CASH" ? "dark:!text-gray-300" : ""}>Tiền mặt (CASH)</Typography>
                                     </Box>
                                 </Box>
                             </Stack>
