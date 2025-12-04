@@ -23,13 +23,9 @@ const AdminEmployeesPage = lazy(
 const AdminStoresPage = lazy(
   () => import("@/dashboard/roles/admin/AdminStoresPage")
 );
-const BlogManagement = lazy(
-  () => import("@/dashboard/roles/admin/OwnBlog")
-);
+const BlogManagement = lazy(() => import("@/dashboard/roles/admin/OwnBlog"));
 
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
-
-
 
 const SellerProductsPage = lazy(
   () => import("@/dashboard/roles/seller/SellerProductsPage")
@@ -73,19 +69,21 @@ const DeliveryStatusPage = lazy(
 const DeliveryPODPage = lazy(
   () => import("@/dashboard/roles/delivery/DeliveryPODPage")
 );
+const DeliverySignaturePage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliverySignaturePage")
+);
+const DeliveryHistoryPage = lazy(
+  () => import("@/dashboard/roles/delivery/DeliveryHistoryPage")
+);
 
 //Dashboard
-const AdminDashboard = lazy(
-  () => import("@/dashboard/pages/AdminDashboard")
-);
+const AdminDashboard = lazy(() => import("@/dashboard/pages/AdminDashboard"));
 
 const ManagerDashboard = lazy(
   () => import("@/dashboard/pages/ManagerDashboard")
 );
 
-const StaffDashboard = lazy(
-  () => import("@/dashboard/pages/StaffDashboard")
-);
+const StaffDashboard = lazy(() => import("@/dashboard/pages/StaffDashboard"));
 
 // Staff Order Page
 const StaffOrderPage = lazy(
@@ -100,7 +98,6 @@ const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
 const AdminChat = Placeholder("Admin • Chat");
 
-
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
@@ -109,15 +106,11 @@ const BlogStaffManagement = lazy(
   () => import("@/dashboard/roles/seller/BlogManagementPage")
 );
 
-
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
 const ManagerRevenue = Placeholder("Manager • Revenue Report");
 const ManagerPerformance = Placeholder("Manager • Performance Report");
 const ManagerDelivery = Placeholder("Manager • Delivery Report");
-
-
-const DeliveryHistory = Placeholder("Delivery • History");
 
 export default function RoleRoutes() {
   const role = authService.getRole?.() as RoleKey | null;
@@ -185,7 +178,8 @@ export default function RoleRoutes() {
         <Route path="pickup" element={<DeliveryPickupPage />} />
         <Route path="status" element={<DeliveryStatusPage />} />
         <Route path="pod" element={<DeliveryPODPage />} />
-        <Route path="history" element={<DeliveryHistory />} />
+        <Route path="signature" element={<DeliverySignaturePage />} />
+        <Route path="history" element={<DeliveryHistoryPage />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );

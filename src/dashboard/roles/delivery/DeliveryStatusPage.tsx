@@ -16,6 +16,18 @@ export default function DeliveryStatus() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
 
+  const formatAddress = (address: DeliveryAssignment["order"]["address"]) => {
+    if (!address) return "N/A";
+    const parts = [
+      address.addressLine,
+      address.street,
+      address.ward,
+      address.district,
+      address.city,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  };
+
   useEffect(() => {
     loadAssignments();
   }, []);
@@ -38,9 +50,11 @@ export default function DeliveryStatus() {
       console.log("📦 All assignments:", data);
       console.log(
         "📦 Assignments statuses:",
-        data.map((a) => ({ id: a.id, orderId: a.order.id, status: a.status }))
+        data.map((a) => ({ id: a.id, orderId: a.order?.id, status: a.status }))
       );
-      setAssignments(data);
+      // Filter out assignments with null orders
+      const validAssignments = data.filter((a) => a.order !== null);
+      setAssignments(validAssignments);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError("Không thể tải danh sách đơn hàng");
@@ -164,31 +178,6 @@ export default function DeliveryStatus() {
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Debug Info - Xóa sau khi debug xong */}
-      {assignments.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-semibold text-yellow-800 mb-2">🔍 Debug Info</h3>
-          <p className="text-sm text-yellow-700">
-            Tổng số assignments: <strong>{assignments.length}</strong>
-          </p>
-          <p className="text-sm text-yellow-700">
-            IN_TRANSIT orders: <strong>{activeOrders.length}</strong>
-          </p>
-          <details className="mt-2">
-            <summary className="text-sm text-yellow-800 cursor-pointer">
-              Xem tất cả assignments
-            </summary>
-            <div className="mt-2 space-y-1 text-xs">
-              {assignments.map((a) => (
-                <div key={a.id} className="bg-yellow-100 p-2 rounded">
-                  Order #{a.order.id} - Status: <strong>{a.status}</strong>
-                </div>
-              ))}
-            </div>
-          </details>
-        </div>
-      )}
-
       {activeOrders.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -253,10 +242,59 @@ export default function DeliveryStatus() {
                 </div>
 
                 <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  <p>Địa chỉ: {order?.address?.name || "N/A"}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    Khách hàng:{" "}
+                    {order?.address?.userName || order?.address?.name || "N/A"}
+                  </p>
+                  <p className="text-xs">
+                    SĐT: {order?.address?.phone || "N/A"}
+                  </p>
+                  <p className="line-clamp-2">
+                    Địa chỉ: {formatAddress(order?.address)}
+                  </p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     Tổng tiền: {order?.total?.toLocaleString("vi-VN")}đ
                   </p>
+                  <p className="text-xs">
+                    Thanh toán:{" "}
+                    {order?.payment?.paymentMethod === "COD"
+                      ? "Tiền mặt"
+                      : order?.payment?.paymentMethod === "VNPAY"
+                      ? "VNPay"
+                      : order?.payment?.paymentMethod === "MOMO"
+                      ? "MoMo"
+                      : order?.payment?.paymentMethod || "N/A"}
+                  </p>
+                  {order?.orderDetails && order.orderDetails.length > 0 && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                      <p className="text-xs font-medium mb-1">
+                        Sản phẩm ({order.orderDetails.length}):
+                      </p>
+                      <div className="space-y-1">
+                        {order.orderDetails.map((detail, idx) => (
+                          <div
+                            key={idx}
+                            className="text-xs bg-gray-50 dark:bg-gray-900/50 p-1.5 rounded"
+                          >
+                            <span className="font-medium">
+                              {detail.productColor?.product?.name ||
+                                `SP #${idx + 1}`}
+                            </span>
+                            {detail.productColor?.color && (
+                              <span className="text-gray-500">
+                                {" "}
+                                - {detail.productColor.color.colorName}
+                              </span>
+                            )}
+                            <span className="text-gray-500">
+                              {" "}
+                              x{detail.quantity}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Status Update Buttons */}

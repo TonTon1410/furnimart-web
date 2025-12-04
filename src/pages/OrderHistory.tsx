@@ -15,9 +15,125 @@ import {
   CreditCard,
   FileText,
   Phone,
+  Eye,
 } from "lucide-react";
 import { orderService } from "@/service/orderService";
 import type { OrderItem } from "../types/order";
+import { OrderProcessTimeline } from "@/components/OrderProcessTimeline";
+
+// Process status config
+const processStatusConfig: Record<
+  string,
+  { label: string; color: string; icon: React.ReactNode }
+> = {
+  PRE_ORDER: {
+    label: "Hàng đặt trước",
+    color:
+      "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-800",
+    icon: <Package className="h-3 w-3" />,
+  },
+  PENDING: {
+    label: "Đang chờ",
+    color:
+      "bg-yellow-50 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:ring-yellow-800",
+    icon: <Clock className="h-3 w-3" />,
+  },
+  PAYMENT: {
+    label: "Đã thanh toán",
+    color:
+      "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  ASSIGN_ORDER_STORE: {
+    label: "Cửa hàng đã nhận đơn",
+    color:
+      "bg-cyan-50 text-cyan-700 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:ring-cyan-800",
+    icon: <Package className="h-3 w-3" />,
+  },
+  MANAGER_ACCEPT: {
+    label: "Quản lí cửa hàng đã nhận đơn",
+    color:
+      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  MANAGER_REJECT: {
+    label: "Quản lí cửa hàng đã hủy đơn",
+    color:
+      "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  READY_FOR_INVOICE: {
+    label: "Chuẩn bị xuất hóa đơn",
+    color:
+      "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800",
+    icon: <Package className="h-3 w-3" />,
+  },
+  MANAGER_EXPORT_ORDER: {
+    label: "Quản lý xuất đơn",
+    color:
+      "bg-teal-50 text-teal-700 ring-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:ring-teal-800",
+    icon: <Package className="h-3 w-3" />,
+  },
+  CONFIRMED: {
+    label: "Đã xác nhận",
+    color:
+      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  PACKAGED: {
+    label: "Đang chuẩn bị hàng",
+    color:
+      "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800",
+    icon: <Package className="h-3 w-3" />,
+  },
+  SHIPPING: {
+    label: "Đang vận chuyển",
+    color:
+      "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-800",
+    icon: <Truck className="h-3 w-3" />,
+  },
+  DELIVERED: {
+    label: "Đã vận chuyển",
+    color:
+      "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  FINISHED: {
+    label: "Hoàn thành",
+    color:
+      "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    color:
+      "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+};
+
+interface OrderDetailProduct {
+  id: number;
+  productColorId: string;
+  quantity: number;
+  price: number;
+  productColor?: {
+    product?: { name: string };
+    color?: { colorName: string };
+    images?: Array<{ image: string }>;
+  };
+}
+
+interface OrderAddress {
+  addressLine?: string;
+  street?: string;
+  ward?: string;
+  district?: string;
+  city?: string;
+  phone?: string;
+  userName?: string;
+  name?: string;
+}
 
 const orderTabs = [
   { key: "all", label: "Tất cả", icon: ShoppingBag },
@@ -112,6 +228,10 @@ export default function OrderHistory() {
   const [selectedOrderToCancel, setSelectedOrderToCancel] =
     useState<OrderItem | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const ordersPerPage = 10;
 
   // Load tất cả orders một lần khi component mount
@@ -120,11 +240,8 @@ export default function OrderHistory() {
       setLoading(true);
       setError(null);
       try {
-        // Gọi API search/customer
-        const result = await orderService.searchOrdersByCustomer({
-          page: 1,
-          limit: 100, // Lấy nhiều để cache
-        });
+        // Gọi API search/customer - lấy toàn bộ không giới hạn
+        const result = await orderService.searchOrdersByCustomer();
 
         setAllOrders(result.orders || []);
       } catch (error) {
@@ -147,8 +264,7 @@ export default function OrderHistory() {
   useEffect(() => {
     let filtered = [...allOrders];
 
-    // Đảo ngược để hiển thị đơn hàng mới nhất trước (từ dưới lên)
-    filtered.reverse();
+    // API đã trả về theo thứ tự mới nhất trước
 
     // Filter theo status
     if (activeTab !== "all") {
@@ -242,11 +358,8 @@ export default function OrderHistory() {
         cancelReason
       );
 
-      // Refresh orders
-      const result = await orderService.searchOrdersByCustomer({
-        page: 1,
-        limit: 100,
-      });
+      // Refresh orders - lấy toàn bộ không giới hạn
+      const result = await orderService.searchOrdersByCustomer();
       setAllOrders(result.orders || []);
 
       setError(null);
@@ -260,6 +373,34 @@ export default function OrderHistory() {
       setSelectedOrderToCancel(null);
       setCancelReason("");
     }
+  };
+
+  const handleViewDetail = async (order: OrderItem) => {
+    setShowDetailModal(true);
+    setLoadingDetail(true);
+    setSelectedOrderDetail(null);
+
+    try {
+      const detail = await orderService.getOrderFullDetail(Number(order.id));
+      setSelectedOrderDetail(detail);
+    } catch (error) {
+      console.error("Error loading order detail:", error);
+      setError("Không thể tải chi tiết đơn hàng");
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const formatAddress = (address: OrderAddress) => {
+    if (!address) return "N/A";
+    const parts = [
+      address.addressLine,
+      address.street,
+      address.ward,
+      address.district,
+      address.city,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
   };
 
   return (
@@ -514,30 +655,43 @@ export default function OrderHistory() {
                     </span>
                   </div>
 
-                  {/* Cancel Button - Only show for cancelable orders */}
-                  {canCancelOrder(order) && (
+                  <div className="flex items-center gap-2">
+                    {/* View Detail Button */}
                     <button
-                      onClick={() => handleCancelOrder(order)}
-                      disabled={cancellingOrderId === order.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
+                      onClick={() => handleViewDetail(order)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/30"
                     >
-                      {cancellingOrderId === order.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600"></div>
-                          <span className="text-xs sm:text-sm font-medium">
-                            Đang hủy...
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-3.5 w-3.5" />
-                          <span className="text-xs sm:text-sm font-medium">
-                            Hủy đơn hàng
-                          </span>
-                        </>
-                      )}
+                      <Eye className="h-3.5 w-3.5" />
+                      <span className="text-xs sm:text-sm font-medium">
+                        Xem chi tiết
+                      </span>
                     </button>
-                  )}
+
+                    {/* Cancel Button - Only show for cancelable orders */}
+                    {canCancelOrder(order) && (
+                      <button
+                        onClick={() => handleCancelOrder(order)}
+                        disabled={cancellingOrderId === order.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
+                      >
+                        {cancellingOrderId === order.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600"></div>
+                            <span className="text-xs sm:text-sm font-medium">
+                              Đang hủy...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span className="text-xs sm:text-sm font-medium">
+                              Hủy đơn hàng
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -572,6 +726,333 @@ export default function OrderHistory() {
           </div>
         )}
       </div>
+
+      {/* Order Detail Modal */}
+      {showDetailModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setShowDetailModal(false)}
+        >
+          <div
+            className="bg-card rounded-xl max-w-4xl w-full my-8 shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {loadingDetail ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-sm text-muted-foreground">
+                  Đang tải chi tiết...
+                </p>
+              </div>
+            ) : selectedOrderDetail ? (
+              <div className="p-4 sm:p-6">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      <Package className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">
+                        Chi tiết đơn hàng #{selectedOrderDetail.id}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(selectedOrderDetail.orderDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    aria-label="Đóng"
+                  >
+                    <XCircle className="h-6 w-6 text-muted-foreground" />
+                  </button>
+                </div>
+
+                {/* Status */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-foreground mb-2">
+                    Trạng thái đơn hàng
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(
+                        selectedOrderDetail.status
+                      )}`}
+                    >
+                      {getStatusLabel(selectedOrderDetail.status)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Customer Info */}
+                {selectedOrderDetail.user && (
+                  <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                    <h4 className="text-sm font-semibold text-foreground mb-2">
+                      Thông tin khách hàng
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Họ tên: </span>
+                        <span className="font-medium text-foreground">
+                          {selectedOrderDetail.user.fullName || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Email: </span>
+                        <span className="font-medium text-foreground">
+                          {selectedOrderDetail.user.email || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">SĐT: </span>
+                        <span className="font-medium text-foreground">
+                          {selectedOrderDetail.user.phone || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Address */}
+                {selectedOrderDetail.address && (
+                  <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                    <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Địa chỉ giao hàng
+                    </h4>
+                    <div className="text-sm space-y-1">
+                      <p className="font-medium text-foreground">
+                        {selectedOrderDetail.address.userName ||
+                          selectedOrderDetail.address.name}
+                      </p>
+                      <p className="text-muted-foreground">
+                        SĐT: {selectedOrderDetail.address.phone}
+                      </p>
+                      <p className="text-foreground">
+                        {formatAddress(selectedOrderDetail.address)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Info */}
+                {selectedOrderDetail.payment && (
+                  <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                    <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Thông tin thanh toán
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">
+                          Phương thức:{" "}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {getPaymentMethodLabel(
+                            selectedOrderDetail.payment.paymentMethod
+                          )}
+                        </span>
+                      </div>
+                      {selectedOrderDetail.payment.transactionCode && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Mã giao dịch:{" "}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {selectedOrderDetail.payment.transactionCode}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-muted-foreground">
+                          Trạng thái TT:{" "}
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            selectedOrderDetail.payment.paymentStatus === "PAID"
+                              ? "text-green-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {selectedOrderDetail.payment.paymentStatus === "PAID"
+                            ? "Đã thanh toán"
+                            : selectedOrderDetail.payment.paymentStatus ===
+                              "NOT_PAID"
+                            ? "Chưa thanh toán"
+                            : selectedOrderDetail.payment.paymentStatus}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Order Details / Products */}
+                {selectedOrderDetail.orderDetails &&
+                  selectedOrderDetail.orderDetails.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-foreground mb-3">
+                        Sản phẩm ({selectedOrderDetail.orderDetails.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {selectedOrderDetail.orderDetails.map(
+                          (detail: OrderDetailProduct, idx: number) => (
+                            <div
+                              key={detail.id || idx}
+                              className="flex gap-3 p-3 bg-muted/30 rounded-lg"
+                            >
+                              {detail.productColor?.images?.[0]?.image && (
+                                <img
+                                  src={detail.productColor.images[0].image}
+                                  alt={
+                                    detail.productColor?.product?.name ||
+                                    "Product"
+                                  }
+                                  className="w-16 h-16 object-cover rounded-lg shrink-0"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground text-sm mb-1">
+                                  {detail.productColor?.product?.name ||
+                                    `Sản phẩm ${idx + 1}`}
+                                </p>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Màu:{" "}
+                                  {detail.productColor?.color?.colorName ||
+                                    "N/A"}
+                                </p>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    x{detail.quantity}
+                                  </span>
+                                  <span className="font-semibold text-primary">
+                                    {formatPrice(detail.price)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Order Note */}
+                {selectedOrderDetail.note && (
+                  <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Ghi chú đơn hàng
+                    </h4>
+                    <p className="text-sm text-foreground">
+                      {selectedOrderDetail.note}
+                    </p>
+                  </div>
+                )}
+
+                {/* Process History Timeline */}
+                <OrderProcessTimeline
+                  processOrders={selectedOrderDetail.processOrders || []}
+                  processStatusConfig={processStatusConfig}
+                  formatDate={formatDate}
+                />
+
+                {/* Delivery Confirmation Photos */}
+                {(selectedOrderDetail.deliveryConfirmationResponse
+                  ?.deliveryPhotos ||
+                  selectedOrderDetail.deliveryConfirmationResponse
+                    ?.customerSignature) && (
+                  <div className="mb-4 rounded-lg bg-muted/30 p-3">
+                    <div className="text-xs font-medium text-foreground mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Xác nhận giao hàng thành công
+                    </div>
+
+                    {selectedOrderDetail.deliveryConfirmationResponse
+                      ?.deliveryPhotos &&
+                      selectedOrderDetail.deliveryConfirmationResponse
+                        .deliveryPhotos.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Hình ảnh giao hàng:
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {selectedOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
+                              (photo: string, idx: number) => (
+                                <img
+                                  key={idx}
+                                  src={photo}
+                                  alt={`Delivery photo ${idx + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-border"
+                                />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {selectedOrderDetail.deliveryConfirmationResponse
+                      ?.customerSignature && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Chữ ký khách hàng:
+                        </p>
+                        <img
+                          src={
+                            selectedOrderDetail.deliveryConfirmationResponse
+                              .customerSignature
+                          }
+                          alt="Customer signature"
+                          className="w-full max-w-sm h-32 object-contain rounded-lg border border-border bg-white dark:bg-gray-900"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="border-t border-border pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-semibold text-foreground">
+                      Tổng cộng:
+                    </span>
+                    <span className="text-2xl font-bold text-primary">
+                      {formatPrice(selectedOrderDetail.total)}
+                    </span>
+                  </div>
+                  {selectedOrderDetail.depositPrice &&
+                    selectedOrderDetail.depositPrice > 0 && (
+                      <div className="flex items-center justify-between mt-2 text-sm">
+                        <span className="text-muted-foreground">Đã cọc:</span>
+                        <span className="font-medium text-foreground">
+                          {formatPrice(selectedOrderDetail.depositPrice)}
+                        </span>
+                      </div>
+                    )}
+                </div>
+
+                {/* Close Button */}
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Không thể tải chi tiết đơn hàng
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Cancel Order Modal */}
       {showCancelModal && selectedOrderToCancel && (

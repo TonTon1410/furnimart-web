@@ -6,6 +6,7 @@ import { authService } from "@/service/authService";
 import { uploadToCloudinary } from "@/service/uploadService";
 import { useNavigate } from "react-router-dom";
 import { DP } from "@/router/paths";
+import CustomDropdown from "@/components/CustomDropdown";
 
 export default function DeliveryPOD() {
   const navigate = useNavigate();
@@ -18,8 +19,19 @@ export default function DeliveryPOD() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [photoUrl, setPhotoUrl] = useState("");
   const [notes, setNotes] = useState("");
+
+  const formatAddress = (address?: DeliveryAssignment["order"]["address"]) => {
+    if (!address) return "N/A";
+    const parts = [
+      address.addressLine,
+      address.street,
+      address.ward,
+      address.district,
+      address.city,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  };
 
   useEffect(() => {
     loadAssignments();
@@ -35,8 +47,10 @@ export default function DeliveryPOD() {
         return;
       }
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
-      // Filter only delivered orders
-      const deliveredOrders = data.filter((a) => a.status === "DELIVERED");
+      // Filter only delivered orders with valid order data
+      const deliveredOrders = data.filter(
+        (a) => a.status === "DELIVERED" && a.order !== null
+      );
       setAssignments(deliveredOrders);
       if (deliveredOrders.length > 0) {
         setSelectedAssignment(deliveredOrders[0]);
@@ -90,25 +104,6 @@ export default function DeliveryPOD() {
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAddPhotoUrl = () => {
-    const trimmedUrl = photoUrl.trim();
-    if (!trimmedUrl) {
-      alert("Vui lòng nhập URL ảnh");
-      return;
-    }
-
-    // Basic URL validation
-    try {
-      new URL(trimmedUrl);
-      setPhotos((prev) => [...prev, trimmedUrl]);
-      setPhotoUrl("");
-    } catch {
-      alert(
-        "URL không hợp lệ. Vui lòng nhập URL đầy đủ (ví dụ: https://example.com/image.jpg)"
-      );
-    }
   };
 
   const handleSubmit = async () => {
@@ -195,26 +190,26 @@ export default function DeliveryPOD() {
       {/* Order Selection */}
       {assignments.length > 1 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Chọn đơn hàng:
-          </label>
-          <select
-            value={selectedAssignment?.id || ""}
-            onChange={(e) => {
+          <CustomDropdown
+            id="order-selector"
+            label="Chọn đơn hàng:"
+            value={selectedAssignment?.id.toString() || ""}
+            options={assignments.map((assignment) => ({
+              value: assignment.id.toString(),
+              label: `#${assignment.order.id} - ${
+                assignment.order?.address?.userName ||
+                assignment.order?.address?.name ||
+                "Khách hàng"
+              }`,
+            }))}
+            onChange={(value) => {
               const assignment = assignments.find(
-                (a) => a.id.toString() === e.target.value
+                (a) => a.id.toString() === value
               );
               setSelectedAssignment(assignment || null);
             }}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            aria-label="Chọn đơn hàng"
-          >
-            {assignments.map((assignment) => (
-              <option key={assignment.id} value={assignment.id}>
-                #{assignment.order.id}
-              </option>
-            ))}
-          </select>
+            fullWidth
+          />
         </div>
       )}
 
@@ -230,16 +225,85 @@ export default function DeliveryPOD() {
               #{selectedAssignment?.order?.id}
             </span>
           </div>
+          <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+            <span className="font-medium">Khách hàng:</span>
+            <span>
+              {selectedAssignment?.order?.address?.userName ||
+                selectedAssignment?.order?.address?.name ||
+                "N/A"}
+            </span>
+          </div>
           <div className="flex items-start gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 shrink-0" />
             <span className="flex-1">
-              {selectedAssignment?.order?.address?.name || "N/A"}
+              {formatAddress(selectedAssignment?.order?.address)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span className="font-medium">Số điện thoại:</span>
             <span>{selectedAssignment?.order?.address?.phone || "N/A"}</span>
           </div>
+          <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+            <span className="font-medium">Tổng tiền:</span>
+            <span className="font-semibold">
+              {selectedAssignment?.order?.total?.toLocaleString("vi-VN")}đ
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+            <span className="font-medium">Thanh toán:</span>
+            <span>
+              {selectedAssignment?.order?.payment?.paymentMethod === "COD"
+                ? "Tiền mặt"
+                : selectedAssignment?.order?.payment?.paymentMethod === "VNPAY"
+                ? "VNPay"
+                : selectedAssignment?.order?.payment?.paymentMethod === "MOMO"
+                ? "MoMo"
+                : selectedAssignment?.order?.payment?.paymentMethod || "N/A"}
+            </span>
+          </div>
+          {selectedAssignment?.order?.orderDetails &&
+            selectedAssignment.order.orderDetails.length > 0 && (
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Sản phẩm ({selectedAssignment.order.orderDetails.length}):
+                </p>
+                <div className="space-y-1.5">
+                  {selectedAssignment.order.orderDetails.map((detail, idx) => {
+                    const productColor = detail.productColor;
+                    const productImage = productColor?.images?.[0]?.image;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex gap-2 bg-gray-50 dark:bg-gray-900/50 p-2 rounded"
+                      >
+                        {productImage && (
+                          <img
+                            src={productImage}
+                            alt={productColor?.product?.name || "Product"}
+                            className="w-10 h-10 object-cover rounded shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {productColor?.product?.name ||
+                              `Sản phẩm #${idx + 1}`}
+                          </p>
+                          {productColor?.color && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Màu: {productColor.color.colorName}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            SL: {detail.quantity} •{" "}
+                            {detail.price.toLocaleString()}đ/sp
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
         </div>
       </div>
 
@@ -278,29 +342,6 @@ export default function DeliveryPOD() {
                   <span>Tải lên</span>
                 </button>
               </div>
-            </div>
-          </div>
-
-          {/* URL Input - Tạm thời cho debug */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
-              🔧 Nhập URL ảnh (tạm thời)
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddPhotoUrl()}
-                placeholder="https://example.com/image.jpg"
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-              <button
-                onClick={handleAddPhotoUrl}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
-              >
-                Thêm ảnh
-              </button>
             </div>
           </div>
 

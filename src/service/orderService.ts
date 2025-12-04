@@ -135,12 +135,7 @@ class OrderService {
       if (filters.search) {
         params.search = filters.search;
       }
-      if (filters.page) {
-        params.page = (filters.page - 1).toString();
-      }
-      if (filters.limit) {
-        params.size = filters.limit.toString();
-      }
+      // Không truyền page và size để lấy toàn bộ đơn hàng
 
       const response: AxiosResponse<ApiResponse<any>> = await axiosClient.get(
         "/orders/search/customer",
