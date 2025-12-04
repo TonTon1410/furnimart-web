@@ -1,6 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
+import { BlogEditor } from "./BlogEditor"
 import type { Blog } from "@/service/blogService"
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -51,14 +52,13 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
           <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
             Nội dung <span className="text-destructive">*</span>
           </label>
-          <div className="bg-background rounded-lg">
-            <ReactQuill
-              theme="snow"
-              value={formData.content}
-              onChange={(content) => onFormChange({ ...formData, content })}
-              className="h-64 mb-12"
-            />
-          </div>
+          <textarea
+            value={formData.content}
+            onChange={(e) => onFormChange({ ...formData, content: e.target.value })}
+            rows={8}
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground text-sm leading-relaxed"
+            placeholder="Viết nội dung blog của bạn..."
+          />
         </div>
 
         <div>

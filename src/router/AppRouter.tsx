@@ -5,6 +5,7 @@ import { authService } from "@/service/authService";
 import { DP } from "./paths";
 import type { RoleKey } from "./paths";
 import ScrollToTop from "@/components/ScrollToTop";
+import ChatBox from "@/components/chat/ChatBox"
 
 // Loading component
 const PageLoader = () => (
@@ -24,6 +25,7 @@ const AllProducts = lazy(() => import("@/pages/AllProducts"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
+
 const OrderConfirmationPage = lazy(
   () => import("@/pages/OrderConfirmationPage")
 );
@@ -69,6 +71,7 @@ const DashboardLayout = () => {
 export default function AppRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <ChatBox />
       <Routes>
         {/* Trang công khai - Chỉ cho CUSTOMER, role khác redirect về dashboard */}
         <Route

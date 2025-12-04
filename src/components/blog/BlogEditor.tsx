@@ -1,9 +1,10 @@
 "use client"
 
-import { useRef } from "react"
-import ReactQuill from "react-quill-new"
-import "react-quill-new/dist/quill.snow.css";
+import dynamic from "next/dynamic"
+import "react-quill-new/dist/quill.snow.css"
+import "./BlogEditor.css"
 
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false })
 
 interface BlogEditorProps {
   value: string
@@ -11,18 +12,14 @@ interface BlogEditorProps {
   placeholder?: string
 }
 
-export default function BlogEditor({ value, onChange, placeholder }: BlogEditorProps) {
-  const quillRef = useRef<ReactQuill>(null)
-
+export function BlogEditor({ value, onChange, placeholder = "Viết nội dung blog của bạn..." }: BlogEditorProps) {
   const modules = {
     toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
       ["blockquote", "code-block"],
-      [{ align: [] }],
+      [{ list: "ordered" }, { list: "bullet" }],
       ["link", "image"],
-      [{ color: [] }, { background: [] }],
       ["clean"],
     ],
   }
@@ -33,59 +30,51 @@ export default function BlogEditor({ value, onChange, placeholder }: BlogEditorP
     "italic",
     "underline",
     "strike",
-    "list",
-    "bullet",
     "blockquote",
     "code-block",
-    "align",
+    "list",
+    "bullet",
     "link",
     "image",
-    "color",
-    "background",
   ]
 
   return (
-    <div className="w-full">
+    <div className="quill-editor-wrapper">
       <ReactQuill
-        ref={quillRef}
         theme="snow"
         value={value}
         onChange={onChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}
-        className="bg-background text-foreground rounded-lg border border-border focus-within:ring-2 focus-within:ring-accent focus-within:border-accent"
+        className="bg-background text-foreground rounded-lg overflow-hidden"
       />
       <style>{`
-        .ql-toolbar {
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: 0.5rem 0.5rem 0 0;
-          background-color: var(--card, #ffffff);
+        .quill-editor-wrapper .ql-container {
+          border-bottom-left-radius: 0.5rem;
+          border-bottom-right-radius: 0.5rem;
+          background-color: hsl(var(--background));
+          color: hsl(var(--foreground));
         }
-        .ql-container {
-          border: none;
-          border-radius: 0 0 0.5rem 0.5rem;
-          min-height: 300px;
-          background-color: var(--background, #fafafa);
+        .quill-editor-wrapper .ql-editor {
+          min-height: 240px;
           font-size: 0.875rem;
+          line-height: 1.5;
         }
-        .ql-editor {
-          min-height: 300px;
-          color: var(--foreground, #000000);
-          padding: 1rem;
+        .quill-editor-wrapper .ql-toolbar {
+          border-top-left-radius: 0.5rem;
+          border-top-right-radius: 0.5rem;
+          background-color: hsl(var(--muted));
+          border-color: hsl(var(--border));
         }
-        .ql-editor.ql-blank::before {
-          color: var(--muted-foreground, #999999);
-          font-style: italic;
+        .quill-editor-wrapper .ql-stroke {
+          stroke: hsl(var(--foreground)) !important;
         }
-        .ql-toolbar.ql-snow .ql-stroke {
-          stroke: var(--foreground, #000000);
+        .quill-editor-wrapper .ql-fill {
+          fill: hsl(var(--foreground)) !important;
         }
-        .ql-toolbar.ql-snow .ql-fill {
-          fill: var(--foreground, #000000);
-        }
-        .ql-toolbar.ql-snow .ql-picker-label {
-          color: var(--foreground, #000000);
+        .quill-editor-wrapper .ql-picker-label {
+          color: hsl(var(--foreground)) !important;
         }
       `}</style>
     </div>

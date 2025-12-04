@@ -74,12 +74,27 @@ const DeliveryPODPage = lazy(
   () => import("@/dashboard/roles/delivery/DeliveryPODPage")
 );
 
+//Dashboard
+const AdminDashboard = lazy(
+  () => import("@/dashboard/pages/AdminDashboard")
+);
+
+const ManagerDashboard = lazy(
+  () => import("@/dashboard/pages/ManagerDashboard")
+);
+
+const StaffDashboard = lazy(
+  () => import("@/dashboard/pages/StaffDashboard")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
 const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
+const AdminChat = Placeholder("Admin • Chat");
+
 
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
@@ -95,7 +110,7 @@ const ManagerAssign = Placeholder("Manager • Assign Delivery");
 const ManagerRevenue = Placeholder("Manager • Revenue Report");
 const ManagerPerformance = Placeholder("Manager • Performance Report");
 const ManagerDelivery = Placeholder("Manager • Delivery Report");
-const ManagerChat = Placeholder("Manager • Chat");
+
 
 const DeliveryHistory = Placeholder("Delivery • History");
 
@@ -111,6 +126,7 @@ export default function RoleRoutes() {
       <Routes>
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogManagement />} />
         <Route path="users" element={<AdminUsersPage />} />
@@ -124,6 +140,7 @@ export default function RoleRoutes() {
         <Route path="reports/delivery" element={<AdminDeliveryEff />} />
         <Route path="wallet" element={<AdminWallet />} />
         <Route path="disputes" element={<AdminDisputes />} />
+        <Route path="chat" element={<AdminChat />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
@@ -134,6 +151,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
@@ -147,7 +165,6 @@ export default function RoleRoutes() {
         <Route path="reports/revenue" element={<ManagerRevenue />} />
         <Route path="reports/performance" element={<ManagerPerformance />} />
         <Route path="reports/delivery" element={<ManagerDelivery />} />
-        <Route path="chat" element={<ManagerChat />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
@@ -174,6 +191,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
+        <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="blog" element={<BlogStaffManagement />} />
         <Route path="products" element={<SellerProductsPage />} />
