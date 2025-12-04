@@ -14,7 +14,7 @@ export const deliveryNav = (): RoleNav => ({
     { icon: <ClipboardList />, name: "Đơn hàng", path: DP("orders") },
     { icon: <ScanBarcode />, name: "Xác nhận lấy hàng", path: DP("pickup") },
     { icon: <Truck />, name: "Cập nhật", path: DP("status") },
-    { icon: <ImageIcon />, name: "Chứng từ", path: DP("pod") },
+    { icon: <ImageIcon />, name: "Hình ảnh giao hàng", path: DP("pod") },
   ],
   others: [{ icon: <History />, name: "Lịch sử", path: DP("history") }],
 });

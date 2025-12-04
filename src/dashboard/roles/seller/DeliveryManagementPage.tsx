@@ -5,26 +5,34 @@ import {
   Users,
   Loader2,
   Search,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import CustomDropdown from "../../../components/CustomDropdown";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
-import orderService from "@/service/orderService";
-import type { OrderItem } from "@/types/order";
 import { authService } from "@/service/authService";
+import inventoryService from "@/service/inventoryService";
+import type { InventoryLocationDetail } from "@/service/inventoryService";
 
 export default function DeliveryManagementPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
-    new Map()
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [processingInvoice, setProcessingInvoice] = useState<number | null>(
-    null
-  );
+  const [showStockOutModal, setShowStockOutModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<DeliveryAssignment | null>(null);
+  const [locationsByProduct, setLocationsByProduct] = useState<
+    Record<string, InventoryLocationDetail[]>
+  >({});
+  const [selectedLocations, setSelectedLocations] = useState<
+    Record<string, { locationItemId: string; quantity: number }[]>
+  >({});
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [creatingStockOut, setCreatingStockOut] = useState(false);
+  const [warehouseId, setWarehouseId] = useState<string | null>(null);
   const [preparingProducts, setPreparingProducts] = useState<number | null>(
     null
   );
@@ -38,43 +46,20 @@ export default function DeliveryManagementPage() {
       setLoading(true);
       setError(null);
 
-      // Lấy storeId từ decoded token
-      const decodedToken = authService.getDecodedToken();
-      console.log("Decoded Token:", decodedToken);
-
-      const storeId = decodedToken?.storeId;
+      // Lấy storeId từ authService
+      const storeId = authService.getStoreId();
 
       if (!storeId) {
-        console.warn("No storeId in token:", decodedToken);
-        setError(
-          `Không tìm thấy thông tin cửa hàng trong token. Vui lòng đăng nhập lại.`
-        );
+        setError("Không tìm thấy thông tin cửa hàng. Vui lòng đăng nhập lại.");
         setLoading(false);
         return;
       }
 
       console.log("Fetching assignments for store:", storeId);
-      // Lấy danh sách phân công theo store
+      // API mới đã trả về đầy đủ thông tin order trong assignment
       const data = await deliveryService.getAssignmentsByStore(storeId);
       console.log("Assignments loaded:", data.length);
       setAssignments(data);
-
-      // Fetch order details
-      const orderDetailsMap = new Map<number, OrderItem>();
-      await Promise.all(
-        data.map(async (assignment: DeliveryAssignment) => {
-          try {
-            const orderDetail = await orderService.getOrderById(
-              assignment.orderId
-            );
-            orderDetailsMap.set(assignment.orderId, orderDetail);
-          } catch (err) {
-            console.error(`Failed to load order ${assignment.orderId}:`, err);
-          }
-        })
-      );
-
-      setOrderDetails(orderDetailsMap);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError(
@@ -87,19 +72,153 @@ export default function DeliveryManagementPage() {
     }
   };
 
-  const handleGenerateInvoice = async (orderId: number) => {
-    if (!confirm("Tạo hóa đơn cho đơn hàng này?")) return;
+  const handleOpenStockOutModal = async (assignment: DeliveryAssignment) => {
+    setSelectedAssignment(assignment);
+    setShowStockOutModal(true);
+    setLoadingLocations(true);
 
     try {
-      setProcessingInvoice(orderId);
-      await deliveryService.generateInvoice(orderId);
-      alert("Tạo hóa đơn thành công!");
-      await loadAssignments(); // Reload
+      const storeId = authService.getStoreId();
+      if (!storeId) {
+        alert("Không tìm thấy thông tin cửa hàng. Vui lòng đăng nhập lại.");
+        setShowStockOutModal(false);
+        return;
+      }
+
+      console.log("🔍 Loading locations for storeId:", storeId);
+
+      // Lấy vị trí chứa hàng cho từng sản phẩm
+      const locationsMap: Record<string, InventoryLocationDetail[]> = {};
+      let firstWarehouseId: string | null = null;
+
+      for (const detail of assignment.order.orderDetails) {
+        console.log(
+          `🔍 Fetching locations for productColorId: ${detail.productColorId}`
+        );
+        const response = await inventoryService.getLocationsByWarehouse({
+          productColorId: detail.productColorId.toString(),
+          storeId,
+        });
+        console.log(`✅ Locations response:`, response.data);
+
+        const locations = response.data.data.locations || [];
+        locationsMap[detail.productColorId] = locations;
+
+        // Lưu warehouseId từ location đầu tiên (1 store chỉ có 1 warehouse)
+        if (!firstWarehouseId && locations.length > 0) {
+          firstWarehouseId = locations[0].warehouseId;
+        }
+      }
+
+      console.log("✅ All locations loaded. WarehouseId:", firstWarehouseId);
+      setLocationsByProduct(locationsMap);
+      setWarehouseId(firstWarehouseId);
+
+      // Initialize selected locations
+      const initialSelections: Record<
+        string,
+        { locationItemId: string; quantity: number }[]
+      > = {};
+      assignment.order.orderDetails.forEach((detail) => {
+        initialSelections[detail.productColorId] = [];
+      });
+      setSelectedLocations(initialSelections);
     } catch (err) {
-      console.error("Error generating invoice:", err);
-      alert((err as Error).message || "Không thể tạo hóa đơn");
+      console.error("Error loading locations:", err);
+      alert("Không thể tải vị trí kho: " + (err as Error).message);
     } finally {
-      setProcessingInvoice(null);
+      setLoadingLocations(false);
+    }
+  };
+
+  const handleCreateStockOut = async () => {
+    if (!selectedAssignment) return;
+
+    try {
+      setCreatingStockOut(true);
+
+      // Validate: Check if all products have enough quantity selected
+      const invalidProducts = [];
+      for (const detail of selectedAssignment.order.orderDetails) {
+        const selected = selectedLocations[detail.productColorId] || [];
+        const totalSelected = selected.reduce(
+          (sum, loc) => sum + loc.quantity,
+          0
+        );
+
+        if (totalSelected < detail.quantity) {
+          invalidProducts.push(
+            `${detail.productColor.product.name}: cần ${detail.quantity}, đã chọn ${totalSelected}`
+          );
+        }
+      }
+
+      if (invalidProducts.length > 0) {
+        alert(
+          `Vui lòng chọn đủ số lượng cho các sản phẩm sau:\n\n${invalidProducts.join(
+            "\n"
+          )}`
+        );
+        return;
+      }
+
+      // Build inventory items - Xuất tất cả sản phẩm cùng lúc
+      const items = selectedAssignment.order.orderDetails.flatMap((detail) => {
+        const productLocations = selectedLocations[detail.productColorId] || [];
+        return productLocations.map((loc) => ({
+          quantity: loc.quantity,
+          productColorId: detail.productColorId.toString(),
+          locationItemId: loc.locationItemId,
+        }));
+      });
+
+      if (!warehouseId) {
+        alert("Không tìm thấy thông tin kho. Vui lòng thử lại.");
+        return;
+      }
+
+      console.log("📦 Creating stock out with data:", {
+        warehouseId,
+        orderId: selectedAssignment.order.id,
+        itemsCount: items.length,
+        items,
+      });
+
+      await inventoryService.createOrUpdateInventory({
+        type: "EXPORT",
+        purpose: "STOCK_OUT",
+        note: `Xuất kho cho đơn hàng #${selectedAssignment.order.id}`,
+        warehouseId: warehouseId,
+        orderId: selectedAssignment.order.id,
+        items,
+      });
+
+      console.log("✅ Stock out created successfully");
+      alert("Tạo phiếu xuất kho thành công!");
+      setShowStockOutModal(false);
+      await loadAssignments();
+    } catch (err) {
+      console.error("❌ Error creating stock out:", err);
+      const errorResponse = err as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+        status?: number;
+      };
+      const errorMessage =
+        errorResponse?.response?.data?.message ||
+        errorResponse?.message ||
+        "Lỗi không xác định";
+      const errorStatus =
+        errorResponse?.response?.status || errorResponse?.status;
+
+      if (errorStatus === 401 || errorStatus === 1208) {
+        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        window.location.href = "/login";
+      } else {
+        alert(`Không thể tạo phiếu xuất kho: ${errorMessage}`);
+      }
+    } finally {
+      setCreatingStockOut(false);
     }
   };
 
@@ -165,22 +284,27 @@ export default function DeliveryManagementPage() {
     return statusMap[status] || statusMap.ASSIGNED;
   };
 
-  const filteredAssignments = assignments.filter((assignment) => {
-    const order = orderDetails.get(assignment.orderId);
-    const matchesSearch =
-      assignment.orderId.toString().includes(searchTerm) ||
-      order?.shopName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" || assignment.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredAssignments = assignments
+    .filter((assignment) => {
+      const order = assignment.order;
+      const matchesSearch =
+        assignment.order.id.toString().includes(searchTerm) ||
+        order?.address?.userName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        order?.address?.phone?.includes(searchTerm);
+      const matchesStatus =
+        filterStatus === "all" || assignment.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    })
+    .reverse();
 
   const stats = {
     total: assignments.length,
     assigned: assignments.filter((a) => a.status === "ASSIGNED").length,
     preparing: assignments.filter((a) => a.status === "PREPARING").length,
     ready: assignments.filter((a) => a.status === "READY").length,
-    needInvoice: assignments.filter((a) => !a.invoiceGenerated).length,
+    needInvoice: assignments.filter((a) => !a.order.qrCode).length,
     needPreparation: assignments.filter((a) => !a.productsPrepared).length,
   };
 
@@ -339,20 +463,24 @@ export default function DeliveryManagementPage() {
           />
         </div>
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          aria-label="Lọc theo trạng thái"
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="ASSIGNED">Đã phân công</option>
-          <option value="PREPARING">Đang chuẩn bị</option>
-          <option value="READY">Sẵn sàng</option>
-          <option value="IN_TRANSIT">Đang giao</option>
-          <option value="DELIVERED">Đã giao</option>
-          <option value="CANCELLED">Đã hủy</option>
-        </select>
+        <div className="min-w-[200px]">
+          <CustomDropdown
+            id="filterStatus"
+            label="Trạng thái"
+            value={filterStatus}
+            onChange={(value) => setFilterStatus(value)}
+            options={[
+              { value: "all", label: "Tất cả trạng thái" },
+              { value: "ASSIGNED", label: "Đã phân công" },
+              { value: "PREPARING", label: "Đang chuẩn bị" },
+              { value: "READY", label: "Sẵn sàng" },
+              { value: "IN_TRANSIT", label: "Đang giao" },
+              { value: "DELIVERED", label: "Đã giao" },
+              { value: "CANCELLED", label: "Đã hủy" },
+            ]}
+            placeholder="Chọn trạng thái..."
+          />
+        </div>
       </div>
 
       {/* Orders List */}
@@ -366,8 +494,15 @@ export default function DeliveryManagementPage() {
           </div>
         ) : (
           filteredAssignments.map((assignment) => {
-            const order = orderDetails.get(assignment.orderId);
+            const order = assignment.order;
             const statusInfo = getStatusInfo(assignment.status);
+
+            // Tính tổng số lượng sản phẩm
+            const totalQuantity =
+              order?.orderDetails?.reduce(
+                (sum, detail) => sum + detail.quantity,
+                0
+              ) || 0;
 
             return (
               <div
@@ -382,7 +517,7 @@ export default function DeliveryManagementPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              Đơn hàng #{assignment.orderId}
+                              Đơn hàng #{order.id}
                             </h3>
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}
@@ -391,7 +526,10 @@ export default function DeliveryManagementPage() {
                             </span>
                           </div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Khách hàng: {order?.shopName || "N/A"}
+                            Khách hàng:{" "}
+                            {order?.address?.userName ||
+                              order?.address?.name ||
+                              "N/A"}
                           </p>
                         </div>
                       </div>
@@ -401,8 +539,19 @@ export default function DeliveryManagementPage() {
                           <p className="text-gray-500 dark:text-gray-400">
                             Địa chỉ
                           </p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {order?.address || "N/A"}
+                          <p className="font-medium text-gray-900 dark:text-white line-clamp-2">
+                            {order?.address
+                              ? order.address.fullAddress ||
+                                [
+                                  order.address.addressLine,
+                                  order.address.street,
+                                  order.address.ward,
+                                  order.address.district,
+                                  order.address.city,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ")
+                              : "N/A"}
                           </p>
                         </div>
                         <div>
@@ -410,7 +559,7 @@ export default function DeliveryManagementPage() {
                             Số điện thoại
                           </p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {order?.phone || "N/A"}
+                            {order?.address?.phone || "N/A"}
                           </p>
                         </div>
                         <div>
@@ -418,7 +567,7 @@ export default function DeliveryManagementPage() {
                             Tổng tiền
                           </p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {order?.price?.toLocaleString("vi-VN")}đ
+                            {order?.total?.toLocaleString("vi-VN")}đ
                           </p>
                         </div>
                         <div>
@@ -426,14 +575,34 @@ export default function DeliveryManagementPage() {
                             Số lượng SP
                           </p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {order?.quantity || 0}
+                            {totalQuantity}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Phương thức TT
+                          </p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {order?.payment?.paymentMethod || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Ngày đặt
+                          </p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {order?.orderDate
+                              ? new Date(order.orderDate).toLocaleDateString(
+                                  "vi-VN"
+                                )
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
 
                       {/* Status Flags */}
                       <div className="flex flex-wrap gap-2 text-xs">
-                        {assignment.invoiceGenerated ? (
+                        {order?.qrCode ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             <FileText className="h-3 w-3" />
                             Đã tạo hóa đơn
@@ -458,6 +627,41 @@ export default function DeliveryManagementPage() {
                         )}
                       </div>
 
+                      {/* Danh sách sản phẩm */}
+                      {order?.orderDetails && order.orderDetails.length > 0 && (
+                        <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-3 space-y-2">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            Sản phẩm:
+                          </p>
+                          {order.orderDetails.map((detail, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              {detail.productColor?.images?.[0]?.image && (
+                                <img
+                                  src={detail.productColor.images[0].image}
+                                  alt={detail.productColor.product?.name}
+                                  className="w-10 h-10 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {detail.productColor?.product?.name || "N/A"}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Màu:{" "}
+                                  {detail.productColor?.color?.colorName ||
+                                    "N/A"}{" "}
+                                  | SL: {detail.quantity} | Giá:{" "}
+                                  {detail.price?.toLocaleString("vi-VN")}đ
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {assignment.notes && (
                         <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-3">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -472,55 +676,40 @@ export default function DeliveryManagementPage() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2 sm:w-48">
-                      <button
-                        onClick={() =>
-                          handleGenerateInvoice(assignment.orderId)
-                        }
-                        disabled={
-                          assignment.invoiceGenerated ||
-                          processingInvoice === assignment.orderId
-                        }
-                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
-                      >
-                        {processingInvoice === assignment.orderId ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="h-4 w-4" />
-                            {assignment.invoiceGenerated
-                              ? "Đã tạo HĐ"
-                              : "Tạo hóa đơn"}
-                          </>
-                        )}
-                      </button>
+                      {assignment.status === "ASSIGNED" && (
+                        <button
+                          onClick={() => handleOpenStockOutModal(assignment)}
+                          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
+                        >
+                          <Package className="h-4 w-4" />
+                          Tạo phiếu xuất kho
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() =>
-                          handlePrepareProducts(assignment.orderId)
-                        }
-                        disabled={
-                          assignment.productsPrepared ||
-                          preparingProducts === assignment.orderId
-                        }
-                        className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
-                      >
-                        {preparingProducts === assignment.orderId ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          <>
-                            <CheckSquare className="h-4 w-4" />
-                            {assignment.productsPrepared
-                              ? "Đã chuẩn bị"
-                              : "Chuẩn bị SP"}
-                          </>
-                        )}
-                      </button>
+                      {assignment.status === "PREPARING" && (
+                        <button
+                          onClick={() => handlePrepareProducts(order.id)}
+                          disabled={
+                            assignment.productsPrepared ||
+                            preparingProducts === order.id
+                          }
+                          className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-800"
+                        >
+                          {preparingProducts === order.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              <CheckSquare className="h-4 w-4" />
+                              {assignment.productsPrepared
+                                ? "Đã chuẩn bị"
+                                : "Chuẩn bị SP"}
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -529,6 +718,219 @@ export default function DeliveryManagementPage() {
           })
         )}
       </div>
+
+      {/* Stock Out Modal */}
+      {showStockOutModal && selectedAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Tạo phiếu xuất kho - Đơn hàng #{selectedAssignment.order.id}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Chọn vị trí xuất hàng cho{" "}
+                  {selectedAssignment.order.orderDetails.length} sản phẩm
+                </p>
+              </div>
+              <button
+                onClick={() => setShowStockOutModal(false)}
+                aria-label="Đóng modal"
+                className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {loadingLocations ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">
+                    Đang tải vị trí kho...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      💡 Bạn có thể xuất nhiều sản phẩm cùng lúc. Chọn vị trí và
+                      số lượng cho từng sản phẩm bên dưới.
+                    </p>
+                  </div>
+                  {selectedAssignment.order.orderDetails.map((detail) => {
+                    const locations =
+                      locationsByProduct[detail.productColorId] || [];
+                    const selectedLocs =
+                      selectedLocations[detail.productColorId] || [];
+                    const totalSelected = selectedLocs.reduce(
+                      (sum, loc) => sum + loc.quantity,
+                      0
+                    );
+                    const remaining = detail.quantity - totalSelected;
+
+                    return (
+                      <div
+                        key={detail.id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          {detail.productColor?.images?.[0]?.image && (
+                            <img
+                              src={detail.productColor.images[0].image}
+                              alt={detail.productColor.product?.name}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              {detail.productColor?.product?.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Màu: {detail.productColor?.color?.colorName} | Cần
+                              xuất: {detail.quantity}
+                            </p>
+                            <p
+                              className={`text-sm font-medium ${
+                                remaining === 0
+                                  ? "text-green-600"
+                                  : remaining < 0
+                                  ? "text-red-600"
+                                  : "text-yellow-600"
+                              }`}
+                            >
+                              Đã chọn: {totalSelected} | Còn thiếu:{" "}
+                              {Math.max(0, remaining)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Chọn vị trí xuất hàng:
+                          </p>
+                          {locations.length === 0 ? (
+                            <p className="text-sm text-red-600">
+                              Không có hàng trong kho!
+                            </p>
+                          ) : (
+                            locations.map((loc) => {
+                              const selectedLoc = selectedLocs.find(
+                                (s) => s.locationItemId === loc.locationItemId
+                              );
+                              const selectedQty = selectedLoc?.quantity || 0;
+
+                              return (
+                                <div
+                                  key={loc.locationItemId}
+                                  className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900/50 rounded"
+                                >
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {loc.warehouseName} - {loc.zoneName} -{" "}
+                                      {loc.locationCode}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      Khả dụng: {loc.available} | Đã giữ:{" "}
+                                      {loc.reserved}
+                                    </p>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={loc.available}
+                                    value={selectedQty}
+                                    aria-label={`Số lượng xuất từ ${loc.locationCode}`}
+                                    onChange={(e) => {
+                                      const qty = parseInt(e.target.value) || 0;
+                                      const maxQty = Math.min(
+                                        loc.available,
+                                        remaining + selectedQty
+                                      );
+                                      const finalQty = Math.min(qty, maxQty);
+
+                                      setSelectedLocations((prev) => {
+                                        const updated = { ...prev };
+                                        const productLocs = [
+                                          ...(updated[detail.productColorId] ||
+                                            []),
+                                        ];
+
+                                        const existingIndex =
+                                          productLocs.findIndex(
+                                            (s) =>
+                                              s.locationItemId ===
+                                              loc.locationItemId
+                                          );
+
+                                        if (finalQty === 0) {
+                                          if (existingIndex !== -1) {
+                                            productLocs.splice(
+                                              existingIndex,
+                                              1
+                                            );
+                                          }
+                                        } else {
+                                          if (existingIndex !== -1) {
+                                            productLocs[
+                                              existingIndex
+                                            ].quantity = finalQty;
+                                          } else {
+                                            productLocs.push({
+                                              locationItemId:
+                                                loc.locationItemId,
+                                              quantity: finalQty,
+                                            });
+                                          }
+                                        }
+
+                                        updated[detail.productColorId] =
+                                          productLocs;
+                                        return updated;
+                                      });
+                                    }}
+                                    className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                  />
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex justify-end gap-3">
+              <button
+                onClick={() => setShowStockOutModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCreateStockOut}
+                disabled={creatingStockOut || loadingLocations}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {creatingStockOut ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang tạo...
+                  </>
+                ) : (
+                  <>
+                    <Package className="h-4 w-4" />
+                    Tạo phiếu xuất
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

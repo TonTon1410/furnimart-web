@@ -401,7 +401,7 @@ const CreateInventoryPage: React.FC = () => {
     <div className="flex flex-col lg:flex-row h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       
       {/* === 1. PHẦN DANH SÁCH SẢN PHẨM === */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 order-2 lg:order-none bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 order-2 lg:order-0 bg-gray-50 dark:bg-gray-900">
         
         {/* Product Selector */}
         <div className={`${cardBgClass}`}>
@@ -594,7 +594,7 @@ const CreateInventoryPage: React.FC = () => {
       </div>
 
       {/* === 2. PHẦN THÔNG TIN PHIẾU === */}
-      <div className="w-full lg:w-[400px] shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-auto lg:h-full shadow-xl z-20 order-1 lg:order-none max-h-[60vh] lg:max-h-none">
+      <div className="w-full lg:w-[400px] shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-auto lg:h-full shadow-xl z-20 order-1 lg:order-0 max-h-[60vh] lg:max-h-none">
         
         {/* Header Thông tin phiếu */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900">

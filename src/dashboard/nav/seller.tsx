@@ -28,8 +28,6 @@ export const sellerNav = (): RoleNav => ({
       name: "Quản lý giao hàng",
       path: DP("delivery-management"),
     },
-    { icon: <ClipboardList />, name: "Orders", path: DP("orders") },
-    { icon: <FileText />, name: "Invoices", path: DP("invoices") },
   ],
   others: [{ icon: <MessageCircle />, name: "Chat", path: DP("chat") }],
 });

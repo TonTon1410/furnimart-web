@@ -33,9 +33,7 @@ const UserProfile = lazy(() => import("@/pages/UserProfile"));
 const AddressPage = lazy(() => import("@/pages/AddressPage"));
 const OrderHistory = lazy(() => import("@/pages/OrderHistory"));
 const BlogPage = lazy(() => import("@/pages/BlogPage"));
-const OwnBlog = lazy(() => import("@/pages/OwnBlog"));
 const ContactPage = lazy(() => import("@/pages/ContactPage"));
-const MyPaymentPage = lazy(() => import("@/pages/MyPayment"));
 const MyWalletPage = lazy(() => import("@/pages/MyWalletPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -173,26 +171,10 @@ export default function AppRouter() {
           }
         />
         <Route
-          path="/ownblog"
-          element={
-            <ProtectCustomerRoutes>
-              <OwnBlog />
-            </ProtectCustomerRoutes>
-          }
-        />
-        <Route
           path="/contact"
           element={
             <ProtectCustomerRoutes>
               <ContactPage />
-            </ProtectCustomerRoutes>
-          }
-        />
-        <Route
-          path="/mypayment"
-          element={
-            <ProtectCustomerRoutes>
-              <MyPaymentPage />
             </ProtectCustomerRoutes>
           }
         />

@@ -6,8 +6,6 @@ import { authService } from "@/service/authService";
 import { uploadToCloudinary } from "@/service/uploadService";
 import { useNavigate } from "react-router-dom";
 import { DP } from "@/router/paths";
-import orderService from "@/service/orderService";
-import type { OrderItem } from "@/types/order";
 
 export default function DeliveryPOD() {
   const navigate = useNavigate();
@@ -15,36 +13,17 @@ export default function DeliveryPOD() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] =
     useState<DeliveryAssignment | null>(null);
-  const [orderDetail, setOrderDetail] = useState<OrderItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState("");
-  const [signature, setSignature] = useState("");
-  const [recipientName, setRecipientName] = useState("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     loadAssignments();
   }, []);
-
-  useEffect(() => {
-    const loadOrderDetail = async () => {
-      if (selectedAssignment) {
-        try {
-          const detail = await orderService.getOrderById(
-            selectedAssignment.orderId
-          );
-          setOrderDetail(detail);
-        } catch (err) {
-          console.error("Failed to load order detail:", err);
-        }
-      }
-    };
-    loadOrderDetail();
-  }, [selectedAssignment]);
 
   const loadAssignments = async () => {
     try {
@@ -61,15 +40,6 @@ export default function DeliveryPOD() {
       setAssignments(deliveredOrders);
       if (deliveredOrders.length > 0) {
         setSelectedAssignment(deliveredOrders[0]);
-        // Load order detail for first delivered order
-        try {
-          const detail = await orderService.getOrderById(
-            deliveredOrders[0].orderId
-          );
-          setOrderDetail(detail);
-        } catch (err) {
-          console.error("Failed to load order detail:", err);
-        }
       }
     } catch (err) {
       console.error("Error loading assignments:", err);
@@ -152,21 +122,12 @@ export default function DeliveryPOD() {
       return;
     }
 
-    if (!recipientName.trim()) {
-      alert("Vui lòng nhập tên người nhận");
-      return;
-    }
-
     try {
       setSubmitting(true);
       await deliveryService.createDeliveryConfirmation({
-        orderId: selectedAssignment.orderId,
+        orderId: selectedAssignment.order.id,
         deliveryPhotos: photos,
-        deliveryNotes: `${recipientName.trim()}${
-          signature ? ` - ${signature}` : ""
-        }${notes ? ` - ${notes}` : ""}`,
-        deliveryLatitude: undefined, // TODO: Get from geolocation
-        deliveryLongitude: undefined, // TODO: Get from geolocation
+        deliveryNotes: notes.trim() || undefined,
       });
 
       alert("Xác nhận giao hàng thành công!");
@@ -250,7 +211,7 @@ export default function DeliveryPOD() {
           >
             {assignments.map((assignment) => (
               <option key={assignment.id} value={assignment.id}>
-                #{assignment.orderId}
+                #{assignment.order.id}
               </option>
             ))}
           </select>
@@ -266,16 +227,18 @@ export default function DeliveryPOD() {
           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span className="font-medium">Mã đơn:</span>
             <span className="text-blue-600 dark:text-blue-400">
-              #{orderDetail?.id || selectedAssignment?.orderId}
+              #{selectedAssignment?.order?.id}
             </span>
           </div>
           <div className="flex items-start gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 shrink-0" />
-            <span className="flex-1">{orderDetail?.address || "N/A"}</span>
+            <span className="flex-1">
+              {selectedAssignment?.order?.address?.name || "N/A"}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span className="font-medium">Số điện thoại:</span>
-            <span>{orderDetail?.phone || "N/A"}</span>
+            <span>{selectedAssignment?.order?.address?.phone || "N/A"}</span>
           </div>
         </div>
       </div>
@@ -283,7 +246,7 @@ export default function DeliveryPOD() {
       {/* Photo Upload */}
       <div className="rounded-lg bg-white p-4 sm:p-6 shadow dark:bg-gray-800">
         <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-          Chụp ảnh giao hàng
+          Hình ảnh xác minh
         </h2>
 
         <div className="space-y-3 sm:space-y-4">
@@ -366,44 +329,16 @@ export default function DeliveryPOD() {
             </div>
           )}
 
-          {/* Recipient Info */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tên người nhận <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
-              placeholder="Nhập tên người nhận hàng"
-              className="w-full px-3 py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          {/* Signature */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Chữ ký (tùy chọn)
-            </label>
-            <input
-              type="text"
-              value={signature}
-              onChange={(e) => setSignature(e.target.value)}
-              placeholder="Nhập chữ ký"
-              className="w-full px-3 py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Ghi chú (tùy chọn)
+              Ghi chú giao hàng (tùy chọn)
             </label>
             <textarea
-              rows={3}
+              rows={4}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Nhập ghi chú về quá trình giao hàng..."
+              placeholder="Nhập ghi chú về quá trình giao hàng (tên người nhận, chữ ký, ghi chú khác...)..."
               className="w-full px-3 py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
           </div>

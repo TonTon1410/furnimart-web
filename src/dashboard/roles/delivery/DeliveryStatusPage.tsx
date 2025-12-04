@@ -9,14 +9,9 @@ import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
-import orderService from "@/service/orderService";
-import type { OrderItem } from "@/types/order";
 
 export default function DeliveryStatus() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
-  const [orderDetails, setOrderDetails] = useState<Map<number, OrderItem>>(
-    new Map()
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
@@ -43,25 +38,9 @@ export default function DeliveryStatus() {
       console.log("📦 All assignments:", data);
       console.log(
         "📦 Assignments statuses:",
-        data.map((a) => ({ id: a.id, orderId: a.orderId, status: a.status }))
+        data.map((a) => ({ id: a.id, orderId: a.order.id, status: a.status }))
       );
       setAssignments(data);
-
-      // Fetch order details for each assignment
-      const orderDetailsMap = new Map<number, OrderItem>();
-      await Promise.all(
-        data.map(async (assignment) => {
-          try {
-            const orderDetail = await orderService.getOrderById(
-              assignment.orderId
-            );
-            orderDetailsMap.set(assignment.orderId, orderDetail);
-          } catch (err) {
-            console.error(`Failed to load order ${assignment.orderId}:`, err);
-          }
-        })
-      );
-      setOrderDetails(orderDetailsMap);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError("Không thể tải danh sách đơn hàng");
@@ -202,7 +181,7 @@ export default function DeliveryStatus() {
             <div className="mt-2 space-y-1 text-xs">
               {assignments.map((a) => (
                 <div key={a.id} className="bg-yellow-100 p-2 rounded">
-                  Order #{a.orderId} - Status: <strong>{a.status}</strong>
+                  Order #{a.order.id} - Status: <strong>{a.status}</strong>
                 </div>
               ))}
             </div>
@@ -233,7 +212,7 @@ export default function DeliveryStatus() {
                   key={a.id}
                   className="text-xs text-gray-600 dark:text-gray-400 mb-1"
                 >
-                  • Order #{a.orderId} - Status: <strong>{a.status}</strong>
+                  • Order #{a.order.id} - Status: <strong>{a.status}</strong>
                 </div>
               ))}
             </div>
@@ -241,7 +220,7 @@ export default function DeliveryStatus() {
         </div>
       ) : (
         activeOrders.map((assignment) => {
-          const order = orderDetails.get(assignment.orderId);
+          const order = assignment.order;
           const statusInfo = getStatusInfo(assignment.status);
           const StatusIcon = statusInfo?.icon || Package;
 
@@ -263,7 +242,7 @@ export default function DeliveryStatus() {
                       size={20}
                     />
                     <h3 className="font-semibold text-gray-900 dark:text-white">
-                      #{order?.id || assignment.orderId}
+                      #{order?.id}
                     </h3>
                   </div>
                   <span
@@ -274,9 +253,9 @@ export default function DeliveryStatus() {
                 </div>
 
                 <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  <p>Địa chỉ: {order?.address || "N/A"}</p>
+                  <p>Địa chỉ: {order?.address?.name || "N/A"}</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
-                    Tổng tiền: {order?.price?.toLocaleString("vi-VN")}đ
+                    Tổng tiền: {order?.total?.toLocaleString("vi-VN")}đ
                   </p>
                 </div>
 

@@ -50,21 +50,23 @@ type Props = {
 };
 
 // Marker chọn bằng click
-function LocationMarker({ onSelect }: { onSelect: (lat: number, lng: number) => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
+const LocationMarker = React.memo(
+  ({ onSelect }: { onSelect: (lat: number, lng: number) => void }) => {
+    const [position, setPosition] = useState<[number, number] | null>(null);
 
-  useMapEvents({
-    click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng]);
-      onSelect(e.latlng.lat, e.latlng.lng);
-    },
-  });
+    useMapEvents({
+      click(e) {
+        setPosition([e.latlng.lat, e.latlng.lng]);
+        onSelect(e.latlng.lat, e.latlng.lng);
+      },
+    });
 
-  return position ? <Marker position={position} /> : null;
-}
+    return position ? <Marker position={position} /> : null;
+  }
+);
 
 // Recenter map
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
+const RecenterMap = React.memo(({ lat, lng }: { lat: number; lng: number }) => {
   const map = useMap();
   useEffect(() => {
     if (lat && lng) {
@@ -72,18 +74,23 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
     }
   }, [lat, lng, map]);
   return null;
-}
+});
 
 const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
   const [provinces, setProvinces] = useState<Province[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
-  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
+    null
+  );
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(
+    null
+  );
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
   const [lat, setLat] = useState<number>(value?.latitude ?? 21.0278);
   const [lng, setLng] = useState<number>(value?.longitude ?? 105.8342);
 
-  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-200";
+  const labelClass =
+    "block text-sm font-medium text-gray-700 dark:text-gray-200";
   const selectClass =
     "mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm " +
     "text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100";
@@ -103,7 +110,8 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
     setSelectedProvince(prov);
 
     if (prov) {
-      const dist = prov.districts.find((d) => d.name === value.district) || null;
+      const dist =
+        prov.districts.find((d) => d.name === value.district) || null;
       setSelectedDistrict(dist);
 
       if (dist) {
@@ -124,15 +132,19 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
       if (!selectedProvince) return;
 
       const clean = (s: string) =>
-        s.replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "").trim();
+        s
+          .replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "")
+          .trim();
 
       let query = "";
       if (selectedProvince && selectedDistrict && selectedWard) {
-        query = `${clean(selectedWard.name)}, ${clean(selectedDistrict.name)}, ${clean(
+        query = `${clean(selectedWard.name)}, ${clean(
+          selectedDistrict.name
+        )}, ${clean(selectedProvince.name)}, Việt Nam`;
+      } else if (selectedProvince && selectedDistrict) {
+        query = `${clean(selectedDistrict.name)}, ${clean(
           selectedProvince.name
         )}, Việt Nam`;
-      } else if (selectedProvince && selectedDistrict) {
-        query = `${clean(selectedDistrict.name)}, ${clean(selectedProvince.name)}, Việt Nam`;
       } else if (selectedProvince) {
         query = `${clean(selectedProvince.name)}, Việt Nam`;
       }
@@ -182,7 +194,9 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
           id="province"
           value={selectedProvince?.code || ""}
           onChange={(e) => {
-            const prov = provinces.find((p) => p.code === Number(e.target.value));
+            const prov = provinces.find(
+              (p) => p.code === Number(e.target.value)
+            );
             setSelectedProvince(prov || null);
             setSelectedDistrict(null);
             setSelectedWard(null);
@@ -236,7 +250,9 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
             id="ward"
             value={selectedWard?.code || ""}
             onChange={(e) => {
-              const ward = selectedDistrict.wards.find((w) => w.code === Number(e.target.value));
+              const ward = selectedDistrict.wards.find(
+                (w) => w.code === Number(e.target.value)
+              );
               setSelectedWard(ward || null);
             }}
             className={selectClass}

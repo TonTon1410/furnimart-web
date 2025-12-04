@@ -95,6 +95,7 @@ const CheckoutPage: React.FC = () => {
         voucherCode={voucherCode}
         setVoucherCode={setVoucherCode}
         onCreateAddress={handleCreateAddress}
+        totalPrice={cart.totalPrice}
       />
       <OrderSummary cart={cart} onCheckout={handleCheckout} loading={loading} />
     </div>
