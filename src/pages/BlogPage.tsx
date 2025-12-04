@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, Sparkles, AlertCircle } from "lucide-react"
+import { Plus, Calendar, X, Trash2, Edit, Eye, EyeOff, Sparkles } from "lucide-react"
 import { authService } from "@/service/authService"
 import { blogService, type Blog, type CreateBlogPayload, type UpdateBlogPayload } from "@/service/blogService"
 import { useNavigate } from "react-router-dom"
@@ -305,7 +305,7 @@ export default function OwnBlog() {
             <Sparkles className="h-6 w-6 text-accent" />
             <span className="text-accent font-semibold tracking-wide uppercase text-xs">Không gian sáng tạo</span>
           </div>
-          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-3 text-balance leading-tight">Blog Của Tôi</h1>
+          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-3 text-balance leading-tight">Blog & Tin Tức</h1>
           <p className="text-base text-primary-foreground/90 max-w-2xl text-pretty leading-relaxed">
             Quản lý và chia sẻ những câu chuyện, suy nghĩ và trải nghiệm của bạn với thế giới
           </p>
@@ -313,32 +313,6 @@ export default function OwnBlog() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* ✅ THÔNG BÁO CHO CUSTOMER - ĐẶT TRƯỚC STATS */}
-        {isCustomer && (
-          <div className="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                  Quyền truy cập bị hạn chế
-                </h3>
-                <p className="text-yellow-700 text-sm leading-relaxed mb-3">
-                  Bạn đang đăng nhập với vai trò <span className="font-semibold">Khách hàng</span>. 
-                  Chức năng tạo và quản lý blog chỉ dành cho <span className="font-semibold">Nhân viên</span> (Admin, Manager, Seller).
-                </p>
-                <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-                  <p className="font-medium mb-1">💡 Gợi ý:</p>
-                  <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Nếu bạn là nhân viên, vui lòng đăng nhập bằng tài khoản nhân viên</li>
-                    <li>Khách hàng có thể xem blog tại trang <strong>Tin Tức & Blog</strong></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ✅ STATS - CHỈ HIỂN THỊ CHO EMPLOYEE */}
         {canCreate && (

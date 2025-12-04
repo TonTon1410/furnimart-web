@@ -3,9 +3,9 @@ import {
   Users,
   Building2,
   Tags,
-  BarChart3,
-  Wallet,
-  LifeBuoy,
+  MessageSquare,
+  
+
   UserCog,
 } from "lucide-react";
 import type { RoleNav } from "./types";
@@ -20,16 +20,6 @@ export const adminNav = (): RoleNav => ({
     { icon: <Tags />, name: "Danh mục", path: DP("categories") },
   ],
   others: [
-    {
-      icon: <BarChart3 />,
-      name: "Analytics",
-      subItems: [
-        { name: "Sales by branch", path: DP("reports/sales") },
-        { name: "Top products", path: DP("reports/top-products") },
-        { name: "Delivery eff.", path: DP("reports/delivery") },
-      ],
-    },
-    { icon: <Wallet />, name: "Wallet", path: DP("wallet") },
-    { icon: <LifeBuoy />, name: "Disputes", path: DP("disputes") },
+    { icon: <MessageSquare/>, name: "Chat", path: DP("chat") },
   ],
 });
