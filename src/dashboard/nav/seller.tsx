@@ -1,8 +1,6 @@
 // src/config/nav/seller.tsx  (Store Staff)
 import {
   Package,
-  ClipboardList,
-  FileText,
   MessageCircle,
   Palette,
   Truck,
