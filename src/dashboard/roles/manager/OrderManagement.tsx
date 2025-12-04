@@ -26,6 +26,7 @@ import axiosClient from "@/service/axiosClient";
 import inventoryService from "@/service/inventoryService";
 import type { InventoryLocationDetail } from "@/service/inventoryService";
 import type { OrderItem } from "@/types/order";
+import { OrderProcessTimeline } from "@/components/OrderProcessTimeline";
 
 // Process status config - Tất cả trạng thái hiển thị bằng tiếng Việt
 const processStatusConfig: Record<
@@ -1142,77 +1143,64 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Process History Timeline */}
-              {loadingOrderDetail ? (
+              <OrderProcessTimeline
+                processOrders={fullOrderDetail?.processOrders || []}
+                processStatusConfig={processStatusConfig}
+                formatDate={formatDate}
+                loading={loadingOrderDetail}
+                loadingMessage="Đang tải lịch sử đơn hàng..."
+              />
+
+              {/* Delivery Confirmation Photos */}
+              {(fullOrderDetail?.deliveryConfirmationResponse?.deliveryPhotos ||
+                fullOrderDetail?.deliveryConfirmationResponse
+                  ?.customerSignature) && (
                 <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-                  <div className="flex items-center justify-center py-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                      Đang tải lịch sử đơn hàng...
-                    </span>
+                  <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    Xác nhận giao hàng thành công
                   </div>
-                </div>
-              ) : (
-                fullOrderDetail?.processOrders &&
-                fullOrderDetail.processOrders.length > 0 && (
-                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      Lịch sử xử lý đơn hàng
-                    </div>
-                    <div className="relative space-y-4">
-                      {fullOrderDetail.processOrders.map(
-                        (process: any, index: number) => {
-                          const isLast =
-                            index === fullOrderDetail.processOrders.length - 1;
-                          const statusInfo = processStatusConfig[
-                            process.status
-                          ] || {
-                            label: process.status,
-                            color:
-                              "bg-gray-100 text-gray-800 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700",
-                            icon: <Clock className="h-3 w-3" />,
-                          };
 
-                          return (
-                            <div key={process.id} className="flex gap-3">
-                              {/* Timeline Line */}
-                              <div className="flex flex-col items-center">
-                                <div
-                                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                                    isLast
-                                      ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/30"
-                                      : "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                                  }`}
-                                >
-                                  {statusInfo.icon || (
-                                    <div className="h-2 w-2 rounded-full bg-current" />
-                                  )}
-                                </div>
-                                {index <
-                                  fullOrderDetail.processOrders.length - 1 && (
-                                  <div className="h-full w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 my-1 min-h-5" />
-                                )}
-                              </div>
+                  {fullOrderDetail.deliveryConfirmationResponse
+                    ?.deliveryPhotos &&
+                    fullOrderDetail.deliveryConfirmationResponse.deliveryPhotos
+                      .length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Hình ảnh giao hàng:
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {fullOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
+                            (photo: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={photo}
+                                alt={`Delivery photo ${idx + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-700"
+                              />
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                              {/* Content */}
-                              <div className="flex-1 pb-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${statusInfo.color}`}
-                                  >
-                                    {statusInfo.label}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">
-                                  {formatDate(process.createdAt)}
-                                </div>
-                              </div>
-                            </div>
-                          );
+                  {fullOrderDetail.deliveryConfirmationResponse
+                    ?.customerSignature && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Chữ ký khách hàng:
+                      </p>
+                      <img
+                        src={
+                          fullOrderDetail.deliveryConfirmationResponse
+                            .customerSignature
                         }
-                      )}
+                        alt="Customer signature"
+                        className="w-full max-w-sm h-32 object-contain rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+                      />
                     </div>
-                  </div>
-                )
+                  )}
+                </div>
               )}
 
               {/* Note */}

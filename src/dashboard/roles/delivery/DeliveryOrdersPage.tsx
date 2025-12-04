@@ -9,6 +9,18 @@ export default function DeliveryOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const formatAddress = (address: DeliveryAssignment["order"]["address"]) => {
+    if (!address) return "N/A";
+    const parts = [
+      address.addressLine,
+      address.street,
+      address.ward,
+      address.district,
+      address.city,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  };
+
   useEffect(() => {
     loadAssignments();
   }, []);
@@ -25,7 +37,9 @@ export default function DeliveryOrders() {
 
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
       console.log("Delivery assignments loaded:", data.length);
-      setAssignments(data);
+      // Filter out assignments with null orders
+      const validAssignments = data.filter((a) => a.order !== null);
+      setAssignments(validAssignments);
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError("Không thể tải danh sách đơn hàng");
@@ -273,17 +287,7 @@ export default function DeliveryOrders() {
                       <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-gray-900 dark:text-white font-medium">
-                          {order?.address?.fullAddress ||
-                            [
-                              order?.address?.addressLine,
-                              order?.address?.street,
-                              order?.address?.ward,
-                              order?.address?.district,
-                              order?.address?.city,
-                            ]
-                              .filter(Boolean)
-                              .join(", ") ||
-                            "Chưa có địa chỉ"}
+                          {formatAddress(order?.address)}
                         </p>
                       </div>
                     </div>
