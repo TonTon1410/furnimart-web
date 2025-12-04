@@ -67,6 +67,15 @@ const DeliveryPODPage = lazy(
   () => import("@/dashboard/roles/delivery/DeliveryPODPage")
 );
 
+//Dashboard
+const AdminDashboard = lazy(
+  () => import("@/dashboard/pages/AdminDashboard")
+);
+
+const ManagerDashboard = lazy(
+  () => import("@/dashboard/pages/ManagerDashboard")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -100,6 +109,7 @@ export default function RoleRoutes() {
       <Routes>
         {/* index → chọn trang mặc định cho admin */}
         <Route index element={<Navigate to={DP("users")} replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="employees" element={<AdminEmployeesPage />} />
@@ -122,6 +132,7 @@ export default function RoleRoutes() {
     return (
       <Routes>
         <Route index element={<Navigate to={DP("inventory")} replace />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="inventory/create" element={<CreateInventoryPage />} />
