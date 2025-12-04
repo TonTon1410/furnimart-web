@@ -5,7 +5,8 @@ import {
   Palette,
   Truck,
   Warehouse,
-  LayoutDashboard
+  LayoutDashboard,
+  ShoppingCart
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -13,6 +14,7 @@ import { DP } from "../../router/paths";
 export const sellerNav = (): RoleNav => ({
   main: [
     { icon: <LayoutDashboard />, name: "Dashboard", path: DP("dashboard") },
+    { icon: <ShoppingCart />, name: "Bán hàng tại quầy", path: DP("staff-order") },
     { icon: <Package />, name: "Quản lí sản phẩm", path: DP("products") },
     { icon: <Palette />, name: "Quản lí màu sắc", path: DP("colors") },
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
