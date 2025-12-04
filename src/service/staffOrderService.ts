@@ -11,13 +11,42 @@ export interface OrderDetailRequest {
   price: number;
 }
 
+// User creation request
+export interface CreateUserRequest {
+  fullName: string;
+  password: string;
+  storeId?: string;
+  email?: string;
+  phone: string;
+  avatar?: string;
+  gender: boolean;
+  birthday?: string; // yyyy-MM-dd
+  role: "CUSTOMER" | "ADMIN" | "MANAGER" | "SELLER" | "DELIVERY";
+  status: "ACTIVE" | "INACTIVE" | "BANNED";
+}
+
+// Address creation request
+export interface CreateAddressRequest {
+  name: string;
+  phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  street: string;
+  addressLine?: string;
+  isDefault: boolean;
+  userId: string;
+  latitude: number;
+  longitude: number;
+}
+
+// Staff order creation request (new structure)
 export interface CreateStaffOrderRequest {
   storeId: string;
-  customerName: string;
-  phone: string;
-  addressLine: string;
+  userId: string;
+  addressId: number;
   orderDetails: OrderDetailRequest[];
-  paymentMethod: "COD" | "VN_PAY" | string;
+  paymentMethod: "COD" | "VN_PAY" | "CASH";
   note?: string;
   reason?: string;
 }
@@ -157,7 +186,46 @@ export interface CreateStaffOrderResponse {
   message: string;
   data: StaffOrderData;
   timestamp: string;
-  redirectUrl: string;
+  redirectUrl?: string;
+}
+
+export interface CreateUserResponse {
+  status: number;
+  message: string;
+  data: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    gender: boolean;
+    birthday: string;
+    avatar: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  timestamp: string;
+}
+
+export interface CreateAddressResponse {
+  status: number;
+  message: string;
+  data: {
+    id: number;
+    name: string;
+    phone: string;
+    city: string;
+    district: string;
+    ward: string;
+    street: string;
+    addressLine: string;
+    isDefault: boolean;
+    userId: string;
+    latitude: number;
+    longitude: number;
+  };
+  timestamp: string;
 }
 
 // ───────────────────────────────────────────────
@@ -166,12 +234,26 @@ export interface CreateStaffOrderResponse {
 
 const staffOrderService = {
   /**
+   * Tạo user mới (CUSTOMER)
+   */
+  createUser: async (payload: CreateUserRequest) => {
+    const url = "/users";
+    return axiosClient.post<CreateUserResponse>(url, payload);
+  },
+
+  /**
+   * Tạo địa chỉ cho user
+   */
+  createAddress: async (payload: CreateAddressRequest) => {
+    const url = "/addresses";
+    return axiosClient.post<CreateAddressResponse>(url, payload);
+  },
+
+  /**
    * Tạo đơn hàng dành cho nhân viên (Staff only)
-   * Sử dụng axiosClient để tận dụng cấu hình base URL và interceptors (token).
    * Endpoint: /orders/staff/create
    */
   createOrder: async (payload: CreateStaffOrderRequest) => {
-    // Dùng relative path để axiosClient tự động nối vào baseURL
     const url = "/orders/staff/create";
     return axiosClient.post<CreateStaffOrderResponse>(url, payload);
   },
