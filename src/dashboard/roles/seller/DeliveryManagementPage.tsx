@@ -6,6 +6,8 @@ import {
   Loader2,
   Search,
   X,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import CustomDropdown from "../../../components/CustomDropdown";
@@ -13,7 +15,11 @@ import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
 import inventoryService from "@/service/inventoryService";
-import type { InventoryLocationDetail } from "@/service/inventoryService";
+import type {
+  InventoryLocationDetail,
+  PendingReservationResponse,
+  ReservedItemResponse,
+} from "@/service/inventoryService";
 
 export default function DeliveryManagementPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
@@ -36,6 +42,9 @@ export default function DeliveryManagementPage() {
   const [preparingProducts, setPreparingProducts] = useState<number | null>(
     null
   );
+  const [reservedItems, setReservedItems] = useState<
+    Record<string, ReservedItemResponse[]>
+  >({});
 
   useEffect(() => {
     loadAssignments();
@@ -87,6 +96,33 @@ export default function DeliveryManagementPage() {
 
       console.log("🔍 Loading locations for storeId:", storeId);
 
+      // Lấy danh sách phiếu giữ hàng đang chờ xử lý
+      const reservationsResponse =
+        await inventoryService.getPendingReservations(storeId);
+      const allReservations: PendingReservationResponse[] =
+        reservationsResponse.data.data || [];
+
+      // Lọc những phiếu giữ hàng của orderId hiện tại
+      const currentOrderReservations = allReservations.filter(
+        (res) => res.orderId === assignment.order.id
+      );
+
+      console.log(
+        `📦 Found ${currentOrderReservations.length} reservations for order #${assignment.order.id}`
+      );
+
+      // Map hàng đã giữ theo productColorId
+      const reservedMap: Record<string, ReservedItemResponse[]> = {};
+      currentOrderReservations.forEach((reservation) => {
+        reservation.itemResponseList.forEach((item) => {
+          if (!reservedMap[item.productColorId]) {
+            reservedMap[item.productColorId] = [];
+          }
+          reservedMap[item.productColorId].push(item);
+        });
+      });
+      setReservedItems(reservedMap);
+
       // Lấy vị trí chứa hàng cho từng sản phẩm
       const locationsMap: Record<string, InventoryLocationDetail[]> = {};
       let firstWarehouseId: string | null = null;
@@ -114,13 +150,20 @@ export default function DeliveryManagementPage() {
       setLocationsByProduct(locationsMap);
       setWarehouseId(firstWarehouseId);
 
-      // Initialize selected locations
+      // Initialize selected locations - Auto-select reserved items
       const initialSelections: Record<
         string,
         { locationItemId: string; quantity: number }[]
       > = {};
       assignment.order.orderDetails.forEach((detail) => {
-        initialSelections[detail.productColorId] = [];
+        const reserved = reservedMap[detail.productColorId] || [];
+        // Tự động chọn số lượng từ hàng đã giữ
+        initialSelections[detail.productColorId] = reserved
+          .filter((item) => item.locationId && item.reservedQuantity > 0)
+          .map((item) => ({
+            locationItemId: item.locationId,
+            quantity: Math.min(item.reservedQuantity, detail.quantity),
+          }));
       });
       setSelectedLocations(initialSelections);
     } catch (err) {
@@ -761,10 +804,15 @@ export default function DeliveryManagementPage() {
                   {selectedAssignment.order.orderDetails.map((detail) => {
                     const locations =
                       locationsByProduct[detail.productColorId] || [];
+                    const reserved = reservedItems[detail.productColorId] || [];
                     const selectedLocs =
                       selectedLocations[detail.productColorId] || [];
                     const totalSelected = selectedLocs.reduce(
                       (sum, loc) => sum + loc.quantity,
+                      0
+                    );
+                    const totalReserved = reserved.reduce(
+                      (sum, item) => sum + item.reservedQuantity,
                       0
                     );
                     const remaining = detail.quantity - totalSelected;
@@ -790,6 +838,11 @@ export default function DeliveryManagementPage() {
                               Màu: {detail.productColor?.color?.colorName} | Cần
                               xuất: {detail.quantity}
                             </p>
+                            {totalReserved > 0 && (
+                              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                🔒 Đã giữ: {totalReserved}
+                              </p>
+                            )}
                             <p
                               className={`text-sm font-medium ${
                                 remaining === 0
@@ -820,77 +873,165 @@ export default function DeliveryManagementPage() {
                               );
                               const selectedQty = selectedLoc?.quantity || 0;
 
+                              // Kiểm tra vị trí này có hàng đã giữ không
+                              const reservedAtLocation = reserved.find(
+                                (r) => r.locationId === loc.locationItemId
+                              );
+                              const isReserved = !!reservedAtLocation;
+
                               return (
                                 <div
                                   key={loc.locationItemId}
-                                  className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900/50 rounded"
+                                  className={`flex items-center gap-3 p-2 rounded ${
+                                    isReserved
+                                      ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                                      : "bg-gray-50 dark:bg-gray-900/50"
+                                  }`}
                                 >
                                   <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {loc.warehouseName} - {loc.zoneName} -{" "}
-                                      {loc.locationCode}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                        {loc.warehouseName} - {loc.zoneName} -{" "}
+                                        {loc.locationCode}
+                                      </p>
+                                      {isReserved && (
+                                        <span className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded-full">
+                                          Đã giữ
+                                        </span>
+                                      )}
+                                    </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
                                       Khả dụng: {loc.available} | Đã giữ:{" "}
-                                      {loc.reserved}
+                                      {loc.reserved} |{" "}
+                                      <span className="font-medium text-green-600 dark:text-green-400">
+                                        Có thể xuất:{" "}
+                                        {loc.available + loc.reserved}
+                                      </span>
+                                      {isReserved && reservedAtLocation && (
+                                        <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                                          (Giữ cho đơn này:{" "}
+                                          {reservedAtLocation.reservedQuantity})
+                                        </span>
+                                      )}
                                     </p>
                                   </div>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={loc.available}
-                                    value={selectedQty}
-                                    aria-label={`Số lượng xuất từ ${loc.locationCode}`}
-                                    onChange={(e) => {
-                                      const qty = parseInt(e.target.value) || 0;
-                                      const maxQty = Math.min(
-                                        loc.available,
-                                        remaining + selectedQty
-                                      );
-                                      const finalQty = Math.min(qty, maxQty);
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newQty = Math.max(
+                                          0,
+                                          selectedQty - 1
+                                        );
+                                        setSelectedLocations((prev) => {
+                                          const updated = { ...prev };
+                                          const productLocs = [
+                                            ...(updated[
+                                              detail.productColorId
+                                            ] || []),
+                                          ];
 
-                                      setSelectedLocations((prev) => {
-                                        const updated = { ...prev };
-                                        const productLocs = [
-                                          ...(updated[detail.productColorId] ||
-                                            []),
-                                        ];
-
-                                        const existingIndex =
-                                          productLocs.findIndex(
-                                            (s) =>
-                                              s.locationItemId ===
-                                              loc.locationItemId
-                                          );
-
-                                        if (finalQty === 0) {
-                                          if (existingIndex !== -1) {
-                                            productLocs.splice(
-                                              existingIndex,
-                                              1
+                                          const existingIndex =
+                                            productLocs.findIndex(
+                                              (s) =>
+                                                s.locationItemId ===
+                                                loc.locationItemId
                                             );
+
+                                          if (newQty === 0) {
+                                            if (existingIndex !== -1) {
+                                              productLocs.splice(
+                                                existingIndex,
+                                                1
+                                              );
+                                            }
+                                          } else {
+                                            if (existingIndex !== -1) {
+                                              productLocs[
+                                                existingIndex
+                                              ].quantity = newQty;
+                                            } else {
+                                              productLocs.push({
+                                                locationItemId:
+                                                  loc.locationItemId,
+                                                quantity: newQty,
+                                              });
+                                            }
                                           }
-                                        } else {
+
+                                          updated[detail.productColorId] =
+                                            productLocs;
+                                          return updated;
+                                        });
+                                      }}
+                                      disabled={selectedQty === 0}
+                                      className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      aria-label="Giảm số lượng"
+                                    >
+                                      <Minus className="h-4 w-4" />
+                                    </button>
+
+                                    <div className="min-w-12 text-center">
+                                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        {selectedQty}
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const maxQty = Math.min(
+                                          loc.available + loc.reserved,
+                                          remaining + selectedQty
+                                        );
+                                        const newQty = Math.min(
+                                          selectedQty + 1,
+                                          maxQty
+                                        );
+
+                                        setSelectedLocations((prev) => {
+                                          const updated = { ...prev };
+                                          const productLocs = [
+                                            ...(updated[
+                                              detail.productColorId
+                                            ] || []),
+                                          ];
+
+                                          const existingIndex =
+                                            productLocs.findIndex(
+                                              (s) =>
+                                                s.locationItemId ===
+                                                loc.locationItemId
+                                            );
+
                                           if (existingIndex !== -1) {
                                             productLocs[
                                               existingIndex
-                                            ].quantity = finalQty;
+                                            ].quantity = newQty;
                                           } else {
                                             productLocs.push({
                                               locationItemId:
                                                 loc.locationItemId,
-                                              quantity: finalQty,
+                                              quantity: newQty,
                                             });
                                           }
-                                        }
 
-                                        updated[detail.productColorId] =
-                                          productLocs;
-                                        return updated;
-                                      });
-                                    }}
-                                    className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                  />
+                                          updated[detail.productColorId] =
+                                            productLocs;
+                                          return updated;
+                                        });
+                                      }}
+                                      disabled={
+                                        selectedQty >=
+                                          loc.available + loc.reserved ||
+                                        selectedQty >= remaining + selectedQty
+                                      }
+                                      className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      aria-label="Tăng số lượng"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </div>
                               );
                             })

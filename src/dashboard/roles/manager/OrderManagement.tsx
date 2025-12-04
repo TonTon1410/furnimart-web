@@ -23,6 +23,8 @@ import { orderService } from "@/service/orderService";
 import { productService, type ProductColor } from "@/service/productService";
 import { authService } from "@/service/authService";
 import axiosClient from "@/service/axiosClient";
+import inventoryService from "@/service/inventoryService";
+import type { InventoryLocationDetail } from "@/service/inventoryService";
 import type { OrderItem } from "@/types/order";
 
 // Process status config - Tất cả trạng thái hiển thị bằng tiếng Việt
@@ -170,6 +172,17 @@ const OrderManagement: React.FC = () => {
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [assigningDelivery, setAssigningDelivery] = useState(false);
 
+  // Stock check modal
+  const [stockCheckModal, setStockCheckModal] = useState<{
+    open: boolean;
+    orderId: string | null;
+    orderDetails: any[] | null;
+  }>({ open: false, orderId: null, orderDetails: null });
+  const [stockLocations, setStockLocations] = useState<
+    Record<string, InventoryLocationDetail[]>
+  >({});
+  const [loadingStock, setLoadingStock] = useState(false);
+
   // DateTime picker states
 
   // Fetch orders - Lấy tất cả đơn hàng 1 lần để filter phía client
@@ -196,9 +209,79 @@ const OrderManagement: React.FC = () => {
     fetchOrders();
   }, [searchQuery]); // Chỉ gọi lại khi searchQuery thay đổi
 
-  // Handle accept order
+  // Handle accept order - Check stock first
   const handleAcceptOrder = async (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || !order.orderDetails) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Không tìm thấy thông tin đơn hàng",
+      });
+      return;
+    }
+
+    // Open stock check modal
+    setStockCheckModal({
+      open: true,
+      orderId,
+      orderDetails: order.orderDetails,
+    });
+    await loadStockForOrder(order.orderDetails);
+  };
+
+  const loadStockForOrder = async (orderDetails: any[]) => {
+    setLoadingStock(true);
+    const storeId = authService.getStoreId();
+
+    if (!storeId) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Không tìm thấy thông tin cửa hàng",
+      });
+      setLoadingStock(false);
+      return;
+    }
+
+    try {
+      const locationsMap: Record<string, InventoryLocationDetail[]> = {};
+
+      for (const detail of orderDetails) {
+        const response = await inventoryService.getLocationsByWarehouse({
+          productColorId: detail.productColorId.toString(),
+          storeId,
+        });
+        locationsMap[detail.productColorId] =
+          response.data.data.locations || [];
+      }
+
+      setStockLocations(locationsMap);
+    } catch (err: any) {
+      setMessageModal({
+        open: true,
+        type: "error",
+        message: "Không thể tải thông tin tồn kho: " + err.message,
+      });
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
+  const proceedToAccept = () => {
+    const orderId = stockCheckModal.orderId;
+    if (!orderId) return;
+
+    setStockCheckModal({ open: false, orderId: null, orderDetails: null });
     setConfirmAcceptModal({ open: true, orderId });
+  };
+
+  const proceedToReject = () => {
+    const orderId = stockCheckModal.orderId;
+    if (!orderId) return;
+
+    setStockCheckModal({ open: false, orderId: null, orderDetails: null });
+    setConfirmRejectModal({ open: true, orderId });
   };
 
   const confirmAcceptOrder = async () => {
@@ -1446,6 +1529,190 @@ const OrderManagement: React.FC = () => {
                   ) : (
                     "Xác nhận"
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Check Modal */}
+      {stockCheckModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Kiểm tra tồn kho - Đơn hàng #{stockCheckModal.orderId}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Xem chi tiết tồn kho trước khi chấp nhận hoặc từ chối đơn hàng
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  setStockCheckModal({
+                    open: false,
+                    orderId: null,
+                    orderDetails: null,
+                  })
+                }
+                className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                aria-label="Đóng"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {loadingStock ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">
+                    Đang kiểm tra tồn kho...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {stockCheckModal.orderDetails?.map((detail, index) => {
+                    const locations =
+                      stockLocations[detail.productColorId] || [];
+                    const totalAvailable = locations.reduce(
+                      (sum, loc) => sum + loc.available,
+                      0
+                    );
+                    const totalReserved = locations.reduce(
+                      (sum, loc) => sum + loc.reserved,
+                      0
+                    );
+                    const totalStock = totalAvailable + totalReserved;
+                    const isEnough = totalStock >= detail.quantity;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`rounded-lg border p-4 ${
+                          isEnough
+                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                            : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-4 mb-3">
+                          {detail.productColor?.images?.[0]?.image && (
+                            <img
+                              src={detail.productColor.images[0].image}
+                              alt={detail.productColor.product?.name}
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              {detail.productColor?.product?.name || "Sản phẩm"}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Màu:{" "}
+                              {detail.productColor?.color?.colorName || "N/A"}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                Cần xuất: {detail.quantity}
+                              </span>
+                              <span
+                                className={`font-medium ${
+                                  isEnough
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                Tồn kho: {totalStock} ({totalAvailable} khả dụng
+                                + {totalReserved} đã giữ)
+                              </span>
+                              <span
+                                className={`font-semibold ${
+                                  isEnough
+                                    ? "text-green-700 dark:text-green-300"
+                                    : "text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                {isEnough
+                                  ? "✓ Đủ hàng"
+                                  : `✗ Thiếu ${detail.quantity - totalStock}`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {locations.length > 0 && (
+                          <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Vị trí trong kho:
+                            </p>
+                            <div className="space-y-1">
+                              {locations.map((loc, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between items-center text-xs bg-white dark:bg-gray-800 rounded px-3 py-2"
+                                >
+                                  <span className="font-medium text-gray-900 dark:text-white">
+                                    {loc.zoneName} - {loc.locationCode}
+                                  </span>
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    Khả dụng: {loc.available} | Đã giữ:{" "}
+                                    {loc.reserved}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {locations.length === 0 && (
+                          <div className="mt-3 text-sm text-red-600 dark:text-red-400">
+                            ⚠️ Không có hàng trong kho
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <div className="mt-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      💡 <strong>Lưu ý:</strong> Bạn có thể chấp nhận đơn hàng
+                      ngay cả khi thiếu hàng. Tuy nhiên, cần lưu ý rằng đơn hàng
+                      có thể bị trì hoãn do cần nhập thêm hàng.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex gap-3">
+                <button
+                  onClick={() =>
+                    setStockCheckModal({
+                      open: false,
+                      orderId: null,
+                      orderDetails: null,
+                    })
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={proceedToReject}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500"
+                >
+                  <ThumbsDown className="inline h-4 w-4 mr-2" />
+                  Từ chối đơn
+                </button>
+                <button
+                  onClick={proceedToAccept}
+                  className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500"
+                >
+                  <ThumbsUp className="inline h-4 w-4 mr-2" />
+                  Chấp nhận đơn
                 </button>
               </div>
             </div>

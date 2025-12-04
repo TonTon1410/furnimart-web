@@ -93,6 +93,34 @@ export interface InventoryLocationDetail {
   available: number;
 }
 
+// Chi tiết sản phẩm trong phiếu giữ hàng
+export interface ReservedItemResponse {
+  id: number;
+  quantity: number;
+  productColorId: string;
+  productName: string;
+  reservedQuantity: number;
+  locationItem: LocationItemResponse | null;
+  locationId: string;
+  inventoryId: number;
+}
+
+// Phiếu giữ hàng đang chờ xử lý
+export interface PendingReservationResponse {
+  id: number;
+  employeeId: string;
+  type: string;
+  purpose: string;
+  date: string;
+  note: string;
+  warehouseName: string;
+  warehouseId: string;
+  orderId: number;
+  pdfUrl: string | null;
+  transferStatus: string | null;
+  itemResponseList: ReservedItemResponse[];
+}
+
 // ========================
 // 📦 Các API
 // ========================
@@ -194,6 +222,13 @@ const inventoryService = {
         params: { transferStatus },
       }
     );
+  },
+
+  // 📦 Lấy danh sách phiếu giữ hàng đang chờ xử lý theo Store ID
+  getPendingReservations: async (storeId: string) => {
+    return axiosClient.get(`/inventories/reserve/pending`, {
+      params: { storeId },
+    });
   },
 };
 
