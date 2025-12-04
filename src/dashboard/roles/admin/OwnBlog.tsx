@@ -10,7 +10,6 @@ import {
   type UpdateBlogPayload,
 } from "@/service/blogService";
 import { useNavigate } from "react-router-dom";
-import { BlogHeader } from "@/components/blog/BlogHeader.tsx";
 import { BlogStats } from "@/components/blog/BlogStats";
 import { BlogForm } from "@/components/blog/BlogForm";
 import { BlogCard } from "@/components/blog/BlogCard";
@@ -302,8 +301,6 @@ export default function OwnBlogPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <BlogHeader />
-
       <div className="max-w-6xl mx-auto px-6 py-10">
         {isCustomer && <BlogCustomerAlert />}
 
