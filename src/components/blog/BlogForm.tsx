@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react"
 import type { Blog } from "@/service/blogService"
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 interface BlogFormProps {
   formData: {
@@ -21,7 +23,7 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
     <div className="bg-card rounded-xl shadow-lg p-8 mb-8 border border-border">
       <div className="flex justify-between items-center mb-6">
         <h2 className="font-serif text-2xl font-bold text-foreground">
-          {editingBlog ? "Chỉnh Sửa Blog" : "Tạo Blog Mới"}
+          {editingBlog ? "Chỉnh Sửa Blog" : "Tạo bài viết mới"}
         </h2>
         <button
           onClick={onCancel}
@@ -34,14 +36,14 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
       <div className="space-y-5">
         <div>
           <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
-            Tiêu đề Blog <span className="text-destructive">*</span>
+            Tiêu đề bài viết <span className="text-destructive">*</span>
           </label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => onFormChange({ ...formData, name: e.target.value })}
             className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all bg-background text-foreground text-sm"
-            placeholder="Nhập tiêu đề blog..."
+            placeholder="Nhập tiêu đề bài viết..."
           />
         </div>
 
@@ -49,13 +51,14 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
           <label className="block text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
             Nội dung <span className="text-destructive">*</span>
           </label>
-          <textarea
-            value={formData.content}
-            onChange={(e) => onFormChange({ ...formData, content: e.target.value })}
-            rows={8}
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none resize-none transition-all bg-background text-foreground text-sm leading-relaxed"
-            placeholder="Viết nội dung blog của bạn..."
-          />
+          <div className="bg-background rounded-lg">
+            <ReactQuill
+              theme="snow"
+              value={formData.content}
+              onChange={(content) => onFormChange({ ...formData, content })}
+              className="h-64 mb-12"
+            />
+          </div>
         </div>
 
         <div>
@@ -77,7 +80,7 @@ export function BlogForm({ formData, editingBlog, creating, onFormChange, onSubm
                 alt="Preview"
                 className="h-32 w-auto rounded-lg border border-border shadow-md"
                 onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = "none"
+                  ; (e.target as HTMLImageElement).style.display = "none"
                 }}
               />
             </div>

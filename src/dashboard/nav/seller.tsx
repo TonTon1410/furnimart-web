@@ -2,10 +2,10 @@
 import {
   Package,
   ClipboardList,
-  FileText,
   MessageCircle,
   Palette,
   Truck,
+  FileText,
   Warehouse,
 } from "lucide-react";
 import type { RoleNav } from "./types";
@@ -26,6 +26,8 @@ export const sellerNav = (): RoleNav => ({
       name: "Quản lý giao hàng",
       path: DP("delivery-management"),
     },
+    { icon: <ClipboardList />, name: "Đơn hàng", path: DP("orders") },
+    { icon: <FileText />, name: "Bài viết", path: DP("blog") },
   ],
   others: [{ icon: <MessageCircle />, name: "Chat", path: DP("chat") }],
 });

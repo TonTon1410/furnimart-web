@@ -85,6 +85,10 @@ const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
 const SellerChat = Placeholder("Seller • Chat");
+const BlogStaffManagement = lazy(
+  () => import("@/dashboard/roles/seller/BlogManagementPage")
+);
+
 
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
@@ -171,7 +175,7 @@ export default function RoleRoutes() {
       <Routes>
         <Route index element={<Navigate to={DP("products")} replace />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="blog" element={<BlogManagement />} />
+        <Route path="blog" element={<BlogStaffManagement />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
         <Route path="inventory" element={<InventoryManagement />} />
