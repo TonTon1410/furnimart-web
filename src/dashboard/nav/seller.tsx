@@ -13,7 +13,7 @@ import { DP } from "../../router/paths";
 
 export const sellerNav = (): RoleNav => ({
   main: [
-    { icon: <LayoutDashboard />, name: "Dashboard", path: DP("dashboard") },
+    { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
     { icon: <ShoppingCart />, name: "Bán hàng tại quầy", path: DP("staff-order") },
     { icon: <Package />, name: "Quản lí sản phẩm", path: DP("products") },
     { icon: <Palette />, name: "Quản lí màu sắc", path: DP("colors") },
