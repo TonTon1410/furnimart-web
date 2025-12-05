@@ -40,6 +40,7 @@ const PURPOSE_MAP: Record<string, string> = {
   STOCK_OUT: "Xuất bán hàng",
   MOVE: "Xuất điều chuyển",
   REQUEST: "Gửi yêu cầu",
+  RESERVE: "Giữ hàng",
 };
 
 // ... (Giữ nguyên component SimpleDatePicker) ...
@@ -364,6 +365,12 @@ const StatusBadge = ({ type }: { type: string }) => {
       label = "Chuyển kho";
       icon = <RefreshCw className="w-3 h-3 mr-1" />;
       break;
+    case "RESERVE":
+      styles =
+        "bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";
+      label = "Giữ hàng";
+      icon = <FileText className="w-3 h-3 mr-1" />;
+      break;
   }
 
   return (
@@ -409,6 +416,7 @@ export default function InventoryManagement() {
     { value: "IMPORT", label: "Nhập kho" },
     { value: "EXPORT", label: "Xuất kho" },
     { value: "TRANSFER", label: "Chuyển kho" },
+    { value: "RESERVE", label: "Giữ hàng" },
   ];
 
   // Handle date range change
@@ -520,6 +528,7 @@ export default function InventoryManagement() {
         if (filterType === "EXPORT")
           return ["EXPORT", "OUT", "STOCK_OUT"].includes(inv.type);
         if (filterType === "TRANSFER") return inv.type === "TRANSFER";
+        if (filterType === "RESERVE") return inv.type === "RESERVE";
         return true;
       });
     }
@@ -600,8 +609,8 @@ export default function InventoryManagement() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-           {/* ... (Inline Stats Logic giữ nguyên) ... */}
-           <div className="hidden md:flex items-center gap-3">
+          {/* ... (Inline Stats Logic giữ nguyên) ... */}
+          <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
@@ -622,9 +631,9 @@ export default function InventoryManagement() {
               {dayjs().format("DD/MM/YYYY")}
             </span>
           </div>
-          
-           {/* ... (Mobile Stats Logic giữ nguyên) ... */}
-           <div className="md:hidden w-full grid grid-cols-2 gap-2">
+
+          {/* ... (Mobile Stats Logic giữ nguyên) ... */}
+          <div className="md:hidden w-full grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
@@ -771,7 +780,7 @@ export default function InventoryManagement() {
                         <StatusBadge type={inv.type} />
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                         {/* Requirement 3: Hiển thị mục đích theo map */}
+                        {/* Requirement 3: Hiển thị mục đích theo map */}
                         {PURPOSE_MAP[inv.purpose] || inv.purpose}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
