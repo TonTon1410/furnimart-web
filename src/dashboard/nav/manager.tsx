@@ -45,7 +45,7 @@ export const managerNav = async (): Promise<RoleNav> => {
 
   return {
     main: [
-      { icon: <LayoutDashboard />, name: "Dashboard", path: DP("dashboard") },
+      { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
       {
         icon: <Package />,
         name: "Quản lí xuất nhập kho",
