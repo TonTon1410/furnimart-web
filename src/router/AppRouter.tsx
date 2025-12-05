@@ -5,6 +5,7 @@ import { authService } from "@/service/authService";
 import { DP } from "./paths";
 import type { RoleKey } from "./paths";
 import ScrollToTop from "@/components/ScrollToTop";
+import ChatBox from "@/components/chat/ChatBox"
 
 // Loading component
 const PageLoader = () => (
@@ -24,6 +25,7 @@ const AllProducts = lazy(() => import("@/pages/AllProducts"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
+
 const OrderConfirmationPage = lazy(
   () => import("@/pages/OrderConfirmationPage")
 );
@@ -33,6 +35,7 @@ const UserProfile = lazy(() => import("@/pages/UserProfile"));
 const AddressPage = lazy(() => import("@/pages/AddressPage"));
 const OrderHistory = lazy(() => import("@/pages/OrderHistory"));
 const BlogPage = lazy(() => import("@/pages/BlogPage"));
+const BlogDetailPage = lazy(() => import("@/pages/BlogDetailPage"));
 const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const MyWalletPage = lazy(() => import("@/pages/MyWalletPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -68,6 +71,7 @@ const DashboardLayout = () => {
 export default function AppRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <ChatBox />
       <Routes>
         {/* Trang công khai - Chỉ cho CUSTOMER, role khác redirect về dashboard */}
         <Route
@@ -167,6 +171,14 @@ export default function AppRouter() {
           element={
             <ProtectCustomerRoutes>
               <BlogPage />
+            </ProtectCustomerRoutes>
+          }
+        />
+        <Route
+          path="/blog/:id"
+          element={
+            <ProtectCustomerRoutes>
+              <BlogDetailPage />
             </ProtectCustomerRoutes>
           }
         />

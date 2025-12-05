@@ -37,7 +37,6 @@ type ProductItem = {
   status: Status;
   categoryName?: string;
   categoryId: number;
-  // Support both formats: 'color' from list API and 'productColors' from detail API
   color?: Array<{
     id: string;
     colorName: string;
@@ -371,7 +370,6 @@ const SellerProductsPage: React.FC = () => {
     setServerErr(null);
     try {
       if (mode === "create") {
-        // Loại bỏ colorRequests khỏi payload vì API mới không hỗ trợ
         const { colorRequests: _colorRequests, ...productPayload } = values;
         const res = await axiosClient.post("/products", productPayload);
 
@@ -380,10 +378,8 @@ const SellerProductsPage: React.FC = () => {
           setList((prev) => [created, ...prev]);
           setServerMsg("Tạo sản phẩm thành công!");
 
-          // Đóng drawer tạo sản phẩm
           setOpen(false);
 
-          // Mở modal chỉnh sửa sản phẩm vừa tạo
           setTimeout(() => {
             openEdit(created.id);
           }, 300);
@@ -396,7 +392,6 @@ const SellerProductsPage: React.FC = () => {
         if (!selectedId)
           throw new Error("Không xác định được ID sản phẩm đang sửa");
 
-        // Step 1: Update product basic info (without colorRequests)
         const { colorRequests, ...productPayload } = values;
         const res = await axiosClient.put(
           `/products/${selectedId}`,
@@ -406,13 +401,11 @@ const SellerProductsPage: React.FC = () => {
         if (res.status === 200) {
           const updated: ProductItem = res.data.data;
 
-          // Step 2: Update/Create productColors
           if (colorRequests && colorRequests.length > 0) {
             for (const colorReq of colorRequests) {
               try {
                 let colorId = colorReq.colorId;
 
-                // If no colorId (manual input), create new color first
                 if (!colorId && colorReq.colorName && colorReq.hexCode) {
                   const newColor = await colorService.create({
                     colorName: colorReq.colorName,
@@ -421,7 +414,6 @@ const SellerProductsPage: React.FC = () => {
                   colorId = newColor.id;
                 }
 
-                // ⭐ Phân biệt: UPDATE nếu có productColorId, CREATE nếu không
                 console.log("🔍 Check productColorId:", {
                   colorReq,
                   hasProductColorId: !!(colorReq as any).productColorId,
@@ -429,7 +421,6 @@ const SellerProductsPage: React.FC = () => {
                 });
 
                 if ((colorReq as any).productColorId) {
-                  // UPDATE product-color đã tồn tại - CHỈ gửi imageRequests và model3D
                   console.log(
                     "🔄 UPDATE product-color:",
                     (colorReq as any).productColorId
@@ -439,7 +430,6 @@ const SellerProductsPage: React.FC = () => {
                     `/product-colors/${(colorReq as any).productColorId}`,
                     {
                       productId: selectedId,
-                      // ❌ KHÔNG gửi colorId khi update để tránh lỗi "Color already exists"
                       status: "ACTIVE",
                       imageRequests:
                         colorReq.imageRequestList

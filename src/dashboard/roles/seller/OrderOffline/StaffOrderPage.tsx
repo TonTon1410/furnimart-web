@@ -13,13 +13,19 @@ import {
     DescriptionOutlined,
     LocalShipping,
     CreditCard,
-    AttachMoney
+    AttachMoney,
+    LocalAtm
 } from "@mui/icons-material";
 import { authService } from "@/service/authService";
 import AddressSelector, { type Address } from "@/components/AddressSelector";
 import { useToast } from "@/context/ToastContext";
-import staffOrderService, { type CreateStaffOrderRequest } from "@/service/staffOrderService";
+import staffOrderService, {
+    type CreateStaffOrderRequest,
+    type CreateUserRequest,
+    type CreateAddressRequest
+} from "@/service/staffOrderService";
 import StaffProductSelector from "@/dashboard/roles/seller/OrderOffline/StaffProductSelector";
+import CustomerRegistrationModal from "@/dashboard/roles/seller/OrderOffline/CustomerRegistrationModal";
 
 interface CartItem {
     productId: string;
@@ -43,8 +49,12 @@ const StaffOrderPage: React.FC = () => {
     const [specificAddress, setSpecificAddress] = useState("");
     const [addressDetails, setAddressDetails] = useState<Address | null>(null);
     const [note, setNote] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState<"COD" | "VN_PAY">("COD");
+    const [paymentMethod, setPaymentMethod] = useState<"COD" | "VN_PAY" | "CASH">("CASH");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Customer Registration Modal
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+    const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
     useEffect(() => {
         const sid = authService.getStoreId();
@@ -76,6 +86,17 @@ const StaffOrderPage: React.FC = () => {
 
     const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    const handleRegistrationSuccess = (userId: string, name: string, phone: string) => {
+        setRegisteredUserId(userId);
+        setCustomerName(name);
+        setCustomerPhone(phone);
+        showToast({
+            type: "success",
+            title: "Đã đăng ký",
+            description: `Tài khoản ${name} sẵn sàng tạo đơn hàng`
+        });
+    };
+
     const handleSubmitOrder = async () => {
         if (!storeId || cartItems.length === 0) return;
         if (!customerName.trim() || !customerPhone.trim()) {
@@ -87,22 +108,82 @@ const StaffOrderPage: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            const payload: CreateStaffOrderRequest = {
-                storeId: storeId,
-                customerName,
+            // Step 1: Sử dụng userId đã đăng ký hoặc tạo mới
+            let userId: string;
+
+            if (registeredUserId) {
+                // Sử dụng user đã đăng ký từ modal
+                userId = registeredUserId;
+                showToast({ type: "info", title: "Sử dụng", description: `Tài khoản đã đăng ký: ${customerName}` });
+            } else {
+                // Tạo user mới nhanh (fallback)
+                const userPayload: CreateUserRequest = {
+                    fullName: customerName,
+                    phone: customerPhone,
+                    password: "123456",
+                    gender: true,
+                    role: "CUSTOMER",
+                    status: "ACTIVE",
+                    storeId: storeId
+                };
+
+                const userRes = await staffOrderService.createUser(userPayload);
+                if (userRes.data.status !== 201 && userRes.data.status !== 200) {
+                    throw new Error("Không thể tạo tài khoản khách hàng");
+                }
+
+                userId = userRes.data.data.id;
+                showToast({ type: "success", title: "Đã tạo", description: `Tài khoản khách hàng: ${userId}` });
+            }
+
+            // Step 2: Tạo địa chỉ cho user
+            const addressPayload: CreateAddressRequest = {
+                name: customerName,
                 phone: customerPhone,
+                city: addressDetails.city,
+                district: addressDetails.district,
+                ward: addressDetails.ward,
+                street: specificAddress,
                 addressLine: `${specificAddress}, ${addressDetails.ward}, ${addressDetails.district}, ${addressDetails.city}`,
-                paymentMethod,
-                note,
-                orderDetails: cartItems.map(i => ({ productColorId: i.productColorId, quantity: i.quantity, price: i.price }))
+                isDefault: true,
+                userId: userId,
+                latitude: 0, // You can integrate with geocoding API if needed
+                longitude: 0
             };
 
-            const res = await staffOrderService.createOrder(payload);
+            const addressRes = await staffOrderService.createAddress(addressPayload);
+            if (addressRes.data.status !== 201 && addressRes.data.status !== 200) {
+                throw new Error("Không thể tạo địa chỉ");
+            }
+
+            const addressId = addressRes.data.data.id;
+            showToast({ type: "success", title: "Đã tạo", description: `Địa chỉ ID: ${addressId}` });
+
+            // Step 3: Tạo đơn hàng
+            const orderPayload: CreateStaffOrderRequest = {
+                storeId: storeId,
+                userId: userId,
+                addressId: addressId,
+                paymentMethod,
+                note,
+                orderDetails: cartItems.map(i => ({
+                    productColorId: i.productColorId,
+                    quantity: i.quantity,
+                    price: i.price
+                }))
+            };
+
+            const res = await staffOrderService.createOrder(orderPayload);
             if (res.data.status === 201 || res.data.status === 200) {
                 if (paymentMethod === "VN_PAY" && res.data.redirectUrl) {
                     window.location.href = res.data.redirectUrl;
                 } else {
-                    showToast({ type: "success", title: "Thành công", description: "Đơn hàng đã được tạo!" });
+                    showToast({
+                        type: "success",
+                        title: "Thành công",
+                        description: `Đơn hàng #${res.data.data.id} đã được tạo!`
+                    });
+                    // Reset form
                     setCartItems([]);
                     setCustomerName("");
                     setCustomerPhone("");
@@ -111,7 +192,12 @@ const StaffOrderPage: React.FC = () => {
                 }
             }
         } catch (error: any) {
-            showToast({ type: "error", title: "Thất bại", description: error.response?.data?.message || "Lỗi tạo đơn" });
+            console.error("Order creation error:", error);
+            showToast({
+                type: "error",
+                title: "Thất bại",
+                description: error.response?.data?.message || error.message || "Lỗi tạo đơn"
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -125,6 +211,9 @@ const StaffOrderPage: React.FC = () => {
                 <Typography variant="h4" className="font-extrabold text-gray-800 dark:!text-white tracking-tight flex items-center gap-2">
                     <LocalMallOutlined fontSize="large" className="text-emerald-600 dark:!text-emerald-400" />
                     Tạo Đơn Hàng
+                </Typography>
+                <Typography variant="body2" className="text-gray-500 dark:!text-gray-400 mt-2">
+                    Hệ thống sẽ tự động tạo tài khoản khách hàng và địa chỉ
                 </Typography>
             </Box>
 
@@ -180,10 +269,10 @@ const StaffOrderPage: React.FC = () => {
                                                         <Chip label={item.quantity} size="medium" variant="outlined" className="font-bold bg-white dark:!bg-gray-700 dark:!text-white dark:!border-gray-600" />
                                                     </TableCell>
                                                     <TableCell align="right" className="text-gray-600 dark:!text-gray-300 dark:!border-gray-700" sx={{ py: 3 }}>
-                                                        {item.price.toLocaleString()}
+                                                        {item.price.toLocaleString()}đ
                                                     </TableCell>
                                                     <TableCell align="right" className="font-bold text-emerald-600 dark:!text-emerald-400 dark:!border-gray-700" sx={{ py: 3 }}>
-                                                        {(item.price * item.quantity).toLocaleString()}
+                                                        {(item.price * item.quantity).toLocaleString()}đ
                                                     </TableCell>
                                                     <TableCell align="center" sx={{ py: 3 }} className="dark:!border-gray-700">
                                                         <IconButton onClick={() => handleRemoveItem(item.productColorId)} color="error">
@@ -243,6 +332,21 @@ const StaffOrderPage: React.FC = () => {
                                         <Typography fontWeight="bold" color={paymentMethod === "VN_PAY" ? "primary.main" : "text.primary"} className={paymentMethod !== "VN_PAY" ? "dark:!text-gray-300" : ""}>VNPAY</Typography>
                                     </Box>
                                 </Box>
+
+                                <Box
+                                    onClick={() => setPaymentMethod("CASH")}
+                                    className={`
+                                        cursor-pointer p-4 rounded-xl border transition-all flex items-center gap-4
+                                        ${paymentMethod === "CASH"
+                                            ? 'border-green-500 bg-green-50 dark:!bg-green-900/30 dark:!border-green-400'
+                                            : 'border-gray-200 dark:!border-gray-600 hover:bg-gray-50 dark:hover:!bg-gray-700'}
+                                    `}
+                                >
+                                    <LocalAtm color={paymentMethod === "CASH" ? "success" : "disabled"} />
+                                    <Box>
+                                        <Typography fontWeight="bold" color={paymentMethod === "CASH" ? "success.main" : "text.primary"} className={paymentMethod !== "CASH" ? "dark:!text-gray-300" : ""}>Tiền mặt (CASH)</Typography>
+                                    </Box>
+                                </Box>
                             </Stack>
 
                             <Button
@@ -268,12 +372,29 @@ const StaffOrderPage: React.FC = () => {
 
                         {/* THÔNG TIN KHÁCH HÀNG */}
                         <Paper className="p-6 rounded-2xl shadow-sm border border-gray-100 dark:!border-gray-700 bg-white dark:!bg-gray-800 transition-colors">
-                            <Typography variant="h6" className="mb-6 font-bold text-gray-800 dark:!text-white flex items-center gap-2 border-b dark:!border-gray-700 pb-2">
-                                <PersonOutline className="text-emerald-500" />
-                                Thông tin khách hàng
-                            </Typography>
+                            <Box className="flex items-center justify-between mb-6 border-b dark:!border-gray-700 pb-2">
+                                <Typography variant="h6" className="font-bold text-gray-800 dark:!text-white flex items-center gap-2">
+                                    <PersonOutline className="text-emerald-500" />
+                                    Thông tin khách hàng
+                                </Typography>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => setShowRegistrationModal(true)}
+                                    className="!border-emerald-500 !text-emerald-600 hover:!bg-emerald-50 dark:!border-emerald-400 dark:!text-emerald-400"
+                                >
+                                    Đăng ký mới
+                                </Button>
+                            </Box>
 
                             <Stack spacing={3}>
+                                {registeredUserId && (
+                                    <Box className="p-3 bg-green-50 dark:!bg-green-900/20 border border-green-200 dark:!border-green-800 rounded-lg">
+                                        <Typography variant="body2" className="text-green-800 dark:!text-green-300 font-medium">
+                                            ✓ Đã đăng ký: {customerName} ({customerPhone})
+                                        </Typography>
+                                    </Box>
+                                )}
                                 <TextField
                                     fullWidth label="Tên khách hàng" variant="outlined"
                                     value={customerName} onChange={(e) => setCustomerName(e.target.value)}
@@ -308,7 +429,6 @@ const StaffOrderPage: React.FC = () => {
                                     </Typography>
 
                                     <Stack spacing={2} sx={{ mt: 1 }}>
-                                        {/* AddressSelector cần được update từ bên trong component đó, nhưng ta có thể bọc ngoài nếu cần */}
                                         <div className="dark:text-gray-100">
                                             <AddressSelector onChange={handleAddressChange} />
                                         </div>
@@ -347,6 +467,14 @@ const StaffOrderPage: React.FC = () => {
                     </Box>
                 </Grid>
             </Grid>
+
+            {/* Customer Registration Modal */}
+            <CustomerRegistrationModal
+                open={showRegistrationModal}
+                onClose={() => setShowRegistrationModal(false)}
+                onSuccess={handleRegistrationSuccess}
+                storeId={storeId || ""}
+            />
         </Box>
     );
 };
