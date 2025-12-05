@@ -223,12 +223,18 @@ const RightSection = React.memo<RightSectionProps>(
 
         {/* ✅ Modal hiển thị mô hình 3D */}
         {show3DModal && selectedModel?.modelUrl && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-4xl relative shadow-lg overflow-hidden">
+          <div
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+            onClick={handleClose3D}
+          >
+            <div
+              className="bg-white rounded-lg w-full max-w-4xl relative shadow-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Nút đóng */}
               <button
                 onClick={handleClose3D}
-                className="absolute top-3 right-3 text-gray-700 hover:text-red-500 transition"
+                className="absolute top-3 right-3 z-50 bg-white/90 hover:bg-white rounded-full p-2 text-gray-700 hover:text-red-500 transition shadow-lg"
                 aria-label="Đóng"
                 title="Đóng"
               >
