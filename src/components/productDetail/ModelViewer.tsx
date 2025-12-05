@@ -19,29 +19,52 @@ function useModelLoader(url?: string, format?: string) {
   const [object, setObject] = useState<THREE.Object3D | null>(null);
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
 
-  // Dùng useGLTF cho file .glb / .gltf
-  const gltf = useGLTF(url || "", true);
-
-  useEffect(() => {
-    if (!url || !format) return;
-
-    const ext = format.toLowerCase();
-    if (ext === "obj") {
-      new OBJLoader().load(url, setObject);
-    } else if (ext === "fbx") {
-      new FBXLoader().load(url, setObject);
-    } else if (ext === "stl") {
-      new STLLoader().load(url, setGeometry);
-    }
+  // Tự động phát hiện định dạng từ URL
+  const detectedFormat = useMemo(() => {
+    if (!url) return "";
+    const urlLower = url.toLowerCase();
+    if (urlLower.includes(".glb")) return "glb";
+    if (urlLower.includes(".gltf")) return "gltf";
+    if (urlLower.includes(".obj")) return "obj";
+    if (urlLower.includes(".fbx")) return "fbx";
+    if (urlLower.includes(".stl")) return "stl";
+    return format?.toLowerCase() || "";
   }, [url, format]);
 
-  return useMemo(() => {
-    const ext = format?.toLowerCase();
-    if (!url || !format) return null;
+  // Dùng useGLTF cho file .glb / .gltf
+  const shouldUseGLTF = detectedFormat === "glb" || detectedFormat === "gltf";
+  const gltf = useGLTF(shouldUseGLTF && url ? url : "", shouldUseGLTF);
 
-    if (ext === "glb" || ext === "gltf") return gltf.scene;
-    if (ext === "obj" || ext === "fbx") return object;
-    if (ext === "stl" && geometry) {
+  useEffect(() => {
+    if (!url || !detectedFormat) return;
+
+    // Reset state khi URL thay đổi
+    setObject(null);
+    setGeometry(null);
+
+    if (detectedFormat === "obj") {
+      new OBJLoader().load(url, setObject, undefined, (error) =>
+        console.error("Error loading OBJ:", error)
+      );
+    } else if (detectedFormat === "fbx") {
+      new FBXLoader().load(url, setObject, undefined, (error) =>
+        console.error("Error loading FBX:", error)
+      );
+    } else if (detectedFormat === "stl") {
+      new STLLoader().load(url, setGeometry, undefined, (error) =>
+        console.error("Error loading STL:", error)
+      );
+    }
+  }, [url, detectedFormat]);
+
+  return useMemo(() => {
+    if (!url) return null;
+
+    if (detectedFormat === "glb" || detectedFormat === "gltf") {
+      return shouldUseGLTF && gltf?.scene ? gltf.scene : null;
+    }
+    if (detectedFormat === "obj" || detectedFormat === "fbx") return object;
+    if (detectedFormat === "stl" && geometry) {
       const mesh = new THREE.Mesh(
         geometry,
         new THREE.MeshStandardMaterial({ color: "gray" })
@@ -49,7 +72,7 @@ function useModelLoader(url?: string, format?: string) {
       return mesh;
     }
     return null;
-  }, [url, format, gltf, object, geometry]);
+  }, [url, detectedFormat, gltf, object, geometry, shouldUseGLTF]);
 }
 
 const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl, format = "" }) => {
@@ -88,12 +111,8 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl, format = "" }) => {
       <Canvas camera={{ position: [0, 1, 3], fov: 50 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} />
-        <Suspense fallback={<span>Đang tải mô hình...</span>}>
-          {model ? (
-            <primitive object={model} scale={1} />
-          ) : (
-            <span className="text-gray-500">Đang tải mô hình...</span>
-          )}
+        <Suspense fallback={null}>
+          {model && <primitive object={model} scale={1} />}
           <OrbitControls enableZoom={true} />
           <Environment preset="warehouse" />
         </Suspense>
