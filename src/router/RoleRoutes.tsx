@@ -40,6 +40,9 @@ const ColorManagementPage = lazy(
 const DeliveryManagementPage = lazy(
   () => import("@/dashboard/roles/seller/DeliveryManagementPage")
 );
+const ChatManagement = lazy(
+  () => import("@/dashboard/roles/seller/ChatManagementPage")
+);
 
 const InventoryManagement = lazy(
   () => import("@/dashboard/roles/manager/InventoryManagement")
@@ -56,6 +59,7 @@ const TransferRequestsPage = lazy(
 const OrderManagement = lazy(
   () => import("@/dashboard/roles/manager/OrderManagement")
 );
+
 
 const ManagerEmployeesPage = lazy(
   () => import("@/dashboard/roles/manager/ManagerEmployeesPage")
@@ -93,13 +97,12 @@ const AdminTop = Placeholder("Admin • Top Products");
 const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
-const AdminChat = Placeholder("Admin • Chat");
+
 
 
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
-const SellerChat = Placeholder("Seller • Chat");
 
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
@@ -136,7 +139,6 @@ export default function RoleRoutes() {
         <Route path="reports/delivery" element={<AdminDeliveryEff />} />
         <Route path="wallet" element={<AdminWallet />} />
         <Route path="disputes" element={<AdminDisputes />} />
-        <Route path="chat" element={<AdminChat />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
@@ -195,6 +197,7 @@ export default function RoleRoutes() {
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="inventory/create" element={<CreateInventoryPage />} />
         <Route path="warehouse-map" element={<WarehouseMapNew readOnly />} />
+        <Route path="chats" element={<ChatManagement />} />
         <Route
           path="delivery-management"
           element={<DeliveryManagementPage />}
@@ -202,7 +205,6 @@ export default function RoleRoutes() {
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />
-        <Route path="chat" element={<SellerChat />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
