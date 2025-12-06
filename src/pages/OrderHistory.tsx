@@ -879,7 +879,9 @@ export default function OrderHistory() {
                           {selectedOrderDetail.payment.paymentStatus === "PAID"
                             ? "Đã thanh toán"
                             : selectedOrderDetail.payment.paymentStatus ===
-                              "NOT_PAID"
+                                "PENDING" ||
+                              selectedOrderDetail.payment.paymentStatus ===
+                                "NOT_PAID"
                             ? "Chưa thanh toán"
                             : selectedOrderDetail.payment.paymentStatus}
                         </span>
