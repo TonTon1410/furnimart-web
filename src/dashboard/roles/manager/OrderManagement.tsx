@@ -1057,7 +1057,9 @@ const OrderManagement: React.FC = () => {
                           {fullOrderDetail.payment.paymentStatus === "PAID"
                             ? "✅ Đã thanh toán"
                             : fullOrderDetail.payment.paymentStatus ===
-                              "NOT_PAID"
+                                "PENDING" ||
+                              fullOrderDetail.payment.paymentStatus ===
+                                "NOT_PAID"
                             ? "⏳ Chưa thanh toán"
                             : fullOrderDetail.payment.paymentStatus}
                         </div>

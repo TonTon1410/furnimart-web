@@ -553,24 +553,24 @@ export default function WarehouseMapNew({
     const totalQty = location.quantity || 1;
     const usedPercent = (currentQty / totalQty) * 100;
 
-    if (usedPercent >= 90) return "full";
-    if (usedPercent >= 50) return "warning";
-    if (usedPercent > 0) return "available";
-    return "empty";
+    if (usedPercent === 0) return "empty"; // Trống
+    if (usedPercent >= 90) return "full"; // Đầy (>=90%)
+    if (usedPercent >= 50) return "nearly_full"; // Gần đầy (50-90%)
+    return "low"; // Ít hàng (<50%)
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "available":
-        return "bg-emerald-500";
-      case "warning":
-        return "bg-yellow-500";
+      case "low":
+        return "bg-emerald-500"; // Ít hàng - xanh lá
+      case "nearly_full":
+        return "bg-yellow-500"; // Gần đầy - vàng
       case "full":
-        return "bg-red-600";
+        return "bg-red-600"; // Đầy - đỏ
       case "empty":
-        return "bg-gray-500";
+        return "bg-gray-500"; // Trống - xám đậm
       case "inactive":
-        return "bg-gray-400";
+        return "bg-gray-400"; // Không hoạt động - xám nhạt
       default:
         return "bg-gray-300";
     }
@@ -578,12 +578,12 @@ export default function WarehouseMapNew({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "available":
-        return <CheckCircle className="w-4 h-4" />;
-      case "warning":
-        return <AlertCircle className="w-4 h-4" />;
+      case "low":
+        return <CheckCircle className="w-4 h-4" />; // Ít hàng
+      case "nearly_full":
+        return <AlertCircle className="w-4 h-4" />; // Gần đầy
       case "full":
-        return <XCircle className="w-4 h-4" />;
+        return <XCircle className="w-4 h-4" />; // Đầy
       default:
         return null;
     }
@@ -1017,21 +1017,9 @@ export default function WarehouseMapNew({
               Trạng thái:
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-emerald-500 rounded"></div>
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">
-                Có hàng (&lt;50%)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Cảnh báo (50-90%)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-600 rounded"></div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Gần đầy (&gt;90%)
+                Không hoạt động
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -1039,9 +1027,21 @@ export default function WarehouseMapNew({
               <span className="text-gray-600 dark:text-gray-400">Trống</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <div className="w-4 h-4 bg-emerald-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">
-                Không hoạt động
+                Ít hàng (&lt;50%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                Gần đầy (50-90%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-600 rounded"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                Đầy (&ge;90%)
               </span>
             </div>
           </div>
