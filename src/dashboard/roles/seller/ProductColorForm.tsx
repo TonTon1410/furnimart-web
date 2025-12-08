@@ -216,7 +216,7 @@ const ProductColorForm: React.FC<Props> = ({
                         className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div
-                        className="w-8 h-8 rounded border-2 border-gray-300 dark:border-gray-600 flex-shrink-0"
+                        className="w-8 h-8 rounded border-2 border-gray-300 dark:border-gray-600 shrink-0"
                         style={{ backgroundColor: color.hexCode }}
                       />
                       <div className="flex-1 min-w-0">

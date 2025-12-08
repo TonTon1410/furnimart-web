@@ -5,6 +5,7 @@ import {
   Truck,
   Image as ImageIcon,
   History,
+  PenTool,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -15,6 +16,7 @@ export const deliveryNav = (): RoleNav => ({
     { icon: <ScanBarcode />, name: "Xác nhận lấy hàng", path: DP("pickup") },
     { icon: <Truck />, name: "Cập nhật", path: DP("status") },
     { icon: <ImageIcon />, name: "Hình ảnh giao hàng", path: DP("pod") },
+    { icon: <PenTool />, name: "Chữ ký", path: DP("signature") },
   ],
   others: [{ icon: <History />, name: "Lịch sử", path: DP("history") }],
 });

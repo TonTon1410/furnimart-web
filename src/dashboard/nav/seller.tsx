@@ -1,18 +1,21 @@
 // src/config/nav/seller.tsx  (Store Staff)
 import {
   Package,
+  FileText,
   MessageCircle,
   Palette,
   Truck,
   Warehouse,
-  LayoutDashboard
+  LayoutDashboard,
+  ShoppingCart
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
 
 export const sellerNav = (): RoleNav => ({
   main: [
-    { icon: <LayoutDashboard />, name: "Dashboard", path: DP("dashboard") },
+    { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
+    { icon: <ShoppingCart />, name: "Bán hàng tại quầy", path: DP("staff-order") },
     { icon: <Package />, name: "Quản lí sản phẩm", path: DP("products") },
     { icon: <Palette />, name: "Quản lí màu sắc", path: DP("colors") },
     { icon: <Package />, name: "Quản lí xuất nhập kho", path: DP("inventory") },
@@ -26,6 +29,7 @@ export const sellerNav = (): RoleNav => ({
       name: "Quản lý giao hàng",
       path: DP("delivery-management"),
     },
+    { icon: <FileText />, name: "Bài viết", path: DP("blog") },
   ],
   others: [{ icon: <MessageCircle />, name: "Chat", path: DP("chat") }],
 });

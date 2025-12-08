@@ -221,6 +221,18 @@ const deliveryService = {
     );
     return response.data.data;
   },
+
+  // Xác nhận giao hàng với chữ ký khách hàng (CUSTOMER role hoặc DELIVERY role)
+  confirmDeliveryWithSignature: async (data: {
+    qrCode: string;
+    customerSignature: string;
+  }): Promise<{ status: number; message: string; data: unknown }> => {
+    const response = await axiosClient.post(
+      "/delivery-confirmations/scan-qr",
+      data
+    );
+    return response.data;
+  },
 };
 
 export default deliveryService;

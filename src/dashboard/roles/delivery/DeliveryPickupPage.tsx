@@ -9,6 +9,18 @@ export default function DeliveryPickupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const formatAddress = (address?: DeliveryAssignment["order"]["address"]) => {
+    if (!address) return "N/A";
+    const parts = [
+      address.addressLine,
+      address.street,
+      address.ward,
+      address.district,
+      address.city,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  };
+
   useEffect(() => {
     loadAssignments();
   }, []);
@@ -24,9 +36,10 @@ export default function DeliveryPickupPage() {
       }
 
       const data = await deliveryService.getAssignmentsByStaff(profile.id);
-      // Chỉ lấy đơn có status = READY
+      // Chỉ lấy đơn có status = READY và order không null
       const readyOrders = data.filter(
-        (assignment) => assignment.status === "READY"
+        (assignment) =>
+          assignment.status === "READY" && assignment.order !== null
       );
       setAssignments(readyOrders);
     } catch (err) {
@@ -182,17 +195,7 @@ export default function DeliveryPickupPage() {
                     <div className="flex items-start gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
                       <span className="line-clamp-2">
-                        {order?.address?.fullAddress ||
-                          [
-                            order?.address?.addressLine,
-                            order?.address?.street,
-                            order?.address?.ward,
-                            order?.address?.district,
-                            order?.address?.city,
-                          ]
-                            .filter(Boolean)
-                            .join(", ") ||
-                          "N/A"}
+                        {formatAddress(order?.address)}
                       </span>
                     </div>
                   </div>

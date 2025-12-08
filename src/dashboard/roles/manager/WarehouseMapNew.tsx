@@ -487,6 +487,17 @@ export default function WarehouseMapNew({
             const locations: LocationItem[] =
               locationsRes.data?.data || locationsRes.data;
 
+            // Sắp xếp locations theo rowLabel (A, B, C...) và columnNumber (1, 2, 3...)
+            const sortedLocations = [...locations].sort((a, b) => {
+              // So sánh rowLabel trước (xử lý null/undefined và chuyển thành string)
+              const rowA = String(a.rowLabel || "");
+              const rowB = String(b.rowLabel || "");
+              const rowCompare = rowA.localeCompare(rowB);
+              if (rowCompare !== 0) return rowCompare;
+              // Nếu rowLabel giống nhau, so sánh columnNumber
+              return (a.columnNumber || 0) - (b.columnNumber || 0);
+            });
+
             // totalCapacity là quantity của Zone, không phải tổng locations
             const totalCapacity = zone.quantity;
             const usedCapacity = locations.reduce(
@@ -497,7 +508,7 @@ export default function WarehouseMapNew({
 
             return {
               zone,
-              locations,
+              locations: sortedLocations,
               totalCapacity,
               usedCapacity,
               availableCapacity,
@@ -505,8 +516,13 @@ export default function WarehouseMapNew({
           })
         );
 
-        console.log("Zone summaries:", summaries);
-        setZoneSummaries(summaries);
+        // Sắp xếp zones theo zoneCode (A, B, C, D...)
+        const sortedSummaries = summaries.sort((a, b) =>
+          a.zone.zoneCode.localeCompare(b.zone.zoneCode)
+        );
+
+        console.log("Zone summaries:", sortedSummaries);
+        setZoneSummaries(sortedSummaries);
       } catch (warehouseError: any) {
         // Nếu lỗi 404 - chưa có warehouse thì không phải là lỗi
         if (warehouseError?.response?.status === 404) {
