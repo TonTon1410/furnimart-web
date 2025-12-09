@@ -3,11 +3,13 @@ import { getAllBlog, type Blog, deleteBlog, updateBlog, createBlog } from "@/ser
 import { authService } from "@/service/authService";
 import { BlogForm } from "@/components/blog/BlogForm";
 import { Plus, Edit, Trash2, Search, FileText, User, Calendar } from 'lucide-react';
+import { useToast } from "@/context/ToastContext";
 
 export default function BlogManagementPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const { showToast } = useToast();
 
   // Form state
   const [isCreating, setIsCreating] = useState(false);
@@ -68,7 +70,11 @@ export default function BlogManagementPage() {
         fetchBlogs();
       } catch (error) {
         console.error("Failed to delete blog", error);
-        alert("Không thể xóa bài viết. Vui lòng thử lại.");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không thể xóa bài viết. Vui lòng thử lại.",
+          });
       }
     }
   };
@@ -81,7 +87,11 @@ export default function BlogManagementPage() {
       const employeeId = profile?.id;
 
       if (!employeeId) {
-        alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        showToast({
+            type: "warning",
+            title: "Cảnh báo!",
+            description: "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
+          });
         return;
       }
 
@@ -105,7 +115,11 @@ export default function BlogManagementPage() {
       fetchBlogs();
     } catch (error) {
       console.error("Submit error", error);
-      alert("Có lỗi xảy ra khi lưu bài viết.");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Có lỗi xảy ra khi lưu bài viết.",
+          });
     } finally {
       setSubmitting(false);
     }

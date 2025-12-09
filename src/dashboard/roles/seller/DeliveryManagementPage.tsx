@@ -77,8 +77,7 @@ export default function DeliveryManagementPage() {
     } catch (err) {
       console.error("Error loading assignments:", err);
       setError(
-        `Không thể tải danh sách đơn hàng: ${
-          (err as Error).message || "Lỗi không xác định"
+        `Không thể tải danh sách đơn hàng: ${(err as Error).message || "Lỗi không xác định"
         }`
       );
     } finally {
@@ -94,7 +93,11 @@ export default function DeliveryManagementPage() {
     try {
       const storeId = authService.getStoreId();
       if (!storeId) {
-        alert("Không tìm thấy thông tin cửa hàng. Vui lòng đăng nhập lại.");
+        showToast({
+          type: "warning",
+          title: "Cảnh báo!",
+          description: "Không tìm thấy thông tin cửa hàng. Vui lòng đăng nhập lại.",
+        });
         setShowStockOutModal(false);
         return;
       }
@@ -173,7 +176,11 @@ export default function DeliveryManagementPage() {
       setSelectedLocations(initialSelections);
     } catch (err) {
       console.error("Error loading locations:", err);
-      alert("Không thể tải vị trí kho: " + (err as Error).message);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không thể tải vị trí kho: " + (err as Error).message,
+      });
     } finally {
       setLoadingLocations(false);
     }
@@ -202,11 +209,11 @@ export default function DeliveryManagementPage() {
       }
 
       if (invalidProducts.length > 0) {
-        alert(
-          `Vui lòng chọn đủ số lượng cho các sản phẩm sau:\n\n${invalidProducts.join(
-            "\n"
-          )}`
-        );
+        showToast({
+          type: "warning",
+          title: "Cần Nhập Số Lượng",
+          description: `Vui lòng chọn đủ số lượng cho các sản phẩm sau:${invalidProducts.map(p => `<br />- ${p}`).join('')}`,
+        });
         return;
       }
 
@@ -221,7 +228,11 @@ export default function DeliveryManagementPage() {
       });
 
       if (!warehouseId) {
-        alert("Không tìm thấy thông tin kho. Vui lòng thử lại.");
+        showToast({
+          type: "error",
+          title: "Lỗi Tải Dữ Liệu",
+          description: "Không tìm thấy thông tin kho. Vui lòng thử lại.",
+        });
         return;
       }
 
@@ -619,15 +630,15 @@ export default function DeliveryManagementPage() {
                           <p className="font-medium text-gray-900 dark:text-white line-clamp-2">
                             {order?.address
                               ? order.address.fullAddress ||
-                                [
-                                  order.address.addressLine,
-                                  order.address.street,
-                                  order.address.ward,
-                                  order.address.district,
-                                  order.address.city,
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")
+                              [
+                                order.address.addressLine,
+                                order.address.street,
+                                order.address.ward,
+                                order.address.district,
+                                order.address.city,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")
                               : "N/A"}
                           </p>
                         </div>
@@ -670,8 +681,8 @@ export default function DeliveryManagementPage() {
                           <p className="font-medium text-gray-900 dark:text-white">
                             {order?.orderDate
                               ? new Date(order.orderDate).toLocaleDateString(
-                                  "vi-VN"
-                                )
+                                "vi-VN"
+                              )
                               : "N/A"}
                           </p>
                         </div>
@@ -878,13 +889,12 @@ export default function DeliveryManagementPage() {
                               </p>
                             )}
                             <p
-                              className={`text-sm font-medium ${
-                                remaining === 0
+                              className={`text-sm font-medium ${remaining === 0
                                   ? "text-green-600"
                                   : remaining < 0
-                                  ? "text-red-600"
-                                  : "text-yellow-600"
-                              }`}
+                                    ? "text-red-600"
+                                    : "text-yellow-600"
+                                }`}
                             >
                               Đã chọn: {totalSelected} | Còn thiếu:{" "}
                               {Math.max(0, remaining)}
@@ -916,11 +926,10 @@ export default function DeliveryManagementPage() {
                               return (
                                 <div
                                   key={loc.locationItemId}
-                                  className={`flex items-center gap-3 p-2 rounded ${
-                                    isReserved
+                                  className={`flex items-center gap-3 p-2 rounded ${isReserved
                                       ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
                                       : "bg-gray-50 dark:bg-gray-900/50"
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
@@ -1057,7 +1066,7 @@ export default function DeliveryManagementPage() {
                                       }}
                                       disabled={
                                         selectedQty >=
-                                          loc.available + loc.reserved ||
+                                        loc.available + loc.reserved ||
                                         selectedQty >= remaining + selectedQty
                                       }
                                       className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
