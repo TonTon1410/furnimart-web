@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import axiosClient from "@/service/axiosClient";
 import colorService, { type Color } from "@/service/colorService";
+import { useToast } from "@/context/ToastContext";
 
 export type Status = "ACTIVE" | "INACTIVE";
 
@@ -123,6 +124,7 @@ const ProductForm: React.FC<Props> = ({
   const [mats, setMats] = useState<Material[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [loadingOpt, setLoadingOpt] = useState(true);
+  const { showToast } = useToast();
 
   // New color modal
   const [showNewColorModal, setShowNewColorModal] = useState(false);
@@ -191,29 +193,29 @@ const ProductForm: React.FC<Props> = ({
 
   const handleChange =
     (key: keyof ProductFormValues) =>
-    (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >
-    ) => {
-      const v = e.target.value;
+      (
+        e: React.ChangeEvent<
+          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >
+      ) => {
+        const v = e.target.value;
 
-      // numeric fields: parse về number | undefined
-      if (numericKeys.has(key)) {
-        const num = parseNumberInput(v);
-        update({ [key]: num as any });
-        return;
-      }
+        // numeric fields: parse về number | undefined
+        if (numericKeys.has(key)) {
+          const num = parseNumberInput(v);
+          update({ [key]: num as any });
+          return;
+        }
 
-      // select: categoryId (number)
-      if (key === "categoryId") {
-        update({ categoryId: Number(v) });
-        return;
-      }
+        // select: categoryId (number)
+        if (key === "categoryId") {
+          update({ categoryId: Number(v) });
+          return;
+        }
 
-      // còn lại là text
-      update({ [key]: v } as any);
-    };
+        // còn lại là text
+        update({ [key]: v } as any);
+      };
 
   // đặt gần các util khác
   const normalizeHex = (v: string) => {
@@ -282,18 +284,31 @@ const ProductForm: React.FC<Props> = ({
       // Xóa khỏi form state
       removeColor(idx);
 
-      alert("✅ Đã xóa màu thành công!");
+      showToast({
+        type: "success",
+        title: "Thành Công!",
+        description: "Đã xóa màu thành công!",
+      });
+
     } catch (error: any) {
       const errorMsg =
         error?.response?.data?.message || error?.message || "Không thể xóa màu";
-      alert(`❌ Lỗi: ${errorMsg}`);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: errorMsg,
+      });
     }
   };
 
   // Create new color via API
   const handleCreateColor = async () => {
     if (!newColorName.trim() || !newColorHex) {
-      alert("Vui lòng nhập tên và mã màu");
+      showToast({
+        type: "warning",
+        title: "Thiếu Thông Tin",
+        description: "Vui lòng nhập tên và mã màu.",
+      });
       return;
     }
 
@@ -312,7 +327,11 @@ const ProductForm: React.FC<Props> = ({
       setNewColorHex("#000000");
       setShowNewColorModal(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Không thể tạo màu mới");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: err.response?.data?.message || "Không thể tạo màu mới",
+      });
     } finally {
       setCreatingColor(false);
     }
@@ -334,21 +353,21 @@ const ProductForm: React.FC<Props> = ({
 
   const setColorValue =
     <K extends "colorName" | "hexCode">(idx: number, key: K) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const arr = [...(form.colorRequests || [])];
-      const item = { ...(arr[idx] || {}) } as ColorReq;
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const arr = [...(form.colorRequests || [])];
+        const item = { ...(arr[idx] || {}) } as ColorReq;
 
-      if (key === "hexCode") {
-        const raw = e.target.value;
-        const norm = normalizeHex(raw);
-        item.hexCode = norm;
-      } else {
-        item.colorName = e.target.value;
-      }
+        if (key === "hexCode") {
+          const raw = e.target.value;
+          const norm = normalizeHex(raw);
+          item.hexCode = norm;
+        } else {
+          item.colorName = e.target.value;
+        }
 
-      arr[idx] = item;
-      update({ colorRequests: arr });
-    };
+        arr[idx] = item;
+        update({ colorRequests: arr });
+      };
 
   const addColorImage = async (idx: number) => {
     const arr = [...(form.colorRequests || [])];
@@ -366,20 +385,20 @@ const ProductForm: React.FC<Props> = ({
 
   const setColorImage =
     (idx: number, imgIdx: number) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const arr = [...(form.colorRequests || [])];
-      const item = { ...(arr[idx] || {}) } as ColorReq;
-      const list = [...(item.imageRequestList || [])];
-      // ⭐ Giữ lại flag isNew khi update URL
-      const currentImage = list[imgIdx] || {};
-      list[imgIdx] = {
-        imageUrl: e.target.value,
-        isNew: currentImage.isNew, // Giữ nguyên flag isNew
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const arr = [...(form.colorRequests || [])];
+        const item = { ...(arr[idx] || {}) } as ColorReq;
+        const list = [...(item.imageRequestList || [])];
+        // ⭐ Giữ lại flag isNew khi update URL
+        const currentImage = list[imgIdx] || {};
+        list[imgIdx] = {
+          imageUrl: e.target.value,
+          isNew: currentImage.isNew, // Giữ nguyên flag isNew
+        };
+        item.imageRequestList = list;
+        arr[idx] = item;
+        update({ colorRequests: arr });
       };
-      item.imageRequestList = list;
-      arr[idx] = item;
-      update({ colorRequests: arr });
-    };
 
   // Lưu ảnh mới lên server (chỉ gửi ảnh mới được thêm)
   const saveNewColorImage = async (idx: number, imgIdx: number) => {
@@ -389,23 +408,37 @@ const ProductForm: React.FC<Props> = ({
 
     const imageUrl = item.imageRequestList?.[imgIdx]?.imageUrl?.trim();
     if (!imageUrl) {
-      alert("Vui lòng nhập URL ảnh!");
+      showToast({
+        type: "warning",
+        title: "Thiếu Thông Tin",
+        description: "Vui lòng nhập URL ảnh!",
+      });
       return;
     }
 
     // Kiểm tra thiếu data
     if (!item.productColorId) {
-      alert(
-        "❌ Lỗi: Không tìm thấy productColorId. Màu này có thể chưa được lưu vào database."
-      );
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không tìm thấy productColorId. Màu này có thể chưa được lưu vào database.",
+      });
       return;
     }
     if (!item.productId) {
-      alert("❌ Lỗi: Không tìm thấy productId.");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không tìm thấy productId.",
+      });
       return;
     }
     if (!item.colorId) {
-      alert("❌ Lỗi: Không tìm thấy colorId.");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không tìm thấy colorId.",
+      });
       return;
     }
 
@@ -439,7 +472,11 @@ const ProductForm: React.FC<Props> = ({
         arr[idx] = item;
         update({ colorRequests: arr });
 
-        alert("✅ Đã lưu ảnh mới thành công!");
+        showToast({
+          type: "success",
+          title: "Thành Công!",
+          description: "Đã lưu ảnh mới thành công!",
+        });
       } catch (error: any) {
         const errorMsg =
           error?.response?.data?.message ||
@@ -447,10 +484,18 @@ const ProductForm: React.FC<Props> = ({
           error?.message ||
           "Không thể lưu ảnh";
 
-        alert(`❌ Lỗi: ${errorMsg}`);
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: errorMsg,
+        });
       }
     } else {
-      alert("⚠️ Chế độ create - ảnh sẽ được lưu khi submit form.");
+      showToast({
+        type: "warning",
+        title: "Lưu ý",
+        description: "Chế độ create - ảnh sẽ được lưu khi submit form.",
+      });
     }
   };
 
@@ -470,31 +515,31 @@ const ProductForm: React.FC<Props> = ({
       idx: number,
       field: keyof NonNullable<ColorReq["model3DRequestList"]>[0]
     ) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const arr = [...(form.colorRequests || [])];
-      const item = { ...(arr[idx] || {}) } as ColorReq;
-      const model3D = item.model3DRequestList?.[0] || {
-        status: "ACTIVE" as Status,
-        modelUrl: "",
-        format: "OBJ" as "OBJ" | "GLB" | "FBX" | "USDZ",
-        sizeInMb: 0,
-        previewImage: "",
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const arr = [...(form.colorRequests || [])];
+        const item = { ...(arr[idx] || {}) } as ColorReq;
+        const model3D = item.model3DRequestList?.[0] || {
+          status: "ACTIVE" as Status,
+          modelUrl: "",
+          format: "OBJ" as "OBJ" | "GLB" | "FBX" | "USDZ",
+          sizeInMb: 0,
+          previewImage: "",
+        };
+
+        if (field === "sizeInMb") {
+          model3D[field] = Number(e.target.value) || 0;
+        } else if (field === "format") {
+          model3D[field] = e.target.value as "OBJ" | "GLB" | "FBX" | "USDZ";
+        } else if (field === "status") {
+          model3D[field] = e.target.value as Status;
+        } else {
+          (model3D as any)[field] = e.target.value;
+        }
+
+        item.model3DRequestList = [model3D];
+        arr[idx] = item;
+        update({ colorRequests: arr });
       };
-
-      if (field === "sizeInMb") {
-        model3D[field] = Number(e.target.value) || 0;
-      } else if (field === "format") {
-        model3D[field] = e.target.value as "OBJ" | "GLB" | "FBX" | "USDZ";
-      } else if (field === "status") {
-        model3D[field] = e.target.value as Status;
-      } else {
-        (model3D as any)[field] = e.target.value;
-      }
-
-      item.model3DRequestList = [model3D];
-      arr[idx] = item;
-      update({ colorRequests: arr });
-    };
 
   const removeModel3D = (idx: number) => {
     const arr = [...(form.colorRequests || [])];
@@ -738,11 +783,10 @@ const ProductForm: React.FC<Props> = ({
                     type="button"
                     aria-pressed={active}
                     onClick={() => toggleMaterial(m.id)}
-                    className={`rounded-xl border px-3 py-1.5 text-sm ${
-                      active
+                    className={`rounded-xl border px-3 py-1.5 text-sm ${active
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300"
                         : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300"
-                    }`}
+                      }`}
                   >
                     {m.materialName}
                   </button>
@@ -893,11 +937,10 @@ const ProductForm: React.FC<Props> = ({
                               className={`w-36 min-w-0 rounded-lg border px-3 py-2 text-sm
                      text-gray-900 placeholder:text-gray-400
                      dark:text-gray-100
-                     ${
-                       isValidHex6(c.hexCode || "#")
-                         ? "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
-                         : "border-red-400 bg-red-50 dark:border-red-800 dark:bg-red-950/40"
-                     }`}
+                     ${isValidHex6(c.hexCode || "#")
+                                  ? "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+                                  : "border-red-400 bg-red-50 dark:border-red-800 dark:bg-red-950/40"
+                                }`}
                             />
                             {/* Swatch nhỏ (thừa kế màu) */}
                             <span
@@ -962,9 +1005,8 @@ const ProductForm: React.FC<Props> = ({
                                     </span>
                                     <input
                                       id={idOf(`color-img-${idx}-${imgIdx}`)}
-                                      aria-label={`Ảnh màu ${idx + 1} - ${
-                                        imgIdx + 1
-                                      }`}
+                                      aria-label={`Ảnh màu ${idx + 1} - ${imgIdx + 1
+                                        }`}
                                       value={img.imageUrl}
                                       onChange={setColorImage(idx, imgIdx)}
                                       placeholder="https://example.com/image.jpg"
@@ -1211,8 +1253,8 @@ const ProductForm: React.FC<Props> = ({
                   ? "Đang lưu..."
                   : "Đang tạo..."
                 : mode === "edit"
-                ? "Lưu thay đổi"
-                : "Tạo sản phẩm"}
+                  ? "Lưu thay đổi"
+                  : "Tạo sản phẩm"}
             </button>
             {onCancel && (
               <button

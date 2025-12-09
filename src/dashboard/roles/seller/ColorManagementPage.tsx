@@ -4,6 +4,7 @@ import colorService, {
   type Color,
   type ColorFormData,
 } from "@/service/colorService";
+import { useToast } from "@/context/ToastContext";
 
 const ColorManagementPage: React.FC = () => {
   const [colors, setColors] = useState<Color[]>([]);
@@ -18,6 +19,7 @@ const ColorManagementPage: React.FC = () => {
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchColors();
@@ -104,7 +106,11 @@ const ColorManagementPage: React.FC = () => {
       await fetchColors();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      alert(error?.response?.data?.message || "Lỗi khi xóa màu");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: error?.response?.data?.message || "Lỗi khi xóa màu",
+          });
     }
   };
 

@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from "react"
-import { authService } from "@/service/authService"
+// import { authService } from "@/service/authService"
 import { walletService, type Wallet, type WalletTransaction } from "@/service/walletService"
 import { paymentService } from "@/service/paymentService"
 import { Loader2, WalletIcon, ArrowUpRight, ArrowDownLeft, History, AlertCircle, Plus } from "lucide-react"
+import { useToast } from "@/context/ToastContext"
 
 export default function MyWalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null)
@@ -15,6 +17,7 @@ export default function MyWalletPage() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [error, setError] = useState("")
+  const { showToast } = useToast()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,7 +68,14 @@ export default function MyWalletPage() {
     if (!wallet || !depositAmount) return
     try {
       const amount = Number(depositAmount)
-      if (isNaN(amount) || amount < 10000) return alert("Số tiền tối thiểu là 10,000đ")
+      if (isNaN(amount) || amount < 10000) {
+        showToast({
+          type: "warning",
+          title: "Giá Trị Không Hợp Lệ",
+          description: "Số tiền tối thiểu là 10,000đ.",
+        });
+        return;
+      }
 
       // 1. Create deposit transaction
       const depositRes = await walletService.deposit(wallet.id, amount, "Nạp tiền vào ví qua VNPay")
@@ -81,7 +91,11 @@ export default function MyWalletPage() {
       }
     } catch (error) {
       console.error("Deposit error:", error)
-      alert("Có lỗi xảy ra khi tạo giao dịch nạp tiền")
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi tạo giao dịch nạp tiền",
+      });
     }
   }
 
@@ -209,13 +223,12 @@ export default function MyWalletPage() {
                           <td className="px-5 py-3 text-center">
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-semibold 
-                              ${
-                                tx.status === "SUCCESS"
+                              ${tx.status === "SUCCESS"
                                   ? "bg-green-100 text-green-700"
                                   : tx.status === "PENDING"
                                     ? "bg-yellow-100 text-yellow-700"
                                     : "bg-red-100 text-red-700"
-                              }`}
+                                }`}
                             >
                               {tx.status}
                             </span>

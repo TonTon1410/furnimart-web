@@ -21,6 +21,7 @@ import ProductForm, {
   type Status,
 } from "./ProductForm";
 import ProductColorForm, { type ProductColorRequest } from "./ProductColorForm";
+import { useToast } from "@/context/ToastContext";
 
 type ProductItem = {
   id: string;
@@ -118,11 +119,10 @@ const ProductRow: React.FC<{
                 {p.price?.toLocaleString()}₫
               </span>
               <span
-                className={`px-2 py-0.5 text-xs rounded-full ${
-                  p.status === "ACTIVE"
+                className={`px-2 py-0.5 text-xs rounded-full ${p.status === "ACTIVE"
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                     : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                }`}
+                  }`}
               >
                 {p.status === "ACTIVE" ? "Đang bán" : "Đã tắt"}
               </span>
@@ -140,11 +140,11 @@ const ProductRow: React.FC<{
           )}
           {((p.color && p.color.length > 0) ||
             (p.productColors && p.productColors.length > 0)) && (
-            <span className="flex items-center gap-1">
-              <Palette className="h-3 w-3" />
-              {p.color?.length || p.productColors?.length || 0} màu sắc
-            </span>
-          )}
+              <span className="flex items-center gap-1">
+                <Palette className="h-3 w-3" />
+                {p.color?.length || p.productColors?.length || 0} màu sắc
+              </span>
+            )}
         </div>
       </div>
 
@@ -195,6 +195,7 @@ const SellerProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<ProductItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Drawer
   const [open, setOpen] = useState(false);
@@ -276,11 +277,16 @@ const SellerProductsPage: React.FC = () => {
       setDetailProduct(res.data.data);
       setDetailModalOpen(true);
     } catch (e: any) {
-      alert(
+      const errorMessage =
         e?.response?.data?.message ||
-          e?.message ||
-          "Không tải được chi tiết sản phẩm"
-      );
+        e?.message ||
+        "Không tải được chi tiết sản phẩm";
+
+      showToast({
+        type: "error",
+        title: "Lỗi Tải Dữ Liệu",
+        description: errorMessage,
+      });
     }
   };
 
@@ -461,7 +467,7 @@ const SellerProductsPage: React.FC = () => {
                 console.error("Failed to update/create product color:", err);
                 setServerErr(
                   err?.response?.data?.message ||
-                    "Lỗi khi xử lý màu: " + colorReq.colorName
+                  "Lỗi khi xử lý màu: " + colorReq.colorName
                 );
                 // Continue with other colors
               }
@@ -505,13 +511,19 @@ const SellerProductsPage: React.FC = () => {
       const res = await axiosClient.delete(`/products/${id}`);
       if (res.status !== 200) {
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
-      alert(
-        e?.response?.data?.message || e?.message || "Không thể xoá sản phẩm"
-      );
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể xoá sản phẩm",
+      });
     } finally {
       setBusyId(null);
     }
@@ -530,14 +542,23 @@ const SellerProductsPage: React.FC = () => {
           )
         );
       } else {
-        alert(res?.data?.message || "Thao tác không thành công");
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Thao tác không thành công",
+        });
       }
     } catch (e: any) {
-      alert(
+      const errorMessage =
         e?.response?.data?.message ||
-          e?.message ||
-          "Không thể thay đổi trạng thái"
-      );
+        e?.message ||
+        "Không thể thay đổi trạng thái";
+
+      showToast({
+        type: "error",
+        title: "Thao Tác Thất Bại",
+        description: errorMessage,
+      });
     } finally {
       setBusyId(null);
     }
@@ -797,11 +818,10 @@ const SellerProductsPage: React.FC = () => {
                             {detailProduct.price?.toLocaleString()}₫
                           </span>
                           <span
-                            className={`px-3 py-1 text-sm rounded-full ${
-                              detailProduct.status === "ACTIVE"
+                            className={`px-3 py-1 text-sm rounded-full ${detailProduct.status === "ACTIVE"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                 : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                            }`}
+                              }`}
                           >
                             {detailProduct.status === "ACTIVE"
                               ? "Đang bán"
@@ -908,7 +928,7 @@ const SellerProductsPage: React.FC = () => {
                   {/* RIGHT COLUMN: Product Colors */}
                   <div className="space-y-4">
                     {detailProduct.productColors &&
-                    detailProduct.productColors.length > 0 ? (
+                      detailProduct.productColors.length > 0 ? (
                       <>
                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 sticky top-0 bg-white dark:bg-gray-900 py-2 z-10">
                           Màu sắc ({detailProduct.productColors.length})
@@ -948,11 +968,10 @@ const SellerProductsPage: React.FC = () => {
                                     </p>
                                   </div>
                                   <span
-                                    className={`px-2 py-0.5 text-xs rounded shrink-0 ${
-                                      pc.status === "ACTIVE"
+                                    className={`px-2 py-0.5 text-xs rounded shrink-0 ${pc.status === "ACTIVE"
                                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                         : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
-                                    }`}
+                                      }`}
                                   >
                                     {pc.status === "ACTIVE"
                                       ? "Hoạt động"
@@ -1014,11 +1033,10 @@ const SellerProductsPage: React.FC = () => {
                                       )}
                                     </div>
                                     <span
-                                      className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${
-                                        model3D.status === "ACTIVE"
+                                      className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${model3D.status === "ACTIVE"
                                           ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                           : "bg-gray-200 text-gray-700"
-                                      }`}
+                                        }`}
                                     >
                                       {model3D.status}
                                     </span>
