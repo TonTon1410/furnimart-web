@@ -9,12 +9,14 @@ import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeliveryStatus() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
+  const { showToast } = useToast();
 
   const formatAddress = (address: DeliveryAssignment["order"]["address"]) => {
     if (!address) return "N/A";
@@ -73,7 +75,11 @@ export default function DeliveryStatus() {
       await loadAssignments();
     } catch (err) {
       console.error("Error updating status:", err);
-      alert("Không thể cập nhật trạng thái. Vui lòng thử lại.");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không thể cập nhật trạng thái. Vui lòng thử lại.",
+          });
     } finally {
       setUpdating(null);
     }
