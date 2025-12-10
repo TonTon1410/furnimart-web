@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
-// src/pages/VoucherManagement/VoucherManagement.tsx (Đã chỉnh sửa)
+// src/pages/VoucherManagement/VoucherManagement.tsx
 
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -23,10 +23,10 @@ import dayjs from "dayjs";
 import vouchersService, {
   type Voucher as VoucherBase,
   type VoucherPayload,
-} from "@/service/voucherService"; //
+} from "@/service/voucherService";
 
-// Extend Voucher type to allow all voucher types used in this file
-type Voucher = VoucherBase & {
+// Extend Voucher type: Dùng Omit để loại bỏ type gốc trước khi mở rộng
+type Voucher = Omit<VoucherBase, "type"> & {
   type:
     | "PERCENTAGE"
     | "FIXED_AMOUNT"
@@ -36,11 +36,12 @@ type Voucher = VoucherBase & {
     | "POINTS_REWARD"
     | string;
 };
-import { useToast } from "@/context/ToastContext"; //
+
+import { useToast } from "@/context/ToastContext";
 
 // Components
 import VoucherModal from "./VoucherModal";
-import ConfirmDialog from "@/dashboard/roles/manager/components/ConfirmDialog"; // Sử dụng component đã cung cấp
+import ConfirmDialog from "@/dashboard/roles/manager/components/ConfirmDialog";
 
 // Map các loại Voucher sang tên tiếng Việt
 const VOUCHER_TYPES_VIETNAMESE = {
@@ -54,12 +55,12 @@ const VOUCHER_TYPES_VIETNAMESE = {
 
 // --- Main Component ---
 export default function VoucherManagement() {
-  const { showToast } = useToast(); //
+  const { showToast } = useToast();
 
   // --- STATE ---
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Cho Modal Submit
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters State
   const [filterType, setFilterType] = useState<string>("ALL");
@@ -93,23 +94,23 @@ export default function VoucherManagement() {
   const loadVouchers = async () => {
     setLoading(true);
     try {
-      const res = await vouchersService.getVoucherList(); //
-      // Handle both possible response shapes: { data: Voucher[] } or Voucher[]
-      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      const res = await vouchersService.getVoucherList();
+      // FIX: Ép kiểu as any để truy cập .data khi res.data không phải là mảng
+      const list = Array.isArray(res.data) ? res.data : (res.data as any)?.data || [];
 
       // Sắp xếp giảm dần theo ID
       const sortedList = Array.isArray(list)
         ? list.sort((a: any, b: any) => b.id - a.id)
         : [];
       setVouchers(sortedList as Voucher[]);
-      setCurrentPage(1); // Reset page khi tải lại dữ liệu
+      setCurrentPage(1); 
     } catch (error) {
       console.error("Failed to fetch vouchers", error);
       showToast({
-        type: "error", //
+        type: "error",
         title: "Lỗi",
         description: "Không thể tải danh sách voucher",
-      }); //
+      });
     } finally {
       setLoading(false);
     }
@@ -147,7 +148,7 @@ export default function VoucherManagement() {
     currentPage * itemsPerPage
   );
 
-  // --- HANDLERS: MODAL & CRUD (GIỮ NGUYÊN) ---
+  // --- HANDLERS ---
 
   const handleOpenModal = (
     mode: "create" | "edit" | "view",
@@ -167,19 +168,19 @@ export default function VoucherManagement() {
     setIsSubmitting(true);
     try {
       if (modalMode === "create") {
-        await vouchersService.createVoucher(payload); //
+        await vouchersService.createVoucher(payload);
         showToast({
-          type: "success", //
+          type: "success",
           title: "Thành công",
           description: "Tạo voucher mới thành công!",
-        }); //
+        });
       } else if (modalMode === "edit" && modalData) {
-        await vouchersService.updateVoucher(modalData.id, payload); //
+        await vouchersService.updateVoucher(modalData.id, payload);
         showToast({
-          type: "success", //
+          type: "success",
           title: "Thành công",
           description: `Cập nhật voucher #${modalData.id} thành công!`,
-        }); //
+        });
       }
       handleCloseModal();
       await loadVouchers();
@@ -187,10 +188,10 @@ export default function VoucherManagement() {
       console.error("Voucher operation failed", error);
       const msg = error.response?.data?.message || error.message || "Đã xảy ra lỗi!";
       showToast({
-        type: "error", //
+        type: "error",
         title: modalMode === "create" ? "Tạo thất bại" : "Cập nhật thất bại",
         description: msg,
-      }); //
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -204,25 +205,25 @@ export default function VoucherManagement() {
 
   const handleDelete = async () => {
     if (!voucherToDelete) return;
-    setIsConfirmOpen(false); // Đóng dialog xác nhận
+    setIsConfirmOpen(false);
 
     try {
-      await vouchersService.deleteVoucher(voucherToDelete.id); //
+      await vouchersService.deleteVoucher(voucherToDelete.id);
       showToast({
-        type: "success", //
+        type: "success",
         title: "Thành công",
         description: `Xóa voucher #${voucherToDelete.id} thành công.`,
-      }); //
+      });
       setVoucherToDelete(null);
       await loadVouchers();
     } catch (error: any) {
       console.error("Delete voucher failed", error);
       const msg = error.response?.data?.message || error.message || "Đã xảy ra lỗi!";
       showToast({
-        type: "error", //
+        type: "error",
         title: "Xóa thất bại",
         description: msg,
-      }); //
+      });
     }
   };
 
@@ -350,7 +351,7 @@ export default function VoucherManagement() {
                       if (v.type === "CASHBACK")
                         return `Hoàn ${v.amount.toLocaleString()} VNĐ`;
                       if (v.type === "POINTS_REWARD")
-                        return `Thưởng ${v.point.toLocaleString()} Điểm`;
+                        return `Thưởng ${v.point?.toLocaleString() || 0} Điểm`; // Safety check for point
                       return VOUCHER_TYPES_VIETNAMESE[v.type as keyof typeof VOUCHER_TYPES_VIETNAMESE] || v.type;
                     };
 
@@ -480,7 +481,6 @@ export default function VoucherManagement() {
                   <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                 </button>
                 <div className="flex gap-1">
-                  {/* Logic hiển thị nút trang đơn giản */}
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
                       key={i + 1}
