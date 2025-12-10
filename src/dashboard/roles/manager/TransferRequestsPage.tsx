@@ -11,11 +11,19 @@ import {
   Calendar,
   FileText,
   MapPin,
+  Warehouse,
+  Send,
+  Minus,
+  Plus,
+  Info,
+  X,
 } from "lucide-react";
 import inventoryService from "@/service/inventoryService";
 import warehousesService from "@/service/warehousesService";
 import { authService } from "@/service/authService";
 import { productService } from "@/service/productService";
+import { useToast } from "@/context/ToastContext";
+import WarehouseZoneLocationSelector from "./components/WarehouseZoneLocationSelector";
 
 interface LocationItem {
   createdAt: string;
@@ -55,6 +63,17 @@ interface ProductColorDetail {
   status: string;
 }
 
+interface InventoryLocationDetail {
+  locationItemId: string;
+  warehouseId: string;
+  warehouseName: string;
+  zoneId: string;
+  zoneName: string;
+  locationCode: string;
+  available: number;
+  reserved: number;
+}
+
 interface TransferRequest {
   id: number;
   employeeId: string;
@@ -64,12 +83,22 @@ interface TransferRequest {
   note: string;
   warehouseName: string;
   warehouseId: string;
+  toWarehouseName?: string;
+  toWarehouseId?: string;
   orderId: number;
   transferStatus: "PENDING" | "ACCEPTED" | "FINISHED" | "REJECTED";
   itemResponseList: TransferItem[];
 }
 
+interface Warehouse {
+  id: string;
+  name: string;
+  address: string;
+  storeId: string;
+}
+
 export default function TransferRequestsPage() {
+  const { showToast } = useToast();
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +108,21 @@ export default function TransferRequestsPage() {
   >(new Map());
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  // Modal xuất kho
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] =
+    useState<TransferRequest | null>(null);
+  const [toWarehouseId, setToWarehouseId] = useState<string | null>(null);
+  const [selectedLocations, setSelectedLocations] = useState<
+    Record<string, { locationItemId: string; quantity: number }[]>
+  >({});
+  const [locationsByProduct, setLocationsByProduct] = useState<
+    Record<string, InventoryLocationDetail[]>
+  >({});
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [exportNote, setExportNote] = useState("");
+  const [exportingStock, setExportingStock] = useState(false);
 
   useEffect(() => {
     loadWarehouseAndRequests();
@@ -200,7 +244,23 @@ export default function TransferRequestsPage() {
     inventoryId: number,
     action: "ACCEPTED" | "REJECTED"
   ) => {
-    const actionText = action === "ACCEPTED" ? "duyệt" : "từ chối";
+    // Nếu là duyệt, mở modal xuất kho
+    if (action === "ACCEPTED") {
+      const request = requests.find((r) => r.id === inventoryId);
+      if (request) {
+        setSelectedRequest(request);
+        // Set kho đích từ API (nếu có)
+        setToWarehouseId(request.toWarehouseId || null);
+        setSelectedLocations({});
+        setExportNote("");
+        setShowExportModal(true);
+        await loadLocationsForTransfer(request);
+      }
+      return;
+    }
+
+    // Nếu là từ chối, xử lý trực tiếp
+    const actionText = "từ chối";
     if (!confirm(`Bạn có chắc chắn muốn ${actionText} phiếu này?`)) {
       return;
     }
@@ -209,23 +269,25 @@ export default function TransferRequestsPage() {
 
     try {
       await inventoryService.approveOrRejectTransfer(inventoryId, action);
-
-      // Reload lại danh sách sau khi xử lý thành công
       await loadWarehouseAndRequests();
 
-      // Hiển thị thông báo thành công (có thể thêm toast notification)
-      alert(
-        `${
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description: `${
           actionText.charAt(0).toUpperCase() + actionText.slice(1)
-        } phiếu thành công!`
-      );
+        } phiếu thành công!`,
+      });
     } catch (err: any) {
       console.error(`Error ${actionText} transfer:`, err);
-      alert(
-        err?.response?.data?.message ||
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          err?.response?.data?.message ||
           err?.message ||
-          `Không thể ${actionText} phiếu`
-      );
+          `Không thể ${actionText} phiếu`,
+      });
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);
@@ -244,22 +306,173 @@ export default function TransferRequestsPage() {
 
     try {
       await inventoryService.approveOrRejectTransfer(inventoryId, "FINISHED");
-
-      // Reload lại danh sách sau khi xử lý thành công
       await loadWarehouseAndRequests();
 
-      alert("Hoàn thành phiếu thành công!");
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description: "Hoàn thành phiếu thành công!",
+      });
     } catch (err: any) {
       console.error("Error finishing transfer:", err);
-      alert(
-        err?.response?.data?.message ||
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          err?.response?.data?.message ||
           err?.message ||
-          "Không thể hoàn thành phiếu"
-      );
+          "Không thể hoàn thành phiếu",
+      });
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);
         next.delete(inventoryId);
+        return next;
+      });
+    }
+  };
+
+  // Load danh sách vị trí trong kho nguồn để chọn lấy hàng
+  const loadLocationsForTransfer = async (request: TransferRequest) => {
+    setLoadingLocations(true);
+    try {
+      const locationsMap: Record<string, InventoryLocationDetail[]> = {};
+      const storeId = authService.getStoreId();
+
+      if (!storeId) {
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: "Không tìm thấy thông tin cửa hàng",
+        });
+        setLoadingLocations(false);
+        return;
+      }
+
+      for (const item of request.itemResponseList) {
+        const response = await inventoryService.getLocationsByWarehouse({
+          productColorId: item.productColorId.toString(),
+          storeId,
+        });
+
+        // Lọc ra các vị trí trong kho nguồn (warehouseId)
+        const allLocations = response.data.data.locations || [];
+        const sourceWarehouseLocations = allLocations.filter(
+          (loc: InventoryLocationDetail) =>
+            loc.warehouseId === request.warehouseId
+        );
+
+        locationsMap[item.productColorId] = sourceWarehouseLocations;
+      }
+
+      setLocationsByProduct(locationsMap);
+      setSelectedLocations({}); // Reset selections
+    } catch (err) {
+      console.error("Error loading locations:", err);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không thể tải danh sách vị trí kho",
+      });
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  // Hàm xử lý xuất kho
+  const handleExportStock = async () => {
+    if (!selectedRequest) return;
+
+    // Validate kho đích
+    if (!toWarehouseId) {
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Vui lòng chọn kho đích",
+      });
+      return;
+    }
+
+    // Validate: Kiểm tra tất cả sản phẩm đã chọn đủ số lượng chưa
+    const invalidProducts = [];
+    for (const item of selectedRequest.itemResponseList) {
+      const selected = selectedLocations[item.productColorId] || [];
+      const totalSelected = selected.reduce(
+        (sum, loc) => sum + loc.quantity,
+        0
+      );
+
+      if (totalSelected < item.quantity) {
+        invalidProducts.push(
+          `${item.productName}: cần ${item.quantity}, đã chọn ${totalSelected}`
+        );
+      }
+    }
+
+    if (invalidProducts.length > 0) {
+      showToast({
+        type: "error",
+        title: "Chưa chọn đủ số lượng",
+        description: invalidProducts.join("; "),
+      });
+      return;
+    }
+
+    setExportingStock(true);
+    setProcessingIds((prev) => new Set(prev).add(selectedRequest.id));
+
+    try {
+      // Tạo phiếu xuất kho
+      const items = selectedRequest.itemResponseList.flatMap((item) => {
+        const locs = selectedLocations[item.productColorId] || [];
+        return locs.map((loc) => ({
+          productColorId: item.productColorId,
+          quantity: loc.quantity,
+          locationItemId: loc.locationItemId, // vị trí nguồn
+        }));
+      });
+
+      await inventoryService.createOrUpdateInventory({
+        type: "EXPORT",
+        purpose: "MOVE",
+        note: exportNote || `Xuất điều chuyển cho phiếu #${selectedRequest.id}`,
+        warehouseId: selectedRequest.warehouseId,
+        toWarehouseId: toWarehouseId,
+        items,
+      });
+
+      // Duyệt phiếu chuyển kho
+      await inventoryService.approveOrRejectTransfer(
+        selectedRequest.id,
+        "ACCEPTED"
+      );
+
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description: "Xuất kho và duyệt phiếu thành công!",
+      });
+
+      setShowExportModal(false);
+      setSelectedRequest(null);
+      setToWarehouseId(null);
+      setSelectedLocations({});
+      setLocationsByProduct({});
+      setExportNote("");
+      await loadWarehouseAndRequests();
+    } catch (err: any) {
+      console.error("Error exporting stock:", err);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          err?.response?.data?.message || err?.message || "Không thể xuất kho",
+      });
+    } finally {
+      setExportingStock(false);
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(selectedRequest.id);
         return next;
       });
     }
@@ -717,6 +930,385 @@ export default function TransferRequestsPage() {
           </div>
         );
       })()}
+
+      {/* Modal Xuất Kho */}
+      {showExportModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Send className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Xuất Kho Điều Chuyển
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowExportModal(false);
+                  setSelectedRequest(null);
+                  setToWarehouseId(null);
+                  setSelectedLocations({});
+                  setLocationsByProduct({});
+                  setExportNote("");
+                }}
+                disabled={exportingStock}
+                aria-label="Đóng modal"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Thông tin phiếu */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                      Phiếu chuyển kho #{selectedRequest.id}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-blue-700 dark:text-blue-300">
+                          Kho nguồn:
+                        </span>
+                        <p className="font-medium text-blue-900 dark:text-blue-100">
+                          {selectedRequest.warehouseName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-blue-700 dark:text-blue-300">
+                          Số lượng sản phẩm:
+                        </span>
+                        <p className="font-medium text-blue-900 dark:text-blue-100">
+                          {selectedRequest.itemResponseList.length} sản phẩm
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kho đích */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Kho đích <span className="text-red-500">*</span>
+                </label>
+                {selectedRequest.toWarehouseId ? (
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Warehouse className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedRequest.toWarehouseName || "Kho đích"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Kho đích đã được chỉ định trong yêu cầu chuyển kho
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <WarehouseZoneLocationSelector
+                      labelPrefix=""
+                      selectedWarehouseId={toWarehouseId}
+                      selectedZoneId={null}
+                      selectedLocationId={null}
+                      onWarehouseChange={(id) => setToWarehouseId(id)}
+                      onZoneChange={() => {}}
+                      onLocationChange={() => {}}
+                      disabled={exportingStock || loadingLocations}
+                      hideZoneAndLocation={true}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Chọn kho để chuyển hàng đến (không bao gồm kho nguồn)
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* Loading locations */}
+              {loadingLocations && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">
+                    Đang tải danh sách vị trí...
+                  </span>
+                </div>
+              )}
+
+              {/* Danh sách sản phẩm và chọn vị trí */}
+              {!loadingLocations &&
+                selectedRequest.itemResponseList.map((item) => {
+                  const colorDetail = productColors.get(item.productColorId);
+                  const imageUrl = colorDetail?.images?.[0]?.image;
+                  const locations =
+                    locationsByProduct[item.productColorId] || [];
+                  const selectedLocs =
+                    selectedLocations[item.productColorId] || [];
+                  const totalSelected = selectedLocs.reduce(
+                    (sum, loc) => sum + loc.quantity,
+                    0
+                  );
+                  const remaining = item.quantity - totalSelected;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4"
+                    >
+                      {/* Product Header */}
+                      <div className="flex items-start gap-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.productName}
+                            className="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-600"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {item.productName}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Màu: {colorDetail?.color.colorName || "N/A"}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Cần xuất: <strong>{item.quantity}</strong>
+                            </span>
+                            <span
+                              className={
+                                remaining > 0
+                                  ? "text-orange-600 dark:text-orange-400 font-medium"
+                                  : "text-green-600 dark:text-green-400 font-medium"
+                              }
+                            >
+                              Đã chọn: <strong>{totalSelected}</strong>
+                            </span>
+                            {remaining > 0 && (
+                              <span className="text-red-600 dark:text-red-400 font-medium">
+                                Còn thiếu: <strong>{remaining}</strong>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Locations List */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Chọn vị trí kho đích:
+                        </h4>
+                        {locations.length === 0 ? (
+                          <p className="text-sm text-red-600 dark:text-red-400 p-3 bg-red-50 dark:bg-red-900/20 rounded">
+                            Không có vị trí khả dụng trong kho khác!
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {locations.map((loc) => {
+                              const selectedLoc = selectedLocs.find(
+                                (s) => s.locationItemId === loc.locationItemId
+                              );
+                              const selectedQty = selectedLoc?.quantity || 0;
+                              const maxQty = Math.min(
+                                loc.available + loc.reserved,
+                                remaining + selectedQty
+                              );
+
+                              return (
+                                <div
+                                  key={loc.locationItemId}
+                                  className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900/50 rounded"
+                                >
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {loc.warehouseName} - {loc.zoneName} -{" "}
+                                      {loc.locationCode}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      Khả dụng: {loc.available} | Đã giữ:{" "}
+                                      {loc.reserved} |{" "}
+                                      <span className="font-medium text-green-600 dark:text-green-400">
+                                        Có thể nhận:{" "}
+                                        {loc.available + loc.reserved}
+                                      </span>
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newQty = Math.max(
+                                          0,
+                                          selectedQty - 1
+                                        );
+                                        setSelectedLocations((prev) => {
+                                          const updated = { ...prev };
+                                          const productLocs = [
+                                            ...(updated[item.productColorId] ||
+                                              []),
+                                          ];
+                                          const existingIndex =
+                                            productLocs.findIndex(
+                                              (s) =>
+                                                s.locationItemId ===
+                                                loc.locationItemId
+                                            );
+
+                                          if (newQty === 0) {
+                                            if (existingIndex !== -1) {
+                                              productLocs.splice(
+                                                existingIndex,
+                                                1
+                                              );
+                                            }
+                                          } else {
+                                            if (existingIndex !== -1) {
+                                              productLocs[
+                                                existingIndex
+                                              ].quantity = newQty;
+                                            } else {
+                                              productLocs.push({
+                                                locationItemId:
+                                                  loc.locationItemId,
+                                                quantity: newQty,
+                                              });
+                                            }
+                                          }
+
+                                          updated[item.productColorId] =
+                                            productLocs;
+                                          return updated;
+                                        });
+                                      }}
+                                      disabled={
+                                        selectedQty === 0 || exportingStock
+                                      }
+                                      className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      aria-label="Giảm số lượng"
+                                    >
+                                      <Minus className="h-4 w-4" />
+                                    </button>
+
+                                    <div className="min-w-12 text-center">
+                                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        {selectedQty}
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newQty = Math.min(
+                                          selectedQty + 1,
+                                          maxQty
+                                        );
+                                        setSelectedLocations((prev) => {
+                                          const updated = { ...prev };
+                                          const productLocs = [
+                                            ...(updated[item.productColorId] ||
+                                              []),
+                                          ];
+                                          const existingIndex =
+                                            productLocs.findIndex(
+                                              (s) =>
+                                                s.locationItemId ===
+                                                loc.locationItemId
+                                            );
+
+                                          if (existingIndex !== -1) {
+                                            productLocs[
+                                              existingIndex
+                                            ].quantity = newQty;
+                                          } else {
+                                            productLocs.push({
+                                              locationItemId:
+                                                loc.locationItemId,
+                                              quantity: newQty,
+                                            });
+                                          }
+
+                                          updated[item.productColorId] =
+                                            productLocs;
+                                          return updated;
+                                        });
+                                      }}
+                                      disabled={
+                                        selectedQty >= maxQty || exportingStock
+                                      }
+                                      className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      aria-label="Tăng số lượng"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* Ghi chú */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ghi chú
+                </label>
+                <textarea
+                  value={exportNote}
+                  onChange={(e) => setExportNote(e.target.value)}
+                  disabled={exportingStock}
+                  placeholder={`Xuất điều chuyển cho phiếu #${selectedRequest.id}`}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowExportModal(false);
+                  setSelectedRequest(null);
+                  setSelectedLocations({});
+                  setLocationsByProduct({});
+                  setExportNote("");
+                }}
+                disabled={exportingStock}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleExportStock}
+                disabled={exportingStock}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                {exportingStock ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Xuất Kho & Duyệt
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

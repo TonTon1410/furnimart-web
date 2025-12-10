@@ -58,19 +58,19 @@ const processStatusConfig: Record<
     icon: <Package className="h-3 w-3" />,
   },
   MANAGER_ACCEPT: {
-    label: "Quản lí cửa hàng đã nhận đơn",
+    label: "Đã xác nhận đơn",
     color:
       "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800",
     icon: <ThumbsUp className="h-3 w-3" />,
   },
   MANAGER_REJECT: {
-    label: "Quản lí cửa hàng đã hủy đơn",
+    label: "Đã hủy đơn",
     color:
       "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-800",
     icon: <ThumbsDown className="h-3 w-3" />,
   },
   READY_FOR_INVOICE: {
-    label: "Chuẩn bị xuất hóa đơn",
+    label: "Xuất hóa đơn",
     color:
       "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800",
     icon: <Package className="h-3 w-3" />,
@@ -82,7 +82,7 @@ const processStatusConfig: Record<
     icon: <CheckCircle className="h-3 w-3" />,
   },
   PACKAGED: {
-    label: "Đang chuẩn bị hàng",
+    label: "Đang đóng gói hàng",
     color:
       "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800",
     icon: <Package className="h-3 w-3" />,

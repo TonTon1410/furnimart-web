@@ -7,6 +7,7 @@ import Dropdown from "./Dropdown";
 import { authService } from "@/service/authService";
 import { mapBackendRoleToKey } from "@/router/paths";
 import { DP } from "@/router/paths";
+import storeService from "@/service/storeService";
 
 type UserProfile = {
   id: string;
@@ -65,6 +66,7 @@ const AppHeader: React.FC = () => {
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [roleKey, setRoleKey] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState(false);
   const userRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,6 +92,20 @@ const AppHeader: React.FC = () => {
           }
         } catch {
           // ignore
+        }
+
+        // Lấy tên cửa hàng
+        try {
+          const storeId = authService.getStoreId();
+          if (storeId) {
+            const response = await storeService.getStoreById(storeId);
+            const storeData = response.data?.data || response.data;
+            if (storeData && storeData.name) {
+              setStoreName(storeData.name);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching store name:", err);
         }
       } catch (err) {
         console.error("AppHeader getProfile error:", err);
@@ -173,6 +189,24 @@ const AppHeader: React.FC = () => {
 
         {/* Right: theme + user */}
         <div className="flex items-center gap-4">
+          {storeName && (
+            <span className="hidden lg:inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+              {storeName}
+            </span>
+          )}
           {user && roleKey && (
             <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
               {roleKey.toUpperCase()}
@@ -232,7 +266,7 @@ const AppHeader: React.FC = () => {
                   to="/dashboard/blog"
                   onItemClick={() => setOpenUser(false)}
                 >
-                  Blog của tôi 
+                  Blog của tôi
                 </Dropdown.Item>
 
                 <Dropdown.Item
