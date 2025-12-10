@@ -6,6 +6,7 @@ import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import StoreForm, { type StoreFormValues } from "./StoreForm";
 import type { AxiosError } from "axios";
+import { useToast } from "@/context/ToastContext";
 
 interface StoreType {
   id: string;
@@ -32,6 +33,7 @@ const AdminStoresPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<StoreType[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -138,14 +140,20 @@ const AdminStoresPage: React.FC = () => {
       const res = await axiosClient.delete(`/stores/${id}`);
       if (res.status !== 204) {
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Xoá không thành công",
+          });
       }
     } catch (e: unknown) {
       const err = e as AxiosError<{ message?: string }>;
       setList(prev);
-      alert(
-        err.response?.data?.message || err.message || "Không thể xoá cửa hàng"
-      );
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: err.response?.data?.message || err.message || "Không thể xoá cửa hàng",
+          });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);

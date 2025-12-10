@@ -12,6 +12,7 @@ import ManagerEmployeeForm, {
   type EmployeeFormValues,
   type Role,
 } from "./ManagerEmployeeForm";
+import { useToast } from "@/context/ToastContext";
 
 // -------- Types ----------
 interface Employee {
@@ -49,6 +50,7 @@ const ManagerEmployeesPage: React.FC = () => {
   const [list, setList] = useState<Employee[]>([]);
   const [store, setStore] = useState<Store | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Lấy storeId từ token
   const storeId = authService.getStoreId();
@@ -249,13 +251,19 @@ const ManagerEmployeesPage: React.FC = () => {
       const res = await axiosClient.delete(`/users/${id}`);
       if (res.status !== 200) {
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Xoá không thành công",
+          });
       }
     } catch (e: any) {
       setList(prev);
-      alert(
-        e?.response?.data?.message || e?.message || "Không thể xoá nhân viên"
-      );
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: e?.response?.data?.message || e?.message || "Không thể xoá nhân viên",
+          });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);

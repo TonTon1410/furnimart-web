@@ -12,6 +12,7 @@ import deliveryService, {
   type DeliveryAssignment,
 } from "@/service/deliveryService";
 import { uploadToCloudinary } from "@/service/uploadService";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeliverySignaturePage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
@@ -24,6 +25,7 @@ export default function DeliverySignaturePage() {
   const [uploading, setUploading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   const formatAddress = (address?: DeliveryAssignment["order"]["address"]) => {
     if (!address) return "N/A";
@@ -78,7 +80,11 @@ export default function DeliverySignaturePage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Vui lòng chọn file ảnh!");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng chọn file ảnh!",
+          });
       return;
     }
 
@@ -91,12 +97,20 @@ export default function DeliverySignaturePage() {
 
   const handleConfirmDelivery = async () => {
     if (!selectedAssignment || !signatureImage) {
-      alert("Vui lòng chụp ảnh chữ ký khách hàng!");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng chụp ảnh chữ ký khách hàng!",
+          });
       return;
     }
 
     if (!selectedAssignment.order.qrCode) {
-      alert("Đơn hàng này không có mã QR!");
+      showToast({
+            type: "info",
+            title: "Thông Báo",
+            description: "Đơn hàng này không có mã QR!",
+          });
       return;
     }
 
@@ -116,7 +130,12 @@ export default function DeliverySignaturePage() {
         customerSignature: uploadedUrl,
       });
 
-      alert("Xác nhận giao hàng thành công! Đơn hàng đã hoàn thành.");
+      showToast({
+            type: "success",
+            title: "Hoàn Thành",
+            description: "Xác nhận giao hàng thành công! Đơn hàng đã hoàn thành.",
+          });
+
       setShowSignatureModal(false);
       setSelectedAssignment(null);
       setSignatureImage(null);
@@ -127,7 +146,11 @@ export default function DeliverySignaturePage() {
         err instanceof Error
           ? err.message
           : "Không thể xác nhận giao hàng. Vui lòng thử lại.";
-      alert(message);
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: message,
+          });
     } finally {
       setConfirming(false);
       setUploading(false);

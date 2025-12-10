@@ -17,6 +17,7 @@ import ConfirmAddToCartModal, {
 } from "../ConfirmAddToCartModal";
 import inventoryService from "@/service/inventoryService";
 import storeService from "@/service/storeService";
+import { useToast } from "@/context/ToastContext";
 
 interface ProductColor {
   id: string;
@@ -96,6 +97,7 @@ const LeftSection: React.FC<LeftSectionProps> = ({
 
   const add = useCartStore((s) => s.add);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // Fetch store availability when color is selected
   useEffect(() => {
@@ -217,7 +219,11 @@ const LeftSection: React.FC<LeftSectionProps> = ({
 
   const handleOpenConfirm = () => {
     if (!authService.isAuthenticated()) {
-      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!",
+          });
       navigate("/login");
       return;
     }
@@ -241,7 +247,11 @@ const LeftSection: React.FC<LeftSectionProps> = ({
         finalColorId = product.productColors[0].id;
       }
       if (!finalColorId) {
-        alert("Vui lòng chọn màu!");
+        showToast({
+            type: "error",
+            title: "Thất Bại",
+            description: "Vui lòng chọn màu!",
+          });
         return;
       }
 
@@ -256,7 +266,11 @@ const LeftSection: React.FC<LeftSectionProps> = ({
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       console.error("Add to cart error:", err);
-      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+      showToast({
+            type: "error",
+            title: "Lỗi!",
+            description: "Có lỗi xảy ra khi thêm vào giỏ hàng!",
+          });
     }
   };
 

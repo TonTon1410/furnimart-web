@@ -6,6 +6,7 @@ import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import MaterialForm, { type MaterialFormValues, type Status } from "./MaterialForm";
+import { useToast } from "@/context/ToastContext";
 
 interface Material {
   id: number;
@@ -81,6 +82,7 @@ const AdminMaterialsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<Material[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -185,11 +187,19 @@ const AdminMaterialsPage: React.FC = () => {
       const res = await axiosClient.delete(`/materials/${id}`);
       if (res.status !== 200) {
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Xoá không thành công",
+          });
       }
     } catch (e: any) {
       setList(prev);
-      alert(e?.response?.data?.message || e?.message || "Không thể xoá chất liệu");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: e?.response?.data?.message || e?.message || "Không thể xoá chất liệu",
+          });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -209,10 +219,18 @@ const AdminMaterialsPage: React.FC = () => {
         // API không trả object → cần refetch hoặc cập nhật local
         setList((prev) => prev.map((m) => (m.id === id ? { ...m, status: "INACTIVE" } : m)));
       } else {
-        alert(res?.data?.message || "Vô hiệu hoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Vô hiệu hoá không thành công",
+          });
       }
     } catch (e: any) {
-      alert(e?.response?.data?.message || e?.message || "Không thể vô hiệu hoá");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: e?.response?.data?.message || e?.message || "Không thể vô hiệu hoá",
+          });
     } finally {
       setDisablingIds((s) => {
         const n = new Set(s);

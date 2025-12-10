@@ -6,6 +6,7 @@ import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import CustomDropdown from "@/components/CustomDropdown";
 import Pagination from "@/components/Pagination";
+import { useToast } from "@/context/ToastContext";
 
 // -------- Types ----------
 interface User {
@@ -33,6 +34,7 @@ const AdminUsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // xoá theo id
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -181,13 +183,19 @@ const AdminUsersPage: React.FC = () => {
       const res = await axiosClient.delete(`/users/${id}`);
       if (res.status !== 200) {
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Xoá không thành công",
+          });
       }
     } catch (e: any) {
       setList(prev);
-      alert(
-        e?.response?.data?.message || e?.message || "Không thể xoá tài khoản"
-      );
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: e?.response?.data?.message || e?.message || "Không thể xoá tài khoản",
+          });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);

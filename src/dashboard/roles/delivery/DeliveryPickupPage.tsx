@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import deliveryService from "@/service/deliveryService";
 import type { DeliveryAssignment } from "@/service/deliveryService";
 import { authService } from "@/service/authService";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeliveryPickupPage() {
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const formatAddress = (address?: DeliveryAssignment["order"]["address"]) => {
     if (!address) return "N/A";
@@ -55,12 +57,20 @@ export default function DeliveryPickupPage() {
 
     try {
       await deliveryService.updateDeliveryStatus(assignmentId, "IN_TRANSIT");
-      alert("Đã cập nhật trạng thái: Đang giao hàng");
+      showToast({
+            type: "success",
+            title: "Hoàn Thành",
+            description: "Đã cập nhật trạng thái: Đang giao hàng",
+          });
       // Reload assignments to update the list
       await loadAssignments();
     } catch (err) {
       console.error("Error updating status:", err);
-      alert((err as Error).message || "Không thể cập nhật trạng thái");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: (err as Error).message || "Không thể cập nhật trạng thái",
+          });
     }
   };
 
@@ -69,7 +79,11 @@ export default function DeliveryPickupPage() {
     if (phone) {
       window.location.href = `tel:${phone}`;
     } else {
-      alert("Không tìm thấy số điện thoại khách hàng");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không tìm thấy số điện thoại khách hàng.",
+          });
     }
   };
 

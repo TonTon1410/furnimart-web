@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Box, ChevronLeft, ChevronRight, X } from "lucide-react";
 import defaultImage from "../../assets/default-image.jpg";
 import ModelViewer from "./ModelViewer";
+import { useToast } from "@/context/ToastContext";
 
 interface RightSectionProps {
   thumbnailImage: string;
@@ -16,6 +17,7 @@ const RightSection = React.memo<RightSectionProps>(
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(false);
+    const { showToast } = useToast();
 
     const [show3DModal, setShow3DModal] = useState(false); // ✅ trạng thái modal
     const [selectedModel, setSelectedModel] = useState<{
@@ -93,7 +95,11 @@ const RightSection = React.memo<RightSectionProps>(
       console.log("Open 3D modal", images3d);
 
       if (!images3d || images3d.length === 0) {
-        alert("Sản phẩm này chưa có mô hình 3D.");
+        showToast({
+            type: "info",
+            title: "Thông Báo",
+            description: "Sản phẩm này chưa có mô hình 3D.",
+          });
         return;
       }
 
@@ -113,7 +119,11 @@ const RightSection = React.memo<RightSectionProps>(
         });
         setShow3DModal(true);
       } else {
-        alert("Không tìm thấy mô hình 3D hợp lệ.");
+        showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Không tìm thấy mô hình 3D hợp lệ.",
+          });
       }
     };
 

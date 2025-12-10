@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "@/service/axiosClient";
 import AddressSelector, { type Address } from "@/components/AddressSelector";
+import { useToast } from "@/context/ToastContext";
 
 export type Status = "ACTIVE" | "INACTIVE";
 
@@ -61,6 +62,7 @@ const StoreForm: React.FC<Props> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [adding, setAdding] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (initial) setForm({ ...initial });
@@ -129,7 +131,11 @@ const StoreForm: React.FC<Props> = ({
       });
       setUsers((prev) => [...prev, res.data.data.user]);
     } catch {
-      alert("Không thể thêm nhân viên");
+      showToast({
+            type: "error",
+            title: "Đã Xảy Ra Lỗi",
+            description: "Không thể thêm nhân viên",
+          });
     } finally {
       setAdding(false);
     }
@@ -142,7 +148,11 @@ const StoreForm: React.FC<Props> = ({
       await axiosClient.delete(`/stores/users/${userId}/stores/${storeId}`);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch {
-      alert("Không thể xoá nhân viên");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không thể xoá nhân viên",
+          });
     }
   };
 
