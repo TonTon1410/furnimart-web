@@ -108,7 +108,6 @@ export default function TransferRequestsPage() {
   >(new Map());
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const { showToast } = useToast();
 
   // Modal xuất kho
   const [showExportModal, setShowExportModal] = useState(false);
@@ -192,20 +191,20 @@ export default function TransferRequestsPage() {
       // Sắp xếp: PENDING lên đầu, sau đó theo id giảm dần (mới nhất lên trước)
       const sortedData = Array.isArray(transferData)
         ? [...transferData].sort((a, b) => {
-          // Ưu tiên PENDING lên đầu
-          if (
-            a.transferStatus === "PENDING" &&
-            b.transferStatus !== "PENDING"
-          )
-            return -1;
-          if (
-            a.transferStatus !== "PENDING" &&
-            b.transferStatus === "PENDING"
-          )
-            return 1;
-          // Cùng status thì sắp xếp theo id giảm dần
-          return b.id - a.id;
-        })
+            // Ưu tiên PENDING lên đầu
+            if (
+              a.transferStatus === "PENDING" &&
+              b.transferStatus !== "PENDING"
+            )
+              return -1;
+            if (
+              a.transferStatus !== "PENDING" &&
+              b.transferStatus === "PENDING"
+            )
+              return 1;
+            // Cùng status thì sắp xếp theo id giảm dần
+            return b.id - a.id;
+          })
         : [];
 
       setRequests(sortedData);
@@ -216,8 +215,8 @@ export default function TransferRequestsPage() {
       } else {
         setError(
           err?.response?.data?.message ||
-          err?.message ||
-          "Không thể tải danh sách yêu cầu chuyển kho"
+            err?.message ||
+            "Không thể tải danh sách yêu cầu chuyển kho"
         );
       }
     } finally {
@@ -315,7 +314,6 @@ export default function TransferRequestsPage() {
         description: "Hoàn thành phiếu thành công!",
       });
     } catch (err: any) {
-
       showToast({
         type: "error",
         title: "Lỗi",
@@ -589,10 +587,11 @@ export default function TransferRequestsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <button
           onClick={() => toggleStatusFilter("PENDING")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "PENDING"
-            ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
-            : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
-            }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
+            statusFilter === "PENDING"
+              ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
+              : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
+          }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg shrink-0">
@@ -611,10 +610,11 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("ACCEPTED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "ACCEPTED"
-            ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
-            : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-            }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
+            statusFilter === "ACCEPTED"
+              ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
+              : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+          }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
@@ -633,10 +633,11 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("FINISHED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "FINISHED"
-            ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
-            : "border-gray-200 dark:border-gray-700 hover:border-green-300"
-            }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
+            statusFilter === "FINISHED"
+              ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
+              : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+          }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-lg shrink-0">
@@ -655,10 +656,11 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("REJECTED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "REJECTED"
-            ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
-            : "border-gray-200 dark:border-gray-700 hover:border-red-300"
-            }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
+            statusFilter === "REJECTED"
+              ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
+              : "border-gray-200 dark:border-gray-700 hover:border-red-300"
+          }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/30 rounded-lg shrink-0">
@@ -838,10 +840,11 @@ export default function TransferRequestsPage() {
 
                 {/* Expanded Details */}
                 <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedIds.has(request.id)
-                    ? "max-h-[2000px] opacity-100"
-                    : "max-h-0 opacity-0"
-                    }`}
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    expandedIds.has(request.id)
+                      ? "max-h-[2000px] opacity-100"
+                      : "max-h-0 opacity-0"
+                  }`}
                 >
                   <div className="p-4 bg-gray-50 dark:bg-gray-900">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
