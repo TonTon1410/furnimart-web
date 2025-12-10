@@ -248,6 +248,9 @@ export default function TransferRequestsPage() {
     if (action === "ACCEPTED") {
       const request = requests.find((r) => r.id === inventoryId);
       if (request) {
+        // Load thông tin màu sắc sản phẩm trước khi mở modal
+        await loadProductColors(request.itemResponseList);
+
         setSelectedRequest(request);
         // Set kho đích từ API (nếu có)
         setToWarehouseId(request.toWarehouseId || null);
