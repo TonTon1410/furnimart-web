@@ -1,20 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Tag, CheckCircle } from "lucide-react";
 
 type Props = {
   addresses: any[];
   selectedAddress: string;
   setSelectedAddress: (id: string) => void;
   paymentMethod: "COD" | "VNPAY";
-  setPaymentMethod: (method: "COD" | "VNPAY") => void;
+  setPaymentMethod: (method: "COD" | "VNPAY") => void; // Prop này sẽ nhận handlePaymentChange từ cha
   voucherCode: string;
   setVoucherCode: (code: string) => void;
   onCreateAddress: () => void;
   totalPrice: number;
+  onApplyVoucher: () => void;
+  appliedVoucher: any | null;
 };
 
-const COD_LIMIT = 20000000; // 20 triệu VND
+const COD_LIMIT = 20000000; 
 
 const CheckoutForm = React.memo<Props>(
   ({
@@ -27,20 +29,27 @@ const CheckoutForm = React.memo<Props>(
     setVoucherCode,
     onCreateAddress,
     totalPrice,
+    onApplyVoucher,
+    appliedVoucher
   }) => {
     const isCODDisabled = totalPrice > COD_LIMIT;
 
-    // Auto switch to VNPAY if COD is disabled and currently selected
     React.useEffect(() => {
       if (isCODDisabled && paymentMethod === "COD") {
         setPaymentMethod("VNPAY");
       }
     }, [isCODDisabled, paymentMethod, setPaymentMethod]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setVoucherCode(e.target.value.toUpperCase());
+    };
+
     return (
       <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-md">
-        {/* Địa chỉ */}
+        {/* ... Phần Địa chỉ (Giữ nguyên code cũ) ... */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+            {/* Code phần địa chỉ như cũ */}
+             <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-800">
               Chọn địa chỉ giao hàng
             </h3>
@@ -93,27 +102,58 @@ const CheckoutForm = React.memo<Props>(
           )}
         </div>
 
-        {/* Mã giảm giá */}
-        <div className="mb-6">
-          <h3 className="mb-2 text-lg font-semibold text-gray-800">
+        {/* ... Phần Mã giảm giá (Giữ nguyên code cũ) ... */}
+        <div className="mb-6 border-t border-gray-100 pt-6">
+             {/* Code phần mã giảm giá như cũ */}
+             <h3 className="mb-3 text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Tag className="w-5 h-5 text-emerald-600" />
             Mã giảm giá
           </h3>
-          <input
-            type="text"
-            value={voucherCode}
-            onChange={(e) => setVoucherCode(e.target.value)}
-            placeholder="Nhập mã giảm giá nếu có"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
-          />
+          
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={voucherCode}
+              onChange={handleInputChange}
+              placeholder="Nhập mã giảm giá (VD: TET2025)"
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none uppercase ${
+                appliedVoucher ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold" : "border-gray-300"
+              }`}
+            />
+            <button
+              onClick={onApplyVoucher}
+              className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 transition active:scale-95 whitespace-nowrap"
+            >
+              Áp dụng
+            </button>
+          </div>
+
+          {appliedVoucher && (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-emerald-800">
+                    Đã áp dụng mã: {appliedVoucher.code}
+                  </p>
+                  <p className="text-sm text-emerald-700 mt-1">
+                    {appliedVoucher.name} 
+                    {appliedVoucher.type === "PERCENTAGE" 
+                      ? ` (Giảm ${appliedVoucher.amount}%)` 
+                      : ` (Giảm ${new Intl.NumberFormat("vi-VN").format(appliedVoucher.amount)}đ)`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Phương thức thanh toán */}
-        <div>
+        {/* Phần Phương thức thanh toán - CẬP NHẬT LOGIC GỌI HÀM */}
+        <div className="border-t border-gray-100 pt-6">
           <h3 className="mb-3 text-lg font-semibold text-gray-800">
             Phương thức thanh toán
           </h3>
 
-          {/* Warning message when COD is disabled */}
           {isCODDisabled && (
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
               <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -122,8 +162,7 @@ const CheckoutForm = React.memo<Props>(
                   Đơn hàng trên 20.000.000đ không hỗ trợ COD
                 </p>
                 <p className="mt-1 text-amber-700">
-                  Vui lòng chọn phương thức thanh toán trực tuyến qua VNPAY để
-                  hoàn tất đơn hàng.
+                  Vui lòng chọn phương thức thanh toán trực tuyến qua VNPAY.
                 </p>
               </div>
             </div>
@@ -131,24 +170,27 @@ const CheckoutForm = React.memo<Props>(
 
           <div className="space-y-3">
             <label
-              className={`flex items-center gap-3 rounded-lg border p-3 ${
+              className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                 isCODDisabled
                   ? "cursor-not-allowed bg-gray-100 opacity-60"
                   : "cursor-pointer hover:bg-gray-50"
-              }`}
+              } ${paymentMethod === "COD" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : ""}`}
             >
               <input
                 type="radio"
                 value="COD"
                 checked={paymentMethod === "COD"}
-                onChange={() => setPaymentMethod("COD")}
+                onChange={() => setPaymentMethod("COD")} // Sẽ gọi handlePaymentChange("COD") -> Mở Dialog
                 disabled={isCODDisabled}
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed"
               />
               <div className="flex-1">
-                <span className={isCODDisabled ? "text-gray-500" : ""}>
+                <span className={isCODDisabled ? "text-gray-500" : "text-gray-800 font-medium"}>
                   Thanh toán khi nhận hàng (COD)
                 </span>
+                {!isCODDisabled && (
+                  <p className="mt-0.5 text-xs text-gray-500">Thanh toán bằng tiền mặt khi giao hàng</p>
+                )}
                 {isCODDisabled && (
                   <p className="mt-1 text-xs text-gray-500">
                     Chỉ áp dụng cho đơn hàng dưới 20.000.000đ
@@ -156,15 +198,21 @@ const CheckoutForm = React.memo<Props>(
                 )}
               </div>
             </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+            
+            <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 transition-colors ${
+               paymentMethod === "VNPAY" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : ""
+            }`}>
               <input
                 type="radio"
                 value="VNPAY"
                 checked={paymentMethod === "VNPAY"}
-                onChange={() => setPaymentMethod("VNPAY")}
+                onChange={() => setPaymentMethod("VNPAY")} // Sẽ gọi handlePaymentChange("VNPAY") -> Đổi luôn
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
               />
-              <span>Thanh toán qua VNPAY</span>
+              <div className="flex-1">
+                <span className="text-gray-800 font-medium">Thanh toán qua VNPAY</span>
+                <p className="mt-0.5 text-xs text-emerald-600 font-medium">Khuyên dùng: Nhanh chóng & An toàn</p>
+              </div>
             </label>
           </div>
         </div>
