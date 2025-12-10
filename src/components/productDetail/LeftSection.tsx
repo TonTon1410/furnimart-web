@@ -6,6 +6,8 @@ import {
   MapPin,
   Phone,
   Package,
+  Store,
+  ExternalLink,
 } from "lucide-react";
 import { authService } from "@/service/authService";
 import { useCartStore } from "@/store/cart";
@@ -441,13 +443,24 @@ const LeftSection: React.FC<LeftSectionProps> = ({
               {storeAvailability.map((store) => (
                 <div
                   key={store.storeId}
-                  onClick={() => handleStoreClick(store)}
-                  className="p-3 border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md transition-all bg-white cursor-pointer"
+                  className="p-3 border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md transition-all bg-white"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="font-semibold text-gray-900 text-sm flex-1 truncate">
-                      {store.storeName}
-                    </h4>
+                    <button
+                      onClick={() => handleStoreClick(store)}
+                      className="flex-1 text-left group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Store className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <h4 className="font-semibold text-gray-900 text-sm group-hover:text-emerald-600 transition-colors">
+                          {store.storeName}
+                        </h4>
+                        <ExternalLink className="h-3.5 w-3.5 text-gray-400 group-hover:text-emerald-600 transition-colors ml-auto" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 group-hover:text-emerald-600 transition-colors">
+                        Xem thông tin cửa hàng
+                      </p>
+                    </button>
 
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 shrink-0">
                       <Package className="h-3.5 w-3.5 text-emerald-600" />
@@ -499,10 +512,10 @@ const LeftSection: React.FC<LeftSectionProps> = ({
             </div>
 
             <div className="space-y-4">
-              {/* Số lượng còn hàng */}
+              {/* Số lượng hàng có sẵn */}
               <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                 <span className="text-sm font-medium text-gray-700">
-                  Số lượng còn hàng
+                  Số lượng hàng có sẵn
                 </span>
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-emerald-600" />
