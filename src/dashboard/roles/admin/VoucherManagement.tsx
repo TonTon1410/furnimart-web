@@ -28,13 +28,13 @@ import vouchersService, {
 // Extend Voucher type: Dùng Omit để loại bỏ type gốc trước khi mở rộng
 type Voucher = Omit<VoucherBase, "type"> & {
   type:
-    | "PERCENTAGE"
-    | "FIXED_AMOUNT"
-    | "FREE_SHIPPING"
-    | "BUY_ONE_GET_ONE"
-    | "CASHBACK"
-    | "POINTS_REWARD"
-    | string;
+  | "PERCENTAGE"
+  | "FIXED_AMOUNT"
+  | "FREE_SHIPPING"
+  | "BUY_ONE_GET_ONE"
+  | "CASHBACK"
+  | "POINTS_REWARD"
+  | string;
 };
 
 import { useToast } from "@/context/ToastContext";
@@ -45,12 +45,12 @@ import ConfirmDialog from "@/dashboard/roles/manager/components/ConfirmDialog";
 
 // Map các loại Voucher sang tên tiếng Việt
 const VOUCHER_TYPES_VIETNAMESE = {
-    PERCENTAGE: "Giảm theo Phần trăm (%)",
-    FIXED_AMOUNT: "Giảm theo Số tiền (VNĐ)",
-    FREE_SHIPPING: "Miễn phí Vận chuyển",
-    BUY_ONE_GET_ONE: "Mua 1 Tặng 1",
-    CASHBACK: "Hoàn tiền",
-    POINTS_REWARD: "Thưởng Điểm",
+  PERCENTAGE: "Giảm theo Phần trăm (%)",
+  FIXED_AMOUNT: "Giảm theo Số tiền (VNĐ)",
+  FREE_SHIPPING: "Miễn phí Vận chuyển",
+  BUY_ONE_GET_ONE: "Mua 1 Tặng 1",
+  CASHBACK: "Hoàn tiền",
+  POINTS_REWARD: "Thưởng Điểm",
 };
 
 // --- Main Component ---
@@ -103,7 +103,7 @@ export default function VoucherManagement() {
         ? list.sort((a: any, b: any) => b.id - a.id)
         : [];
       setVouchers(sortedList as Voucher[]);
-      setCurrentPage(1); 
+      setCurrentPage(1);
     } catch (error) {
       console.error("Failed to fetch vouchers", error);
       showToast({
@@ -282,7 +282,7 @@ export default function VoucherManagement() {
                   ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                 </div>
               </div>
             </div>
@@ -328,10 +328,12 @@ export default function VoucherManagement() {
                   <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold tracking-wider">
                     <th className="px-6 py-4 w-[5%]">ID</th>
                     <th className="px-6 py-4 w-[15%]">Mã Code</th>
-                    <th className="px-6 py-4 w-[25%]">Tên Voucher</th>
+                    {/* Giảm cột Tên từ 25% -> 20% để nhường chỗ */}
+                    <th className="px-6 py-4 w-[20%]">Tên Voucher</th>
                     <th className="px-6 py-4 w-[15%]">Giá trị</th>
                     <th className="px-6 py-4 w-[15%]">Thời gian</th>
-                    <th className="px-6 py-4 w-[10%] text-center">Trạng thái</th>
+                    {/* Tăng cột Trạng thái từ 10% -> 15% */}
+                    <th className="px-6 py-4 w-[15%] text-center">Trạng thái</th>
                     <th className="px-6 py-4 w-[15%] text-center">Thao tác</th>
                   </tr>
                 </thead>
@@ -356,29 +358,37 @@ export default function VoucherManagement() {
                     };
 
                     const getStatusBadge = (v: Voucher, expired: boolean) => {
+                      // 1. Hết hạn (Expired) -> Màu Cam/Amber (Đã thay đổi)
                       if (expired)
                         return (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             Hết hạn
                           </span>
                         );
-                      if (v.status && v.active)
+
+                      // 2. Hoạt động (Active) -> Màu Xanh Emerald
+                      if (v.active)
                         return (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                            Đang áp dụng
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Hoạt động
                           </span>
                         );
+
+                      // 3. Vô hiệu (Inactive) -> Màu Đỏ (Đã thay đổi)
                       return (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                          Ngừng áp dụng
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                          Vô hiệu
                         </span>
                       );
                     };
-                    
+
                     const getDiscountIcon = (v: Voucher) => {
-                        if (v.type === "PERCENTAGE") return <Percent className="w-4 h-4 text-emerald-500" />;
-                        if (v.type === "POINTS_REWARD") return <Plus className="w-4 h-4 text-blue-500" />;
-                        return <DollarSign className="w-4 h-4 text-green-500" />;
+                      if (v.type === "PERCENTAGE") return <Percent className="w-4 h-4 text-emerald-500" />;
+                      if (v.type === "POINTS_REWARD") return <Plus className="w-4 h-4 text-blue-500" />;
+                      return <DollarSign className="w-4 h-4 text-green-500" />;
                     }
 
                     return (
@@ -485,11 +495,10 @@ export default function VoucherManagement() {
                     <button
                       key={i + 1}
                       onClick={() => setCurrentPage(i + 1)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                        currentPage === i + 1
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
                     >
                       {i + 1}
                     </button>
