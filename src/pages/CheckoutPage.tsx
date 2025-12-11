@@ -10,9 +10,9 @@ import LoadingPage from "./LoadingPage";
 import CheckoutForm from "@/components/checkout/CheckoutForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
 import dayjs from "dayjs";
-import { X, Gift, CreditCard, Wallet, ArrowRight } from "lucide-react"; // Import thêm icon
+import { X, Gift, CreditCard, Wallet, ArrowRight } from "lucide-react";
 
-// --- Component Dialog Gợi ý Thanh toán (Hiện đại & Đẹp) ---
+// --- Component Dialog Gợi ý Thanh toán ---
 interface PaymentSuggestionDialogProps {
   open: boolean;
   onSwitchToVNPAY: () => void;
@@ -28,15 +28,11 @@ const PaymentSuggestionDialog: React.FC<PaymentSuggestionDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onKeepCOD}
       ></div>
-
-      {/* Modal Content */}
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
-        {/* Header trang trí */}
         <div className="relative h-32 bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full bg-white/20 blur-xl"></div>
@@ -55,7 +51,6 @@ const PaymentSuggestionDialog: React.FC<PaymentSuggestionDialogProps> = ({
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-6 text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-3">
             Thanh toán VNPAY tiện lợi hơn!
@@ -64,13 +59,11 @@ const PaymentSuggestionDialog: React.FC<PaymentSuggestionDialogProps> = ({
             Bạn có biết? Thanh toán qua <span className="font-bold text-emerald-600">VNPAY</span> giúp xử lý đơn hàng nhanh chóng, an toàn và thường xuyên có mã giảm giá độc quyền.
           </p>
 
-          {/* Actions */}
           <div className="flex flex-col gap-3">
             <button
               onClick={onSwitchToVNPAY}
               className="group relative flex w-full items-center justify-center gap-3 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 py-3.5 px-4 text-white font-semibold shadow-lg shadow-emerald-200 hover:shadow-emerald-300 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
             >
-              {/* Hiệu ứng lấp lánh nhẹ */}
               <div className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer"></div>
               <CreditCard className="h-5 w-5" />
               <span>Chuyển sang VNPAY ngay</span>
@@ -97,16 +90,20 @@ const CheckoutPage: React.FC = () => {
   const [cart, setCart] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("COD");
+  
+  // LOGIC: Mặc định chọn VNPAY
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "VNPAY">("VNPAY");
   
   // Voucher states
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
 
-  // Modal suggestion state
-  const [showPaymentSuggestion, setShowPaymentSuggestion] = useState(false);
+  // Error/Invalid States for UI display
+  const [invalidVoucher, setInvalidVoucher] = useState<Voucher | null>(null);
+  const [voucherError, setVoucherError] = useState<string>("");
 
+  const [showPaymentSuggestion, setShowPaymentSuggestion] = useState(false);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -135,60 +132,81 @@ const CheckoutPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Logic chặn thay đổi phương thức thanh toán
   const handlePaymentChange = (method: "COD" | "VNPAY") => {
     if (method === "COD") {
-      // Nếu chọn COD, hiện dialog gợi ý
       setShowPaymentSuggestion(true);
     } else {
-      // Nếu chọn VNPAY, chuyển luôn
       setPaymentMethod("VNPAY");
     }
   };
 
-  // Người dùng đồng ý chuyển sang VNPAY
   const handleSwitchToVNPAY = () => {
     setPaymentMethod("VNPAY");
     setShowPaymentSuggestion(false);
     showToast({ type: "success", title: "Đã chọn VNPAY", description: "Phương thức thanh toán đã được cập nhật." });
   };
 
-  // Người dùng vẫn muốn giữ COD
   const handleKeepCOD = () => {
     setPaymentMethod("COD");
     setShowPaymentSuggestion(false);
   };
 
-  // (Giữ nguyên logic Voucher cũ...)
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) {
       showToast({ type: "warning", title: "Thông báo", description: "Vui lòng nhập mã giảm giá" });
       return;
     }
+    
     setAppliedVoucher(null);
     setDiscountAmount(0);
+    setInvalidVoucher(null);
+    setVoucherError("");
 
     try {
       setLoading(true);
       const res = await vouchersService.getVoucherByCode(voucherCode);
-      const voucher = res.data;
+      
+      // --- SỬA LỖI TS TẠI ĐÂY ---
+      // Ép kiểu 'as any' để xử lý structure trả về từ API wrapper
+      const responseData = res.data as any; 
 
-      if (!voucher) throw new Error("Mã giảm giá không tồn tại");
-      if (!voucher.status || !voucher.active) throw new Error("Mã giảm giá hiện không khả dụng");
+      if (responseData.status === 1207) {
+        throw new Error("Mã giảm giá không tồn tại");
+      }
 
+      // Lấy data an toàn
+      const voucher = responseData && responseData.data ? responseData.data : null;
+
+      if (!voucher) {
+        throw new Error("Mã giảm giá không tồn tại");
+      }
+
+      // --- VALIDATE ĐIỀU KIỆN ---
       const now = dayjs();
       const start = dayjs(voucher.startDate);
       const end = dayjs(voucher.endDate);
-
-      if (now.isBefore(start)) throw new Error("Mã giảm giá chưa đến đợt áp dụng");
-      if (now.isAfter(end) || voucher.expired) throw new Error("Mã giảm giá đã hết hạn sử dụng");
-      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) throw new Error("Mã giảm giá đã hết lượt sử dụng");
       
-      if (cart.totalPrice < voucher.minimumOrderAmount) {
+      let failReason = "";
+
+      // LOGIC: Check Active an toàn (handle undefined)
+      if (!voucher.status || (voucher.active !== undefined && !voucher.active)) {
+         failReason = "Mã giảm giá hiện không khả dụng";
+      }
+      else if (now.isBefore(start)) failReason = "Mã giảm giá chưa đến đợt áp dụng";
+      else if (now.isAfter(end) || voucher.expired) failReason = "Mã giảm giá đã hết hạn sử dụng";
+      else if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) failReason = "Mã giảm giá đã hết lượt sử dụng";
+      else if (cart.totalPrice < voucher.minimumOrderAmount) {
          const fmt = new Intl.NumberFormat("vi-VN").format(voucher.minimumOrderAmount);
-         throw new Error(`Đơn hàng phải từ ${fmt}đ để áp dụng mã này`);
+         failReason = `Đơn hàng phải từ ${fmt}đ để dùng mã này`;
       }
 
+      if (failReason) {
+        setInvalidVoucher(voucher);
+        setVoucherError(failReason);
+        return; 
+      }
+
+      // --- TÍNH TOÁN GIẢM GIÁ ---
       let discount = 0;
       if (voucher.type === "PERCENTAGE") {
         discount = Math.floor((cart.totalPrice * voucher.amount) / 100);
@@ -203,15 +221,33 @@ const CheckoutPage: React.FC = () => {
       showToast({
         type: "success",
         title: "Thành công",
-        description: `Đã áp dụng mã giảm giá: -${new Intl.NumberFormat("vi-VN").format(discount)}đ`,
+        description: `Đã áp dụng mã: ${voucher.code}`,
       });
 
     } catch (error: any) {
       console.error("Voucher error:", error);
+
+      let errorMessage = "Mã giảm giá không hợp lệ";
+
+      // Xử lý lỗi từ backend trả về (bao gồm 404 Not Found)
+      if (error.response && error.response.data) {
+        // Ép kiểu error response để tránh warning TS
+        const errData = error.response.data as any;
+        const { status, message } = errData;
+        
+        if (status === 1207 || message === "Voucher not found") {
+          errorMessage = "Mã giảm giá không tồn tại";
+        } else {
+          errorMessage = message || errorMessage;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       showToast({
         type: "error",
         title: "Không thể áp dụng",
-        description: error.message || error.response?.data?.message || "Mã giảm giá không hợp lệ",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -267,13 +303,15 @@ const CheckoutPage: React.FC = () => {
         selectedAddress={selectedAddress}
         setSelectedAddress={setSelectedAddress}
         paymentMethod={paymentMethod}
-        setPaymentMethod={handlePaymentChange} // Truyền handler mới vào đây
+        setPaymentMethod={handlePaymentChange}
         voucherCode={voucherCode}
         setVoucherCode={setVoucherCode}
         onCreateAddress={handleCreateAddress}
         totalPrice={finalPrice}
         onApplyVoucher={handleApplyVoucher}
         appliedVoucher={appliedVoucher}
+        invalidVoucher={invalidVoucher}
+        voucherError={voucherError}
       />
       <OrderSummary 
         cart={cart} 
@@ -282,7 +320,6 @@ const CheckoutPage: React.FC = () => {
         loading={loading} 
       />
 
-      {/* Render Dialog Gợi ý */}
       <PaymentSuggestionDialog 
         open={showPaymentSuggestion}
         onSwitchToVNPAY={handleSwitchToVNPAY}
