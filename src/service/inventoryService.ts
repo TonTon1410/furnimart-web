@@ -77,8 +77,21 @@ export interface InventoryResponse {
   note: string;
   warehouseName: string;
   warehouseId: string;
+  toWarehouseName?: string;
+  toWarehouseId?: string;
   orderId: number;
+  pdfUrl?: string;
+  totalQuantity?: number;
+  transferStatus?: string;
   itemResponseList: InventoryItemResponse[];
+  reservedWarehouses?: ReservedWarehouse[];
+}
+
+// Response từ API warehouse view
+export interface WarehouseViewResponse {
+  warehouseId: string;
+  localTickets: InventoryResponse[];
+  globalTickets: InventoryResponse[];
 }
 
 export interface InventoryLocationDetail {
@@ -91,6 +104,14 @@ export interface InventoryLocationDetail {
   totalQuantity: number;
   reserved: number;
   available: number;
+}
+
+// Thông tin kho đã giữ cho phiếu
+export interface ReservedWarehouse {
+  warehouseId: string;
+  warehouseName: string;
+  reservedQuantity: number;
+  assignedWarehouse: boolean;
 }
 
 // Chi tiết sản phẩm trong phiếu giữ hàng
@@ -228,6 +249,13 @@ const inventoryService = {
   getPendingReservations: async (storeId: string) => {
     return axiosClient.get(`/inventories/reserve/pending`, {
       params: { storeId },
+    });
+  },
+
+  // 📋 Lấy view phiếu kho cho 1 warehouse (local + global RESERVE)
+  getWarehouseView: async (warehouseId: string) => {
+    return axiosClient.get(`/inventories/warehouse/view`, {
+      params: { warehouseId },
     });
   },
 };
