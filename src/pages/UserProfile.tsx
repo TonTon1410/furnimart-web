@@ -28,6 +28,7 @@ import {
 import axiosClient from "@/service/axiosClient";
 import { authService } from "@/service/authService";
 import { userService } from "@/service/userService";
+import { uploadToCloudinary } from "@/service/uploadService";
 
 interface AxiosError {
   response?: {
@@ -93,7 +94,7 @@ export default function UserProfile() {
 
     // ✅ Check authentication TRƯỚC
     const isAuth = authService.isAuthenticated();
-    
+
     if (!isAuth) {
       console.log("❌ Not authenticated, redirecting to login");
       window.location.href = "/login";
@@ -332,12 +333,27 @@ export default function UserProfile() {
       setIsUploadingAvatar(true);
       setError("");
 
-      const response = await userService.uploadAvatar(file);
+      // Upload lên Cloudinary
+      console.log("📤 Uploading avatar to Cloudinary...");
+      const cloudinaryUrl = await uploadToCloudinary(file, "image");
+      console.log("✅ Cloudinary URL:", cloudinaryUrl);
+
+      // Cập nhật avatar URL vào database
+      const response = await userService.updateProfile({
+        avatar: cloudinaryUrl,
+      });
 
       if (response.status === 200 && response.data && user) {
-        setUser({ ...user, avatar: response.data.avatar });
+        setUser({ ...user, avatar: cloudinaryUrl });
         setSuccess("Cập nhật avatar thành công!");
         setTimeout(() => setSuccess(""), 3000);
+
+        // Dispatch event để cập nhật navbar
+        window.dispatchEvent(
+          new CustomEvent("profile:updated", {
+            detail: { avatar: cloudinaryUrl },
+          })
+        );
       } else {
         throw new Error(response.message || "Cập nhật avatar thất bại");
       }

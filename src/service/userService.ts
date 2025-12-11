@@ -27,11 +27,12 @@ interface ApiResponse<T> {
 }
 
 interface UpdateProfilePayload {
-  fullName: string;
+  fullName?: string;
   phone?: string;
   birthday?: string; // ISO date string format
   gender?: boolean;
   cccd?: string;
+  avatar?: string; // Added avatar field
 }
 
 // Interface cho Change Password
@@ -61,10 +62,38 @@ export const userService = {
     payload: UpdateProfilePayload
   ): Promise<ApiResponse<UserProfile>> => {
     try {
-      const response = await axiosClient.put<ApiResponse<UserProfile>>(
-        "/users/profile",
-        payload
-      );
+      // Kiểm tra role để gọi đúng endpoint
+      const role = authService.getRole?.() ?? null;
+      const isEmployee = role && role !== "customer"; // customer là lowercase trong RoleKey
+
+      let response;
+
+      if (isEmployee) {
+        // Employee: dùng PUT /employees/{id}
+        console.log("🔧 Updating employee profile...");
+
+        // Lấy employee ID từ profile
+        const profile = await authService.getProfile();
+        const employeeId = profile?.id;
+
+        if (!employeeId) {
+          throw new Error("Employee ID not found");
+        }
+
+        console.log(`📤 PUT /employees/${employeeId}`);
+        response = await axiosClient.put<ApiResponse<UserProfile>>(
+          `/employees/${employeeId}`,
+          payload
+        );
+      } else {
+        // Customer: gọi /users/profile
+        console.log("🔧 Updating user profile...");
+        response = await axiosClient.put<ApiResponse<UserProfile>>(
+          "/users/profile",
+          payload
+        );
+      }
+
       return response.data;
     } catch (error: unknown) {
       console.error("Update profile error:", error);
