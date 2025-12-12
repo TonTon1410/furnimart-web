@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { Plus, AlertCircle, Tag, CheckCircle, XCircle, Calendar, Info } from "lucide-react";
+import { Plus, Tag, CheckCircle, XCircle, Calendar, Info, Wallet } from "lucide-react";
 import dayjs from "dayjs";
 
 type Props = {
@@ -15,12 +15,9 @@ type Props = {
   totalPrice: number;
   onApplyVoucher: () => void;
   appliedVoucher: any | null;
-  // Props cho hiển thị lỗi logic
   invalidVoucher: any | null;
   voucherError: string;
 };
-
-const COD_LIMIT = 20000000; 
 
 const CheckoutForm = React.memo<Props>(
   ({
@@ -38,13 +35,9 @@ const CheckoutForm = React.memo<Props>(
     invalidVoucher,
     voucherError
   }) => {
-    const isCODDisabled = totalPrice > COD_LIMIT;
-
-    React.useEffect(() => {
-      if (isCODDisabled && paymentMethod === "COD") {
-        setPaymentMethod("VNPAY");
-      }
-    }, [isCODDisabled, paymentMethod, setPaymentMethod]);
+    
+    // Tính toán số tiền cọc (10%) để hiển thị
+    const depositAmount = Math.round(totalPrice * 0.1);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setVoucherCode(e.target.value.toUpperCase());
@@ -52,7 +45,7 @@ const CheckoutForm = React.memo<Props>(
 
     return (
       <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-md">
-        {/* --- Phần Địa chỉ (Giữ nguyên) --- */}
+        {/* --- Phần Địa chỉ --- */}
         <div className="mb-6">
              <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-800">
@@ -107,7 +100,7 @@ const CheckoutForm = React.memo<Props>(
           )}
         </div>
 
-        {/* --- Phần Mã giảm giá (Giữ nguyên) --- */}
+        {/* --- Phần Mã giảm giá --- */}
         <div className="mb-6 border-t border-gray-100 pt-6">
           <h3 className="mb-3 text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Tag className="w-5 h-5 text-emerald-600" />
@@ -166,7 +159,6 @@ const CheckoutForm = React.memo<Props>(
                         </span>
                       </span>
                     </p>
-                    
                     {appliedVoucher.minimumOrderAmount > 0 && (
                       <p className="flex items-center gap-1.5 opacity-90">
                         <Info className="w-3.5 h-3.5" />
@@ -175,7 +167,6 @@ const CheckoutForm = React.memo<Props>(
                         </span>
                       </p>
                     )}
-
                     {appliedVoucher.endDate && (
                       <p className="flex items-center gap-1.5 opacity-90">
                         <Calendar className="w-3.5 h-3.5" />
@@ -215,28 +206,14 @@ const CheckoutForm = React.memo<Props>(
           )}
         </div>
 
-        {/* --- Phần Phương thức thanh toán --- */}
+        {/* --- Phần Phương thức thanh toán (ĐÃ CẬP NHẬT) --- */}
         <div className="border-t border-gray-100 pt-6">
           <h3 className="mb-3 text-lg font-semibold text-gray-800">
             Phương thức thanh toán
           </h3>
 
-          {isCODDisabled && (
-            <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800">
-                  Đơn hàng trên 20.000.000đ không hỗ trợ COD
-                </p>
-                <p className="mt-1 text-amber-700">
-                  Vui lòng chọn phương thức thanh toán trực tuyến qua VNPAY.
-                </p>
-              </div>
-            </div>
-          )}
-
           <div className="space-y-3">
-            {/* 1. VNPAY (Đã chuyển lên đầu) */}
+            {/* 1. VNPAY */}
             <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 transition-colors ${
                paymentMethod === "VNPAY" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : ""
             }`}>
@@ -248,39 +225,38 @@ const CheckoutForm = React.memo<Props>(
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
               />
               <div className="flex-1">
-                <span className="text-gray-800 font-medium">Thanh toán qua VNPAY</span>
-                <p className="mt-0.5 text-xs text-emerald-600 font-medium">Khuyên dùng: Nhanh chóng & An toàn</p>
+                <span className="text-gray-800 font-medium">Thanh toán toàn bộ qua VNPAY</span>
+                <p className="mt-0.5 text-xs text-emerald-600 font-medium">Khuyên dùng: Nhanh chóng & Miễn phí vận chuyển</p>
               </div>
             </label>
 
-            {/* 2. COD (Đã chuyển xuống dưới) */}
+            {/* 2. COD - Có logic hiển thị Đặt cọc */}
             <label
-              className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
-                isCODDisabled
-                  ? "cursor-not-allowed bg-gray-100 opacity-60"
-                  : "cursor-pointer hover:bg-gray-50"
-              } ${paymentMethod === "COD" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : ""}`}
+              className={`flex items-start gap-3 rounded-lg border p-3 transition-colors cursor-pointer hover:bg-gray-50 ${paymentMethod === "COD" ? "border-amber-500 bg-amber-50 ring-1 ring-amber-500" : ""}`}
             >
               <input
                 type="radio"
                 value="COD"
                 checked={paymentMethod === "COD"}
                 onChange={() => setPaymentMethod("COD")} 
-                disabled={isCODDisabled}
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed"
+                className="h-4 w-4 mt-1 text-amber-600 focus:ring-amber-500"
               />
               <div className="flex-1">
-                <span className={isCODDisabled ? "text-gray-500" : "text-gray-800 font-medium"}>
+                <span className="text-gray-800 font-medium">
                   Thanh toán khi nhận hàng (COD)
                 </span>
-                {!isCODDisabled && (
-                  <p className="mt-0.5 text-xs text-gray-500">Thanh toán bằng tiền mặt khi giao hàng</p>
-                )}
-                {isCODDisabled && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Chỉ áp dụng cho đơn hàng dưới 20.000.000đ
-                  </p>
-                )}
+                
+                {/* Hiển thị thông tin đặt cọc */}
+                <div className="mt-2 rounded bg-white border border-amber-200 p-3 text-sm text-amber-900 shadow-sm">
+                    <div className="flex items-center gap-2 font-semibold mb-1 text-amber-700">
+                        <Wallet className="w-4 h-4"/>
+                        Yêu cầu đặt cọc trước 10%
+                    </div>
+                    <p className="leading-relaxed">
+                        Bạn cần thanh toán cọc <span className="font-bold text-amber-700">{new Intl.NumberFormat("vi-VN").format(depositAmount)}đ</span> qua VNPAY ngay sau khi đặt hàng. 
+                        Số tiền còn lại sẽ thanh toán bằng tiền mặt khi nhận hàng.
+                    </p>
+                </div>
               </div>
             </label>
           </div>
