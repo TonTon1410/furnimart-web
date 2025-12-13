@@ -20,8 +20,10 @@ import type {
   PendingReservationResponse,
   ReservedItemResponse,
 } from "@/service/inventoryService";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeliveryManagementPage() {
+  const { showToast } = useToast();
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,9 @@ export default function DeliveryManagementPage() {
   const [reservedItems, setReservedItems] = useState<
     Record<string, ReservedItemResponse[]>
   >({});
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     loadAssignments();
@@ -237,7 +242,11 @@ export default function DeliveryManagementPage() {
       });
 
       console.log("✅ Stock out created successfully");
-      alert("Tạo phiếu xuất kho thành công!");
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description: "Tạo phiếu xuất kho thành công!",
+      });
       setShowStockOutModal(false);
       await loadAssignments();
     } catch (err) {
@@ -255,10 +264,18 @@ export default function DeliveryManagementPage() {
         errorResponse?.response?.status || errorResponse?.status;
 
       if (errorStatus === 401 || errorStatus === 1208) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        showToast({
+          type: "error",
+          title: "Phiên đăng nhập hết hạn",
+          description: "Vui lòng đăng nhập lại.",
+        });
         window.location.href = "/login";
       } else {
-        alert(`Không thể tạo phiếu xuất kho: ${errorMessage}`);
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: `Không thể tạo phiếu xuất kho: ${errorMessage}`,
+        });
       }
     } finally {
       setCreatingStockOut(false);
@@ -266,20 +283,37 @@ export default function DeliveryManagementPage() {
   };
 
   const handlePrepareProducts = async (orderId: number) => {
-    const notes = prompt("Nhập ghi chú (nếu có):");
-    if (notes === null) return; // User cancelled
+    setPendingOrderId(orderId);
+    setNoteText("");
+    setShowNoteModal(true);
+  };
+
+  const submitPrepareProducts = async () => {
+    if (pendingOrderId === null) return;
 
     try {
-      setPreparingProducts(orderId);
+      setPreparingProducts(pendingOrderId);
       await deliveryService.prepareProducts({
-        orderId,
-        notes: notes || undefined,
+        orderId: pendingOrderId,
+        notes: noteText || undefined,
       });
-      alert("Chuẩn bị sản phẩm thành công! Trạng thái đã chuyển sang READY.");
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description:
+          "Chuẩn bị sản phẩm thành công! Trạng thái đã chuyển sang READY.",
+      });
+      setShowNoteModal(false);
+      setNoteText("");
+      setPendingOrderId(null);
       await loadAssignments(); // Reload
     } catch (err) {
       console.error("Error preparing products:", err);
-      alert((err as Error).message || "Không thể chuẩn bị sản phẩm");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không thể chuẩn bị sản phẩm. Vui lòng thử lại.",
+      });
     } finally {
       setPreparingProducts(null);
     }
@@ -1065,6 +1099,62 @@ export default function DeliveryManagementPage() {
                   <>
                     <Package className="h-4 w-4" />
                     Tạo phiếu xuất
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note Modal */}
+      {showNoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Ghi chú chuẩn bị sản phẩm
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Thêm ghi chú cho quá trình chuẩn bị (nếu có)
+              </p>
+            </div>
+
+            <div className="p-6">
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Nhập ghi chú..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setNoteText("");
+                  setPendingOrderId(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={submitPrepareProducts}
+                disabled={preparingProducts !== null}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                {preparingProducts !== null ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4" />
+                    Xác nhận
                   </>
                 )}
               </button>
