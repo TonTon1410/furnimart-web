@@ -50,17 +50,20 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     danger: {
       icon: <AlertTriangle className="h-6 w-6 text-red-600" />,
       iconBg: "bg-red-100 dark:bg-red-900/30",
-      buttonBtn: "bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-red-200",
+      buttonBtn:
+        "bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-red-200",
     },
     success: {
       icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />,
       iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
-      buttonBtn: "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500 shadow-emerald-200",
+      buttonBtn:
+        "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500 shadow-emerald-200",
     },
     warning: {
       icon: <Info className="h-6 w-6 text-amber-600" />,
       iconBg: "bg-amber-100 dark:bg-amber-900/30",
-      buttonBtn: "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 shadow-amber-200",
+      buttonBtn:
+        "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 shadow-amber-200",
     },
   };
 
@@ -76,18 +79,20 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
       {/* Modal Content */}
       <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left shadow-2xl transition-all animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700">
-        
         {/* Nút tắt nhanh (X) góc phải */}
         <button
           onClick={onCancel}
           className="absolute right-4 top-4 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+          aria-label="Đóng"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* Icon Section */}
-          <div className={`mx-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10 ${currentStyle.iconBg}`}>
+          <div
+            className={`mx-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10 ${currentStyle.iconBg}`}
+          >
             {currentStyle.icon}
           </div>
 
@@ -96,7 +101,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">
               {title}
             </h3>
-            
+
             <div className="mt-2">
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                 {message}

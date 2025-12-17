@@ -10,7 +10,6 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 import ProductCard from "@/components/ProductCard";
-// import { useCartStore } from "@/store/cart"; // Không dùng nữa vì cần chọn màu ở trang chi tiết
 import { productService, type Product } from "@/service/homeService";
 import axios from "axios";
 

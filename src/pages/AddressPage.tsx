@@ -193,12 +193,33 @@ export default function AddressPage() {
       return;
     }
 
-    // Load Provinces
-    axios
-      .get("https://provinces.open-api.vn/api/?depth=3")
-      .then((res) => setProvinces(res.data))
-      .catch(() => showToast("error", "Không thể tải dữ liệu hành chính"));
+    // Load all province/district/ward data from GitHub (more reliable)
+    const loadProvinces = async () => {
+      try {
+        const res = await axios.get(
+          "https://raw.githubusercontent.com/kenzouno1/DiaGioiHanhChinhVN/master/data.json"
+        );
+        // Transform to our format
+        const provincesData = res.data.map((province: any) => ({
+          code: parseInt(province.Id),
+          name: province.Name,
+          districts: province.Districts.map((district: any) => ({
+            code: parseInt(district.Id),
+            name: district.Name,
+            wards: district.Wards.map((ward: any) => ({
+              code: parseInt(ward.Id),
+              name: ward.Name,
+            })),
+          })),
+        }));
+        setProvinces(provincesData);
+      } catch (error) {
+        console.error("Failed to load provinces:", error);
+        showToast("error", "Không thể tải dữ liệu hành chính");
+      }
+    };
 
+    loadProvinces();
     fetchAddresses();
   }, [fetchAddresses, showToast]);
 
