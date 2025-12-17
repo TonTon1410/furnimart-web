@@ -7,6 +7,7 @@ import { uploadToCloudinary } from "@/service/uploadService";
 import { useNavigate } from "react-router-dom";
 import { DP } from "@/router/paths";
 import CustomDropdown from "@/components/CustomDropdown";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeliveryPOD() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function DeliveryPOD() {
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const { showToast } = useToast();
 
   const formatAddress = (address?: DeliveryAssignment["order"]["address"]) => {
     if (!address) return "N/A";
@@ -79,7 +81,11 @@ export default function DeliveryPOD() {
       setPhotos((prev) => [...prev, ...urls]);
     } catch (err) {
       console.error("Error uploading photos:", err);
-      alert("Không thể tải ảnh lên. Vui lòng thử lại.");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không thể tải ảnh lên. Vui lòng thử lại.",
+          });
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -108,12 +114,20 @@ export default function DeliveryPOD() {
 
   const handleSubmit = async () => {
     if (!selectedAssignment) {
-      alert("Vui lòng chọn đơn hàng");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng chọn đơn hàng.",
+          });
       return;
     }
 
     if (photos.length === 0) {
-      alert("Vui lòng chụp ít nhất một ảnh bằng chứng giao hàng");
+      showToast({
+            type: "info",
+            title: "Nhắc Nhở",
+            description: "Vui lòng chụp ít nhất một ảnh bằng chứng giao hàng.",
+          });
       return;
     }
 
@@ -125,11 +139,19 @@ export default function DeliveryPOD() {
         deliveryNotes: notes.trim() || undefined,
       });
 
-      alert("Xác nhận giao hàng thành công!");
+      showToast({
+            type: "success",
+            title: "Thành Công!",
+            description: "Xác nhận giao hàng thành công!",
+          });
       navigate(DP("delivery/orders"));
     } catch (err) {
       console.error("Error submitting POD:", err);
-      alert("Không thể xác nhận giao hàng. Vui lòng thử lại.");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không thể xác nhận giao hàng. Vui lòng thử lại.",
+          });
     } finally {
       setSubmitting(false);
     }

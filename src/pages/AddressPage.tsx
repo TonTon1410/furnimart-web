@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import {
@@ -16,10 +16,8 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  Star,
-  MapIcon,
-  Clock,
-  TrendingUp,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { authService } from "@/service/authService";
 import { addressService, type Address } from "@/service/addressService";
@@ -33,7 +31,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// Fix Leaflet icon
+// --- Leaflet Icon Fix ---
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -42,29 +40,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Animation variants
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+// --- Animations ---
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.1 } },
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
 };
 
-const slideIn = {
-  hidden: { opacity: 0, x: -20 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } },
-};
-
-// Interfaces
+// --- Interfaces ---
 interface Province {
   code: number;
   name: string;
@@ -86,95 +74,78 @@ interface Toast {
   id: string;
   type: "success" | "error" | "warning" | "info";
   message: string;
-  duration?: number;
 }
 
-interface LoadingState {
-  fetch: boolean;
-  create: boolean;
-  update: boolean;
-  delete: boolean;
+interface AddressFormData {
+  id?: number;
+  name: string;
+  phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  street: string;
+  addressLine: string;
+  isDefault: boolean;
+  latitude: number;
+  longitude: number;
 }
 
-const TOAST_DURATION = 5000;
+const DEFAULT_FORM_DATA: AddressFormData = {
+  name: "",
+  phone: "",
+  city: "",
+  district: "",
+  ward: "",
+  street: "",
+  addressLine: "",
+  isDefault: false,
+  latitude: 21.0278,
+  longitude: 105.8342,
+};
 
-// Map Components
-function LocationMarker({
-  onSelect,
+// --- Map Components ---
+// Marker cho phép click để chọn vị trí
+const LocationMarker = ({
   position,
+  onSelect,
 }: {
-  onSelect: (lat: number, lng: number) => void;
   position: [number, number];
-}) {
+  onSelect: (lat: number, lng: number) => void;
+}) => {
   useMapEvents({
     click(e) {
       onSelect(e.latlng.lat, e.latlng.lng);
     },
   });
-
   return <Marker position={position} />;
-}
+};
 
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
+// Component để di chuyển bản đồ khi tọa độ thay đổi
+const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
   const map = useMap();
   useEffect(() => {
     if (lat && lng) {
-      map.setView([lat, lng], 15);
+      map.setView([lat, lng], 15, { animate: true });
     }
   }, [lat, lng, map]);
   return null;
-}
+};
 
+// --- Main Component ---
 export default function AddressPage() {
-  // Core state
+  // Data State
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
 
-  // UI state
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  // UI State
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Loading states
-  const [loading, setLoading] = useState<LoadingState>({
-    fetch: true,
-    create: false,
-    update: false,
-    delete: false,
-  });
-
-  // Search state
-  const [searchKeyword, setSearchKeyword] = useState("");
-
-  // Form state
-  const [createForm, setCreateForm] = useState({
-    name: "",
-    phone: "",
-    city: "",
-    district: "",
-    ward: "",
-    street: "",
-    addressLine: "",
-    isDefault: false,
-    latitude: 21.0278,
-    longitude: 105.8342,
-  });
-
-  const [editForm, setEditForm] = useState({
-    name: "",
-    phone: "",
-    city: "",
-    district: "",
-    ward: "",
-    street: "",
-    addressLine: "",
-    isDefault: false,
-    latitude: 21.0278,
-    longitude: 105.8342,
-  });
-
-  // Province/District/Ward data
-  const [provinces, setProvinces] = useState<Province[]>([]);
+  // Form State
+  const [formData, setFormData] = useState<AddressFormData>(DEFAULT_FORM_DATA);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(
     null
   );
@@ -183,125 +154,91 @@ export default function AddressPage() {
   );
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
-  // Edit mode province/district/ward
-  const [editProvince, setEditProvince] = useState<Province | null>(null);
-  const [editDistrict, setEditDistrict] = useState<District | null>(null);
-  const [editWard, setEditWard] = useState<Ward | null>(null);
-
-  // Toast management
-  const showToast = useCallback(
-    (type: Toast["type"], message: string, duration = TOAST_DURATION) => {
-      const id = `${Date.now()}-${Math.random()}`;
-      const toast: Toast = { id, type, message, duration };
-
-      setToasts((prev) => [...prev, toast]);
-
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, duration);
-    },
-    []
-  );
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  // --- Toast Logic ---
+  const showToast = useCallback((type: Toast["type"], message: string) => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(
+      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+      4000
+    );
   }, []);
 
-  // Loading state helpers
-  const setLoadingState = useCallback(
-    (key: keyof LoadingState, value: boolean) => {
-      setLoading((prev) => ({ ...prev, [key]: value }));
-    },
-    []
-  );
+  // --- Helper: Format Address ---
+  const formatAddress = useCallback((addr: Address) => {
+    return addressService.formatAddress(addr);
+  }, []);
 
-  // Memoized filtered addresses
-  const memoizedFilteredAddresses = useMemo(() => {
-    let filtered = [...addresses];
-
-    if (searchKeyword.trim()) {
-      filtered = addressService.filterAddressesByKeyword(
-        filtered,
-        searchKeyword
-      );
-    }
-
-    return filtered;
-  }, [addresses, searchKeyword]);
-
-  useEffect(() => {
-    setFilteredAddresses(memoizedFilteredAddresses);
-  }, [memoizedFilteredAddresses]);
-
-  // Fetch functions
+  // --- Data Fetching ---
   const fetchAddresses = useCallback(async () => {
     try {
-      setLoadingState("fetch", true);
-
+      setLoading(true);
       const profile = await authService.getProfile();
       const userId = profile?.id || authService.getUserId();
-
-      if (!userId) {
-        throw new Error("Không tìm thấy userId");
-      }
+      if (!userId) throw new Error("Vui lòng đăng nhập lại");
 
       const response = await addressService.getAddressesByUserId(userId);
-
-      if (response?.data && Array.isArray(response.data)) {
-        setAddresses(response.data);
-        showToast("success", `Đã tải ${response.data.length} địa chỉ`, 2000);
-      } else {
-        setAddresses([]);
-        showToast("warning", "Không có dữ liệu địa chỉ");
-      }
+      setAddresses(response?.data || []);
     } catch (error: any) {
-      console.error("Fetch addresses error:", error);
-      if (error.message?.includes("đăng nhập")) {
-        authService.logout(false); // false = giữ remember me (token hết hạn tự động)
-        window.location.href = "/login";
-        return;
-      }
-      showToast("error", error.message || "Không thể tải danh sách địa chỉ");
+      console.error(error);
       setAddresses([]);
     } finally {
-      setLoadingState("fetch", false);
+      setLoading(false);
     }
-  }, [setLoadingState, showToast]);
+  }, []);
 
-  // Initialize component
   useEffect(() => {
-    const isAuth = authService.isAuthenticated();
-    if (!isAuth) {
+    if (!authService.isAuthenticated()) {
       window.location.href = "/login";
       return;
     }
 
-    // Load provinces data
+    // Load Provinces
     axios
       .get("https://provinces.open-api.vn/api/?depth=3")
-      .then((res) => {
-        setProvinces(res.data);
-      })
-      .catch((err) => {
-        console.error("Failed to load provinces:", err);
-        showToast("error", "Không thể tải dữ liệu tỉnh/thành phố");
-      });
+      .then((res) => setProvinces(res.data))
+      .catch(() => showToast("error", "Không thể tải dữ liệu hành chính"));
 
     fetchAddresses();
   }, [fetchAddresses, showToast]);
 
-  // Geocode address helper
-  const geocodeAddress = useCallback(
-    async (city?: string, district?: string, ward?: string) => {
-      if (!city) return;
+  // --- Filtering & Sorting ---
+  useEffect(() => {
+    let result = [...addresses];
 
+    // 1. Lọc theo từ khóa
+    if (searchKeyword.trim()) {
+      result = addressService.filterAddressesByKeyword(result, searchKeyword);
+    }
+
+    // 2. Sắp xếp: Địa chỉ mặc định (isDefault = true) lên đầu
+    result.sort((a, b) => {
+      if (a.isDefault === b.isDefault) return 0;
+      return a.isDefault ? -1 : 1;
+    });
+
+    setFilteredAddresses(result);
+  }, [searchKeyword, addresses]);
+
+  // --- Geocoding Logic (Sync Map) ---
+  const handleGeocode = useCallback(
+    async (
+      city?: string,
+      district?: string,
+      ward?: string,
+      street?: string
+    ) => {
       const clean = (s: string) =>
         s
           .replace(/^(Thành phố|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s+/g, "")
           .trim();
 
       let query = "";
-      if (city && district && ward) {
+      if (street && city && district && ward) {
+        query = `${street}, ${clean(ward)}, ${clean(district)}, ${clean(
+          city
+        )}, Việt Nam`;
+      } else if (city && district && ward) {
         query = `${clean(ward)}, ${clean(district)}, ${clean(city)}, Việt Nam`;
       } else if (city && district) {
         query = `${clean(district)}, ${clean(city)}, Việt Nam`;
@@ -319,778 +256,426 @@ export default function AddressPage() {
         );
         const data = await res.json();
         if (data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lng = parseFloat(data[0].lon);
-
-          if (isCreating) {
-            setCreateForm((prev) => ({
-              ...prev,
-              latitude: lat,
-              longitude: lng,
-            }));
-          } else if (editingId) {
-            setEditForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-          }
+          setFormData((prev) => ({
+            ...prev,
+            latitude: parseFloat(data[0].lat),
+            longitude: parseFloat(data[0].lon),
+          }));
         }
       } catch (e) {
-        console.error("Lỗi geocode:", e);
+        console.error("Geocode error", e);
       }
     },
-    [isCreating, editingId]
+    []
   );
 
-  // Form helpers
-  const resetCreateForm = useCallback(() => {
-    setCreateForm({
-      name: "",
-      phone: "",
-      city: "",
-      district: "",
-      ward: "",
-      street: "",
-      addressLine: "",
-      isDefault: false,
-      latitude: 21.0278,
-      longitude: 105.8342,
-    });
+  // --- Form Handlers ---
+  const openCreateModal = () => {
+    setFormData(DEFAULT_FORM_DATA);
     setSelectedProvince(null);
     setSelectedDistrict(null);
     setSelectedWard(null);
-  }, []);
+    setIsModalOpen(true);
+  };
 
-  // CRUD operations
-  const handleCreate = useCallback(async () => {
-    if (
-      !createForm.name.trim() ||
-      !createForm.phone.trim() ||
-      !createForm.addressLine.trim()
-    ) {
-      showToast("error", "Vui lòng điền đầy đủ thông tin bắt buộc");
+  const openEditModal = (address: Address) => {
+    const prov = provinces.find((p) => p.name === address.city);
+    const dist = prov?.districts.find((d) => d.name === address.district);
+    const ward = dist?.wards.find((w) => w.name === address.ward);
+
+    setSelectedProvince(prov || null);
+    setSelectedDistrict(dist || null);
+    setSelectedWard(ward || null);
+
+    setFormData({
+      id: address.id,
+      name: address.name,
+      phone: address.phone,
+      city: address.city || "",
+      district: address.district || "",
+      ward: address.ward || "",
+      street: address.street || "",
+      addressLine: address.addressLine,
+      isDefault: Boolean(address.isDefault),
+      latitude: address.latitude || 21.0278,
+      longitude: address.longitude || 105.8342,
+    });
+
+    setIsModalOpen(true);
+  };
+
+  const handleFormSubmit = async () => {
+    const { name, phone, addressLine, city, district, ward } = formData;
+    if (!name || !phone || !addressLine || !city || !district || !ward) {
+      showToast("error", "Vui lòng điền đầy đủ các trường bắt buộc (*)");
       return;
     }
 
     try {
-      setLoadingState("create", true);
+      setLoading(true);
       const profile = await authService.getProfile();
       const userId = profile?.id || authService.getUserId();
 
-      const response = await addressService.createAddress({
-        ...createForm,
-        userId: userId || undefined,
-      });
-
-      if (response?.data) {
-        await fetchAddresses();
-        resetCreateForm();
-        setIsCreating(false);
-        showToast("success", "Thêm địa chỉ thành công!");
+      if (formData.id) {
+        // Update
+        await addressService.updateAddress(formData.id, {
+          ...formData,
+          userId: userId || undefined,
+        });
+        showToast("success", "Cập nhật địa chỉ thành công");
+      } else {
+        // Create
+        await addressService.createAddress({
+          ...formData,
+          userId: userId || undefined,
+        });
+        showToast("success", "Thêm địa chỉ mới thành công");
       }
+
+      await fetchAddresses();
+      setIsModalOpen(false);
     } catch (error: any) {
-      showToast("error", error.message || "Thêm địa chỉ thất bại");
+      showToast("error", error.message || "Có lỗi xảy ra khi lưu địa chỉ");
     } finally {
-      setLoadingState("create", false);
+      setLoading(false);
     }
-  }, [createForm, setLoadingState, showToast, fetchAddresses, resetCreateForm]);
+  };
 
-  const handleEdit = useCallback(
-    (address: Address) => {
-      if (!address?.id) {
-        showToast("error", "Thông tin địa chỉ không hợp lệ");
-        return;
-      }
-
-      setEditingId(address.id);
-      setEditForm({
-        name: address.name || "",
-        phone: address.phone || "",
-        city: address.city || "",
-        district: address.district || "",
-        ward: address.ward || "",
-        street: address.street || "",
-        addressLine: address.addressLine || "",
-        isDefault: Boolean(address.isDefault),
-        latitude: 21.0278,
-        longitude: 105.8342,
-      });
-
-      // Set edit provinces/districts/wards
-      const prov = provinces.find((p) => p.name === address.city);
-      setEditProvince(prov || null);
-
-      if (prov) {
-        const dist = prov.districts.find((d) => d.name === address.district);
-        setEditDistrict(dist || null);
-
-        if (dist) {
-          const ward = dist.wards.find((w) => w.name === address.ward);
-          setEditWard(ward || null);
-        }
-      }
-    },
-    [provinces, showToast]
-  );
-
-  const handleUpdate = useCallback(async () => {
-    if (!editingId) return;
-
-    if (
-      !editForm.name.trim() ||
-      !editForm.phone.trim() ||
-      !editForm.addressLine.trim()
-    ) {
-      showToast("error", "Vui lòng điền đầy đủ thông tin bắt buộc");
-      return;
-    }
-
+  const handleDelete = async (id: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return;
     try {
-      setLoadingState("update", true);
-
-      const profile = await authService.getProfile();
-      const userId = profile?.id || authService.getUserId();
-
-      const response = await addressService.updateAddress(editingId, {
-        ...editForm,
-        userId: userId || undefined,
-      });
-
-      if (response?.data) {
-        await fetchAddresses();
-        setEditingId(null);
-        showToast("success", "Cập nhật địa chỉ thành công!");
-      }
+      setLoading(true);
+      await addressService.deleteAddress(id);
+      showToast("success", "Đã xóa địa chỉ");
+      await fetchAddresses();
     } catch (error: any) {
-      showToast("error", error.message || "Cập nhật địa chỉ thất bại");
+      showToast("error", error.message);
     } finally {
-      setLoadingState("update", false);
+      setLoading(false);
     }
-  }, [editingId, editForm, setLoadingState, showToast, fetchAddresses]);
-
-  const handleDelete = useCallback(
-    async (id: number) => {
-      if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return;
-
-      try {
-        setLoadingState("delete", true);
-
-        await addressService.deleteAddress(id);
-        await fetchAddresses();
-        showToast("success", "Xóa địa chỉ thành công!");
-      } catch (error: any) {
-        showToast("error", error.message || "Xóa địa chỉ thất bại");
-      } finally {
-        setLoadingState("delete", false);
-      }
-    },
-    [setLoadingState, showToast, fetchAddresses]
-  );
-
-  const handleSetDefault = useCallback(
-    async (id: number) => {
-      try {
-        setLoadingState("update", true);
-
-        const response = await addressService.setDefaultAddress(id);
-
-        if (response?.data) {
-          showToast("success", "Đã đặt làm địa chỉ mặc định!");
-        }
-
-        await fetchAddresses();
-      } catch (error: any) {
-        showToast("error", error.message || "Đặt địa chỉ mặc định thất bại");
-      } finally {
-        setLoadingState("update", false);
-      }
-    },
-    [setLoadingState, showToast, fetchAddresses]
-  );
-
-  const formatAddress = useCallback((address: Address) => {
-    if (!address) return "";
-    return addressService.formatAddress(address);
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    await fetchAddresses();
-  }, [fetchAddresses]);
-
-  const handleCancelCreate = useCallback(() => {
-    setIsCreating(false);
-    resetCreateForm();
-  }, [resetCreateForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingId(null);
-  }, []);
-
-  // Toast component
-  const ToastContainer = () => (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      <AnimatePresence>
-        {toasts.map((toast) => (
-          <motion.div
-            key={toast.id}
-            variants={slideIn}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            className={`max-w-sm p-4 rounded-lg shadow-lg border flex items-start gap-3 ${
-              toast.type === "success"
-                ? "bg-green-50 border-green-200 text-green-800"
-                : toast.type === "error"
-                ? "bg-red-50 border-red-200 text-red-800"
-                : toast.type === "warning"
-                ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-                : "bg-blue-50 border-blue-200 text-blue-800"
-            }`}
-          >
-            <div className="shrink-0 mt-0.5">
-              {toast.type === "success" && <CheckCircle className="h-4 w-4" />}
-              {toast.type === "error" && <AlertCircle className="h-4 w-4" />}
-              {toast.type === "warning" && <AlertCircle className="h-4 w-4" />}
-              {toast.type === "info" && <AlertCircle className="h-4 w-4" />}
-            </div>
-            <div className="flex-1 text-sm font-medium">{toast.message}</div>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="shrink-0 p-1 hover:opacity-70 transition-opacity"
-              aria-label="Đóng thông báo"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-
-  if (loading.fetch) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto mb-6"></div>
-          <p className="text-foreground text-lg font-medium">
-            Đang tải danh sách địa chỉ...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <>
-      <ToastContainer />
+    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
+      {/* --- Toast Notifications --- */}
+      <div className="fixed top-6 right-6 z-9999 space-y-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md min-w-[300px] ${
+                toast.type === "success"
+                  ? "bg-green-50/90 border-green-200 text-green-700"
+                  : toast.type === "error"
+                  ? "bg-red-50/90 border-red-200 text-red-700"
+                  : "bg-white/90 border-gray-200 text-gray-700"
+              }`}
+            >
+              {toast.type === "success" ? (
+                <CheckCircle size={18} />
+              ) : (
+                <AlertCircle size={18} />
+              )}
+              <span className="text-sm font-medium">{toast.message}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
-      <motion.div
-        initial="hidden"
-        animate="show"
-        variants={staggerContainer}
-        className="space-y-6"
-      >
-        {/* Header */}
-        <motion.div variants={fadeUp} className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-primary/10 rounded-2xl">
-              <MapPin className="h-8 w-8 text-primary" />
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* --- Header & Search Bar --- */}
+        <div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                <MapPin className="text-blue-600" size={32} /> Địa chỉ giao hàng
+              </h1>
+              <p className="text-gray-500 text-sm mt-1 ml-9">
+                Quản lý và tìm kiếm địa chỉ giao hàng của bạn
+              </p>
             </div>
-            <h1 className="text-4xl font-bold text-foreground">
-              Địa chỉ giao hàng
-            </h1>
           </div>
-          <p className="text-muted-foreground text-lg">
-            Quản lý địa chỉ giao hàng của bạn
-          </p>
-        </motion.div>
 
-        {/* Toolbar */}
-        <motion.div
-          variants={fadeUp}
-          className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4"
-        >
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <MapIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="Tìm kiếm theo tên, số điện thoại, địa chỉ..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          <div className="flex flex-col md:flex-row gap-3 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="relative flex-1">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên, số điện thoại, đường..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
             </div>
-
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <button
-                onClick={handleRefresh}
-                disabled={loading.fetch}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                onClick={fetchAddresses}
+                className="px-4 py-2.5 bg-white text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center gap-2 transition-colors font-medium text-sm"
+                disabled={loading}
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${loading.fetch ? "animate-spin" : ""}`}
+                  size={16}
+                  className={loading ? "animate-spin" : ""}
                 />
                 <span className="hidden sm:inline">Làm mới</span>
               </button>
+              <button
+                onClick={openCreateModal}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 text-sm whitespace-nowrap"
+              >
+                <Plus size={18} />
+                Thêm địa chỉ
+              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Add New Address Button */}
-        {!isCreating && (
-          <motion.div variants={fadeUp} className="text-center">
-            <button
-              onClick={() => setIsCreating(true)}
-              disabled={loading.create}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg disabled:opacity-50"
-            >
-              <Plus className="h-5 w-5" />
-              Thêm địa chỉ mới
-            </button>
-          </motion.div>
+        {/* --- Empty State --- */}
+        {!loading && filteredAddresses.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MapPin size={24} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Không tìm thấy địa chỉ nào
+            </h3>
+            <p className="text-gray-500 text-sm mt-1">
+              Hãy thêm địa chỉ mới để bắt đầu mua sắm.
+            </p>
+          </div>
         )}
 
-        {/* Create Form */}
-        <AnimatePresence>
-          {isCreating && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Plus className="h-6 w-6 text-blue-600" />
-                  Thêm địa chỉ mới
-                </h3>
-                <button
-                  onClick={handleCancelCreate}
-                  disabled={loading.create}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                  aria-label="Hủy thêm địa chỉ"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Họ và tên *
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.name}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, name: e.target.value })
-                    }
-                    disabled={loading.create}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập họ và tên"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Số điện thoại *
-                  </label>
-                  <input
-                    type="tel"
-                    value={createForm.phone}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, phone: e.target.value })
-                    }
-                    disabled={loading.create}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập số điện thoại"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tỉnh/Thành phố *
-                  </label>
-                  <select
-                    value={selectedProvince?.code || ""}
-                    onChange={(e) => {
-                      const prov = provinces.find(
-                        (p) => p.code === Number(e.target.value)
-                      );
-                      setSelectedProvince(prov || null);
-                      setSelectedDistrict(null);
-                      setSelectedWard(null);
-                      if (prov) {
-                        setCreateForm({
-                          ...createForm,
-                          city: prov.name,
-                          district: "",
-                          ward: "",
-                        });
-                      }
-                    }}
-                    disabled={loading.create}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    aria-label="Chọn tỉnh/thành phố"
-                  >
-                    <option value="">-- Chọn tỉnh/thành --</option>
-                    {provinces.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Quận/Huyện *
-                  </label>
-                  <select
-                    value={selectedDistrict?.code || ""}
-                    onChange={(e) => {
-                      const dist = selectedProvince?.districts.find(
-                        (d) => d.code === Number(e.target.value)
-                      );
-                      setSelectedDistrict(dist || null);
-                      setSelectedWard(null);
-                      if (dist) {
-                        setCreateForm({
-                          ...createForm,
-                          district: dist.name,
-                          ward: "",
-                        });
-                      }
-                    }}
-                    disabled={loading.create || !selectedProvince}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    aria-label="Chọn quận/huyện"
-                  >
-                    <option value="">-- Chọn quận/huyện --</option>
-                    {selectedProvince?.districts.map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Phường/Xã *
-                  </label>
-                  <select
-                    value={selectedWard?.code || ""}
-                    onChange={(e) => {
-                      const ward = selectedDistrict?.wards.find(
-                        (w) => w.code === Number(e.target.value)
-                      );
-                      setSelectedWard(ward || null);
-                      if (ward) {
-                        setCreateForm({ ...createForm, ward: ward.name });
-                        geocodeAddress(
-                          selectedProvince?.name,
-                          selectedDistrict?.name,
-                          ward.name
-                        );
-                      }
-                    }}
-                    disabled={loading.create || !selectedDistrict}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    aria-label="Chọn phường/xã"
-                  >
-                    <option value="">-- Chọn phường/xã --</option>
-                    {selectedDistrict?.wards.map((w) => (
-                      <option key={w.code} value={w.code}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Đường/Phố
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.street}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, street: e.target.value })
-                    }
-                    disabled={loading.create}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                    placeholder="Nhập tên đường/phố"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Địa chỉ chi tiết *
-                </label>
-                <textarea
-                  value={createForm.addressLine}
-                  onChange={(e) =>
-                    setCreateForm({
-                      ...createForm,
-                      addressLine: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  disabled={loading.create}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
-                  placeholder="Số nhà, tên đường, khu vực..."
-                />
-              </div>
-
-              {/* Map */}
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Vị trí bản đồ
-                </label>
-                <div className="w-full h-72 rounded-lg border border-gray-200 overflow-hidden">
-                  <MapContainer
-                    center={[createForm.latitude, createForm.longitude]}
-                    zoom={15}
-                    scrollWheelZoom
-                    style={{ height: "100%", width: "100%" }}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <RecenterMap
-                      lat={createForm.latitude}
-                      lng={createForm.longitude}
-                    />
-                    <LocationMarker
-                      position={[createForm.latitude, createForm.longitude]}
-                      onSelect={(lat, lng) => {
-                        setCreateForm({
-                          ...createForm,
-                          latitude: lat,
-                          longitude: lng,
-                        });
-                      }}
-                    />
-                  </MapContainer>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Click vào bản đồ để chọn vị trí chính xác. Tọa độ:{" "}
-                  {createForm.latitude.toFixed(6)},{" "}
-                  {createForm.longitude.toFixed(6)}
-                </p>
-              </div>
-
-              <div className="mt-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={createForm.isDefault}
-                    onChange={(e) =>
-                      setCreateForm({
-                        ...createForm,
-                        isDefault: e.target.checked,
-                      })
-                    }
-                    disabled={loading.create}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                    aria-label="Đặt làm địa chỉ mặc định"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Đặt làm địa chỉ mặc định
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={handleCreate}
-                  disabled={loading.create}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
-                >
-                  {loading.create ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Đang lưu...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Lưu địa chỉ
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleCancelCreate}
-                  disabled={loading.create}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                  Hủy
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Address List */}
-        <motion.div variants={fadeUp} className="space-y-4">
-          {filteredAddresses.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-200">
-              <MapIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {searchKeyword
-                  ? "Không tìm thấy địa chỉ nào"
-                  : "Chưa có địa chỉ nào"}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {searchKeyword
-                  ? "Thử thay đổi từ khóa tìm kiếm"
-                  : "Thêm địa chỉ giao hàng để thuận tiện cho việc mua sắm"}
-              </p>
-              {!isCreating && !searchKeyword && (
-                <button
-                  onClick={() => setIsCreating(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  Thêm địa chỉ đầu tiên
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <AnimatePresence>
-                {filteredAddresses.map((address) => (
-                  <motion.div
-                    key={address.id}
-                    variants={fadeUp}
-                    initial="hidden"
-                    animate="show"
-                    exit="exit"
-                    layout
-                    className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200"
-                  >
-                    {editingId === address.id ? (
+        {/* --- Address List --- */}
+        <div className="flex flex-col gap-4">
+          <AnimatePresence>
+            {filteredAddresses.map((addr, index) => (
+              <motion.div
+                key={addr.id}
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                layout
+                transition={{ delay: index * 0.05 }}
+                className={`group relative bg-white rounded-xl p-6 border transition-all duration-200 ${
+                  addr.isDefault
+                    ? "border-blue-200 shadow-sm ring-1 ring-blue-500/20 bg-blue-50/10"
+                    : "border-gray-100 hover:border-blue-200 hover:shadow-md"
+                }`}
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                  {/* Left: Info Section */}
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`p-2 rounded-lg ${
+                          addr.isDefault
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        <User size={18} />
+                      </div>
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <Edit3 className="h-5 w-5 text-blue-600" />
-                            Chỉnh sửa địa chỉ
-                          </h4>
-                          <button
-                            onClick={handleCancelEdit}
-                            disabled={loading.update}
-                            className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-                            aria-label="Hủy chỉnh sửa"
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900 text-lg">
+                            {addr.name}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md border border-blue-200">
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5">
+                          <Phone size={14} />
+                          <span>{addr.phone}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 pl-1">
+                      <MapPin
+                        size={18}
+                        className="text-gray-400 mt-1 shrink-0"
+                      />
+                      <span className="text-gray-700 leading-relaxed">
+                        {formatAddress(addr)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: Actions Section */}
+                  <div className="flex items-center gap-2 shrink-0 self-start md:self-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-4 w-full md:w-auto mt-2 md:mt-0 justify-end">
+                    <button
+                      onClick={() => openEditModal(addr)}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Chỉnh sửa"
+                    >
+                      <Edit3 size={20} />
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(addr.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Xóa"
+                      aria-label="Xóa địa chỉ"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* --- Modal Form --- */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setIsModalOpen(false)}
+            />
+
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  {formData.id ? (
+                    <Edit3 size={24} className="text-blue-600" />
+                  ) : (
+                    <Plus size={24} className="text-blue-600" />
+                  )}
+                  {formData.id ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
+                </h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                  aria-label="Đóng"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto bg-gray-50/50">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
+                  {/* Left Column: Form Fields */}
+                  <div className="lg:col-span-5 p-6 space-y-5 bg-white h-full overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Họ và tên <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                          placeholder="Nguyễn Văn A"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Số điện thoại <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, phone: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                          placeholder="0912..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-dashed border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Tỉnh / Thành phố
+                          </label>
+                          <select
+                            value={selectedProvince?.code || ""}
+                            onChange={(e) => {
+                              const prov = provinces.find(
+                                (p) => p.code === Number(e.target.value)
+                              );
+                              setSelectedProvince(prov || null);
+                              setSelectedDistrict(null);
+                              setSelectedWard(null);
+                              if (prov) {
+                                setFormData({
+                                  ...formData,
+                                  city: prov.name,
+                                  district: "",
+                                  ward: "",
+                                });
+                                // Trigger geocode chỉ với tên Tỉnh để map bay về tỉnh đó
+                                handleGeocode(prov.name);
+                              }
+                            }}
+                            className="w-full px-4 py-2.5 bg-white rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                            aria-label="Chọn tỉnh/thành phố"
                           >
-                            <X className="h-4 w-4" />
-                          </button>
+                            <option value="">-- Chọn Tỉnh/Thành --</option>
+                            {provinces.map((p) => (
+                              <option key={p.code} value={p.code}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Họ và tên *
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.name}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  name: e.target.value,
-                                })
-                              }
-                              disabled={loading.update}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              aria-label="Họ và tên"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Số điện thoại *
-                            </label>
-                            <input
-                              type="tel"
-                              value={editForm.phone}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  phone: e.target.value,
-                                })
-                              }
-                              disabled={loading.update}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              aria-label="Số điện thoại"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Tỉnh/Thành phố *
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                              Quận / Huyện
                             </label>
                             <select
-                              value={editProvince?.code || ""}
+                              value={selectedDistrict?.code || ""}
                               onChange={(e) => {
-                                const prov = provinces.find(
-                                  (p) => p.code === Number(e.target.value)
-                                );
-                                setEditProvince(prov || null);
-                                setEditDistrict(null);
-                                setEditWard(null);
-                                if (prov) {
-                                  setEditForm({
-                                    ...editForm,
-                                    city: prov.name,
-                                    district: "",
-                                    ward: "",
-                                  });
-                                }
-                              }}
-                              disabled={loading.update}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              aria-label="Chọn tỉnh/thành phố"
-                            >
-                              <option value="">-- Chọn tỉnh/thành --</option>
-                              {provinces.map((p) => (
-                                <option key={p.code} value={p.code}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Quận/Huyện *
-                            </label>
-                            <select
-                              value={editDistrict?.code || ""}
-                              onChange={(e) => {
-                                const dist = editProvince?.districts.find(
+                                const dist = selectedProvince?.districts.find(
                                   (d) => d.code === Number(e.target.value)
                                 );
-                                setEditDistrict(dist || null);
-                                setEditWard(null);
+                                setSelectedDistrict(dist || null);
+                                setSelectedWard(null);
                                 if (dist) {
-                                  setEditForm({
-                                    ...editForm,
+                                  setFormData({
+                                    ...formData,
                                     district: dist.name,
                                     ward: "",
                                   });
+                                  handleGeocode(formData.city, dist.name);
                                 }
                               }}
-                              disabled={loading.update || !editProvince}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              disabled={!selectedProvince}
+                              className="w-full px-4 py-2.5 bg-white rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-gray-100"
                               aria-label="Chọn quận/huyện"
                             >
-                              <option value="">-- Chọn quận/huyện --</option>
-                              {editProvince?.districts.map((d) => (
+                              <option value="">-- Quận/Huyện --</option>
+                              {selectedProvince?.districts.map((d) => (
                                 <option key={d.code} value={d.code}>
                                   {d.name}
                                 </option>
@@ -1099,266 +684,177 @@ export default function AddressPage() {
                           </div>
 
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Phường/Xã *
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                              Phường / Xã
                             </label>
                             <select
-                              value={editWard?.code || ""}
+                              value={selectedWard?.code || ""}
                               onChange={(e) => {
-                                const ward = editDistrict?.wards.find(
+                                const ward = selectedDistrict?.wards.find(
                                   (w) => w.code === Number(e.target.value)
                                 );
-                                setEditWard(ward || null);
+                                setSelectedWard(ward || null);
                                 if (ward) {
-                                  setEditForm({ ...editForm, ward: ward.name });
-                                  geocodeAddress(
-                                    editProvince?.name,
-                                    editDistrict?.name,
-                                    ward.name
+                                  setFormData({ ...formData, ward: ward.name });
+                                  handleGeocode(
+                                    selectedProvince?.name,
+                                    selectedDistrict?.name,
+                                    ward.name,
+                                    formData.street
                                   );
                                 }
                               }}
-                              disabled={loading.update || !editDistrict}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                              disabled={!selectedDistrict}
+                              className="w-full px-4 py-2.5 bg-white rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-gray-100"
                               aria-label="Chọn phường/xã"
                             >
-                              <option value="">-- Chọn phường/xã --</option>
-                              {editDistrict?.wards.map((w) => (
+                              <option value="">-- Phường/Xã --</option>
+                              {selectedDistrict?.wards.map((w) => (
                                 <option key={w.code} value={w.code}>
                                   {w.name}
                                 </option>
                               ))}
                             </select>
                           </div>
-
-                          <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Đường/Phố
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.street}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  street: e.target.value,
-                                })
-                              }
-                              disabled={loading.update}
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                              aria-label="Tên đường/phố"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-4">
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Địa chỉ chi tiết *
-                          </label>
-                          <textarea
-                            value={editForm.addressLine}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                addressLine: e.target.value,
-                              })
-                            }
-                            rows={3}
-                            disabled={loading.update}
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
-                            aria-label="Địa chỉ chi tiết"
-                          />
-                        </div>
-
-                        {/* Edit Map */}
-                        <div className="mt-4">
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Vị trí bản đồ
-                          </label>
-                          <div className="w-full h-72 rounded-lg border border-gray-200 overflow-hidden">
-                            <MapContainer
-                              center={[editForm.latitude, editForm.longitude]}
-                              zoom={15}
-                              scrollWheelZoom
-                              style={{ height: "100%", width: "100%" }}
-                            >
-                              <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              />
-                              <RecenterMap
-                                lat={editForm.latitude}
-                                lng={editForm.longitude}
-                              />
-                              <LocationMarker
-                                position={[
-                                  editForm.latitude,
-                                  editForm.longitude,
-                                ]}
-                                onSelect={(lat, lng) => {
-                                  setEditForm({
-                                    ...editForm,
-                                    latitude: lat,
-                                    longitude: lng,
-                                  });
-                                }}
-                              />
-                            </MapContainer>
-                          </div>
-                          <p className="mt-2 text-xs text-gray-500">
-                            Click vào bản đồ để chọn vị trí chính xác. Tọa độ:{" "}
-                            {editForm.latitude.toFixed(6)},{" "}
-                            {editForm.longitude.toFixed(6)}
-                          </p>
-                        </div>
-
-                        <div className="mt-4">
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={editForm.isDefault}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  isDefault: e.target.checked,
-                                })
-                              }
-                              disabled={loading.update}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                              aria-label="Đặt làm địa chỉ mặc định"
-                            />
-                            <span className="text-sm font-medium text-gray-700">
-                              Đặt làm địa chỉ mặc định
-                            </span>
-                          </label>
-                        </div>
-
-                        <div className="flex gap-3 mt-4">
-                          <button
-                            onClick={handleUpdate}
-                            disabled={loading.update}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
-                          >
-                            {loading.update ? (
-                              <>
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                                Đang cập nhật...
-                              </>
-                            ) : (
-                              <>
-                                <Save className="h-4 w-4" />
-                                Cập nhật
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            disabled={loading.update}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium disabled:opacity-50"
-                          >
-                            <X className="h-4 w-4" />
-                            Hủy
-                          </button>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Tên đường / Số nhà
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.street}
+                        onChange={(e) =>
+                          setFormData({ ...formData, street: e.target.value })
+                        }
+                        onBlur={() =>
+                          handleGeocode(
+                            formData.city,
+                            formData.district,
+                            formData.ward,
+                            formData.street
+                          )
+                        }
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                        placeholder="Ví dụ: 123 Đường Nguyễn Trãi"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Địa chỉ chi tiết <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={formData.addressLine}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            addressLine: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none resize-none"
+                        placeholder="Tòa nhà A, Khu B, gần công viên..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column: Map */}
+                  <div className="lg:col-span-7 flex flex-col h-[400px] lg:h-auto border-t lg:border-t-0 lg:border-l border-gray-200">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center text-xs text-gray-600">
+                      <span className="flex items-center gap-1 font-medium">
+                        <MapPin size={14} className="text-red-500" />
+                        Click trên bản đồ để chọn vị trí chính xác
+                      </span>
+                      <span className="bg-white px-2 py-1 rounded border border-gray-200 font-mono">
+                        {formData.latitude.toFixed(6)},{" "}
+                        {formData.longitude.toFixed(6)}
+                      </span>
+                    </div>
+                    <div className="flex-1 relative z-0">
+                      <MapContainer
+                        center={[formData.latitude, formData.longitude]}
+                        zoom={15}
+                        scrollWheelZoom={true}
+                        style={{ height: "100%", width: "100%" }}
+                      >
+                        <TileLayer
+                          attribution="&copy; OSM"
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <RecenterMap
+                          lat={formData.latitude}
+                          lng={formData.longitude}
+                        />
+                        <LocationMarker
+                          position={[formData.latitude, formData.longitude]}
+                          onSelect={(lat, lng) =>
+                            setFormData({
+                              ...formData,
+                              latitude: lat,
+                              longitude: lng,
+                            })
+                          }
+                        />
+                      </MapContainer>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
+                <label className="flex items-center gap-3 cursor-pointer group select-none">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isDefault}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          isDefault: e.target.checked,
+                        })
+                      }
+                      className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-gray-300 bg-white transition-all checked:border-blue-600 checked:bg-blue-600 group-hover:border-blue-400"
+                    />
+                    <CheckCircle
+                      size={14}
+                      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                    Đặt làm mặc định
+                  </span>
+                </label>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-6 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleFormSubmit}
+                    disabled={loading}
+                    className="px-8 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <Loader2 size={18} className="animate-spin" />
                     ) : (
-                      <div>
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <User className="h-5 w-5 text-blue-600" />
-                                {address.name}
-                              </h4>
-                              {address.isDefault && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
-                                  <Star className="h-3 w-3 fill-current" />
-                                  Mặc định
-                                </span>
-                              )}
-                            </div>
-                            <div className="space-y-2 text-gray-600">
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <span>{address.phone}</span>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                                <span className="text-sm">
-                                  {formatAddress(address)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            {!address.isDefault && (
-                              <button
-                                onClick={() => handleSetDefault(address.id)}
-                                disabled={loading.update}
-                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                title="Đặt làm mặc định"
-                                aria-label="Đặt làm địa chỉ mặc định"
-                              >
-                                <Star className="h-4 w-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleEdit(address)}
-                              disabled={loading.update}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                              title="Chỉnh sửa"
-                              aria-label="Chỉnh sửa địa chỉ"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(address.id)}
-                              disabled={loading.delete}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                              title="Xóa"
-                              aria-label="Xóa địa chỉ"
-                            >
-                              {loading.delete ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-200">
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                Tạo:{" "}
-                                {new Date(address.createdAt).toLocaleDateString(
-                                  "vi-VN"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-3 w-3" />
-                              <span>
-                                Cập nhật:{" "}
-                                {new Date(address.updatedAt).toLocaleDateString(
-                                  "vi-VN"
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <Save size={18} />
                     )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-        </motion.div>
-      </motion.div>
-    </>
+                    {formData.id ? "Lưu thay đổi" : "Tạo địa chỉ"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

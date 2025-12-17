@@ -15,6 +15,7 @@ import { BlogForm } from "@/components/blog/BlogForm";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { BlogEmptyState } from "@/components/blog/BlogEmptyState";
 import { BlogCustomerAlert } from "@/components/blog/BlogCustomerAlert";
+import { useToast } from "@/context/ToastContext";
 
 interface UserProfile {
   id: string;
@@ -36,11 +37,16 @@ export default function OwnBlogPage() {
   });
   const [creating, setCreating] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
       if (!authService.isAuthenticated()) {
-        alert("Vui lòng đăng nhập để quản lý blog của bạn!");
+        showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng đăng nhập để quản lý blog của bạn!",
+          });
         navigate("/login");
         return;
       }
@@ -120,7 +126,11 @@ export default function OwnBlogPage() {
       }
     } catch (err: any) {
       console.error("[OwnBlog] Lỗi tải blogs:", err);
-      alert(err.message || "Có lỗi xảy ra khi tải danh sách blogs");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: err.message || "Có lỗi xảy ra khi tải danh sách blogs",
+          });
     } finally {
       setLoading(false);
     }
@@ -138,19 +148,29 @@ export default function OwnBlogPage() {
 
   const handleCreateBlog = async () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để tạo blog!");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng đăng nhập để tạo blog!",
+          });
       return;
     }
 
     if (!canCreate) {
-      alert(
-        "Bạn không có quyền tạo blog. Chức năng này chỉ dành cho nhân viên!"
-      );
+      showToast({
+            type: "warning",
+            title: "Cảnh Báo!",
+            description: "Bạn không có quyền tạo blog. Chức năng này chỉ dành cho nhân viên!",
+          });
       return;
     }
 
     if (!formData.name.trim() || !formData.content.trim()) {
-      alert("Vui lòng nhập đầy đủ tiêu đề và nội dung!");
+      showToast({
+            type: "error",
+            title: "Lưu Ý",
+            description: "Vui lòng nhập đầy đủ tiêu đề và nội dung!",
+          });
       return;
     }
 
@@ -172,7 +192,11 @@ export default function OwnBlogPage() {
       const response = await blogService.createBlog(payload);
 
       if (response.status === 201) {
-        alert("Tạo blog thành công!");
+        showToast({
+            type: "success",
+            title: "Thành Công!",
+            description: "Tạo blog thành công!",
+          });
         setFormData({ name: "", content: "", image: "" });
         setShowCreateForm(false);
         fetchMyBlogs();
@@ -182,11 +206,17 @@ export default function OwnBlogPage() {
       console.error("[OwnBlog] ❌ Error response:", err.response?.data);
 
       if (err.response?.data?.message?.includes("User not found")) {
-        alert(
-          "Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại!"
-        );
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại!",
+          });
       } else {
-        alert(err.message || "Có lỗi xảy ra khi tạo blog");
+        showToast({
+            type: "error",
+            title: "Thất Bại",
+            description: err.message || "Có lỗi xảy ra khi tạo blog",
+          });
       }
     } finally {
       setCreating(false);
@@ -197,12 +227,20 @@ export default function OwnBlogPage() {
     if (!editingBlog || !user) return;
 
     if (!canCreate) {
-      alert("Bạn không có quyền cập nhật blog!");
+      showToast({
+            type: "warning",
+            title: "Cảnh Báo!",
+            description: "Bạn không có quyền cập nhật blog!",
+          });
       return;
     }
 
     if (!formData.name.trim() || !formData.content.trim()) {
-      alert("Vui lòng nhập đầy đủ tiêu đề và nội dung!");
+      showToast({
+            type: "warning",
+            title: "Lưu Ý",
+            description: "Vui lòng nhập đầy đủ tiêu đề và nội dung!",
+          });
       return;
     }
 
@@ -220,7 +258,11 @@ export default function OwnBlogPage() {
       const response = await blogService.updateBlog(editingBlog.id, payload);
 
       if (response.status === 200) {
-        alert("Cập nhật blog thành công!");
+        showToast({
+            type: "success",
+            title: "Thành Công!",
+            description: "Cập nhật blog thành công!",
+          });
         setFormData({ name: "", content: "", image: "" });
         setEditingBlog(null);
         setShowCreateForm(false);
@@ -228,7 +270,11 @@ export default function OwnBlogPage() {
       }
     } catch (err: any) {
       console.error("[OwnBlog] ❌ Update error:", err);
-      alert(err.message || "Có lỗi xảy ra khi cập nhật blog");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: err.message || "Có lỗi xảy ra khi cập nhật blog",
+          });
     } finally {
       setCreating(false);
     }
@@ -241,12 +287,20 @@ export default function OwnBlogPage() {
       const response = await blogService.deleteBlog(blogId);
 
       if (response.status === 200) {
-        alert("Xóa blog thành công!");
+        showToast({
+            type: "success",
+            title: "Thành Công!",
+            description: "Xóa blog thành công!",
+          });
         fetchMyBlogs();
       }
     } catch (err: any) {
       console.error("[OwnBlog] Lỗi xóa blog:", err);
-      alert(err.message || "Có lỗi xảy ra khi xóa blog");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: err.message || "Có lỗi xảy ra khi xóa blog",
+          });
     }
   };
 
@@ -255,12 +309,20 @@ export default function OwnBlogPage() {
       const response = await blogService.toggleBlogStatus(blogId);
 
       if (response.status === 200) {
-        alert("Cập nhật trạng thái thành công!");
+        showToast({
+            type: "success",
+            title: "Thành Công!",
+            description: "Cập nhật trạng thái thành công!",
+          });
         fetchMyBlogs();
       }
     } catch (err: any) {
       console.error("[OwnBlog] Lỗi toggle status:", err);
-      alert(err.message || "Có lỗi xảy ra");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: err.message || "Có lỗi xảy ra",
+          });
     }
   };
 

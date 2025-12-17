@@ -25,6 +25,10 @@ const AdminStoresPage = lazy(
 );
 const BlogManagement = lazy(() => import("@/dashboard/roles/admin/OwnBlog"));
 
+const VoucherManagement = lazy(
+  () => import("@/dashboard/roles/admin/VoucherManagement")
+);
+
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
 
 const SellerProductsPage = lazy(
@@ -139,6 +143,7 @@ export default function RoleRoutes() {
         <Route path="reports/delivery" element={<AdminDeliveryEff />} />
         <Route path="wallet" element={<AdminWallet />} />
         <Route path="disputes" element={<AdminDisputes />} />
+        <Route path="vouchers" element={<VoucherManagement />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );

@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import warehousesService from "@/service/warehousesService";
 import inventoryService, {
   type InventoryResponse,
+  type WarehouseViewResponse,
 } from "@/service/inventoryService";
 import { useWarehouseData } from "./hook/useWarehouseData";
 import { useToast } from "@/context/ToastContext";
@@ -469,15 +470,24 @@ export default function InventoryManagement() {
           });
         }
       } else {
-        const res = await inventoryService.getInventoriesByWarehouse(
-          warehouse.id
+        // Sử dụng API mới getWarehouseView
+        const res = await inventoryService.getWarehouseView(warehouse.id);
+        const viewData: WarehouseViewResponse = res.data?.data || res.data;
+
+        // Gộp localTickets và globalTickets
+        const allTickets = [
+          ...(viewData.localTickets || []),
+          ...(viewData.globalTickets || []),
+        ];
+
+        // Loại bỏ các phiếu trùng lặp dựa trên id (chỉ giữ bản ghi đầu tiên)
+        const uniqueTickets = allTickets.filter(
+          (ticket, index, self) =>
+            index === self.findIndex((t) => t.id === ticket.id)
         );
-        const list = res.data?.data || res.data;
 
         // Requirement 2: Sắp xếp giảm dần theo ID
-        const sortedList = Array.isArray(list)
-          ? list.sort((a: any, b: any) => b.id - a.id)
-          : [];
+        const sortedList = uniqueTickets.sort((a, b) => b.id - a.id);
         setInventories(sortedList as InventoryResponse[]);
       }
     } catch (error) {

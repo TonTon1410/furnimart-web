@@ -6,6 +6,7 @@ import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import CategoryForm, { type CategoryFormValues, type Status } from "./CategoryForm";
+import { useToast } from "@/context/ToastContext";
 
 interface Category {
   id: number;
@@ -79,6 +80,7 @@ const AdminCategoriesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -185,11 +187,19 @@ const AdminCategoriesPage: React.FC = () => {
       if (res.status !== 200) {
         // lỗi: khôi phục
         setList(prev);
-        alert(res?.data?.message || "Xoá không thành công");
+        showToast({
+            type: "error",
+            title: "Lỗi",
+            description: res?.data?.message || "Xoá không thành công",
+          });
       }
     } catch (e: any) {
       setList(prev);
-      alert(e?.response?.data?.message || e?.message || "Không thể xoá danh mục");
+      showToast({
+            type: "error",
+            title: "Lỗi",
+            description: e?.response?.data?.message || e?.message || "Không thể xoá danh mục",
+          });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);

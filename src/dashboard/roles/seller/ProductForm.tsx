@@ -12,9 +12,12 @@ import {
   Palette,
   Plus,
   Trash2,
+  Upload,
 } from "lucide-react";
 import axiosClient from "@/service/axiosClient";
 import colorService, { type Color } from "@/service/colorService";
+import { useToast } from "@/context/ToastContext";
+import { uploadToCloudinary } from "@/service/uploadService";
 
 export type Status = "ACTIVE" | "INACTIVE";
 
@@ -123,12 +126,17 @@ const ProductForm: React.FC<Props> = ({
   const [mats, setMats] = useState<Material[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [loadingOpt, setLoadingOpt] = useState(true);
+  const { showToast } = useToast();
 
   // New color modal
   const [showNewColorModal, setShowNewColorModal] = useState(false);
   const [newColorName, setNewColorName] = useState("");
   const [newColorHex, setNewColorHex] = useState("#000000");
   const [creatingColor, setCreatingColor] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingColorImages, setUploadingColorImages] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     (async () => {
@@ -232,6 +240,34 @@ const ProductForm: React.FC<Props> = ({
   };
   const isValidHex6 = (v: string) => /^#[0-9A-F]{6}$/i.test(v);
 
+  const handleThumbnailUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast({ type: "error", title: "Vui lòng chọn file ảnh" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({ type: "error", title: "File không được vượt quá 5MB" });
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const url = await uploadToCloudinary(file, "image");
+      update({ thumbnailImage: url });
+      showToast({ type: "success", title: "Upload ảnh thành công" });
+    } catch (err) {
+      console.error(err);
+      showToast({ type: "error", title: "Upload ảnh thất bại" });
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
   const toggleMaterial = (id: number) => {
     update({
       materialIds: (form.materialIds || []).includes(id)
@@ -282,18 +318,30 @@ const ProductForm: React.FC<Props> = ({
       // Xóa khỏi form state
       removeColor(idx);
 
-      alert("✅ Đã xóa màu thành công!");
+      showToast({
+        type: "success",
+        title: "Thành Công!",
+        description: "Đã xóa màu thành công!",
+      });
     } catch (error: any) {
       const errorMsg =
         error?.response?.data?.message || error?.message || "Không thể xóa màu";
-      alert(`❌ Lỗi: ${errorMsg}`);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: errorMsg,
+      });
     }
   };
 
   // Create new color via API
   const handleCreateColor = async () => {
     if (!newColorName.trim() || !newColorHex) {
-      alert("Vui lòng nhập tên và mã màu");
+      showToast({
+        type: "warning",
+        title: "Thiếu Thông Tin",
+        description: "Vui lòng nhập tên và mã màu.",
+      });
       return;
     }
 
@@ -312,7 +360,11 @@ const ProductForm: React.FC<Props> = ({
       setNewColorHex("#000000");
       setShowNewColorModal(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Không thể tạo màu mới");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: err.response?.data?.message || "Không thể tạo màu mới",
+      });
     } finally {
       setCreatingColor(false);
     }
@@ -364,6 +416,51 @@ const ProductForm: React.FC<Props> = ({
     update({ colorRequests: arr });
   };
 
+  const handleColorImageUpload = async (
+    idx: number,
+    imgIdx: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast({ type: "error", title: "Vui lòng chọn file ảnh" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({ type: "error", title: "File không được vượt quá 5MB" });
+      return;
+    }
+
+    const key = `${idx}-${imgIdx}`;
+    setUploadingColorImages((prev) => ({ ...prev, [key]: true }));
+    try {
+      const url = await uploadToCloudinary(file, "image");
+      const arr = [...(form.colorRequests || [])];
+      const item = { ...(arr[idx] || {}) } as ColorReq;
+      const list = [...(item.imageRequestList || [])];
+      const currentImage = list[imgIdx] || {};
+      list[imgIdx] = {
+        imageUrl: url,
+        isNew: currentImage.isNew,
+      };
+      item.imageRequestList = list;
+      arr[idx] = item;
+      update({ colorRequests: arr });
+      showToast({ type: "success", title: "Upload ảnh thành công" });
+    } catch (err) {
+      console.error(err);
+      showToast({ type: "error", title: "Upload ảnh thất bại" });
+    } finally {
+      setUploadingColorImages((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
   const setColorImage =
     (idx: number, imgIdx: number) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,23 +486,38 @@ const ProductForm: React.FC<Props> = ({
 
     const imageUrl = item.imageRequestList?.[imgIdx]?.imageUrl?.trim();
     if (!imageUrl) {
-      alert("Vui lòng nhập URL ảnh!");
+      showToast({
+        type: "warning",
+        title: "Thiếu Thông Tin",
+        description: "Vui lòng nhập URL ảnh!",
+      });
       return;
     }
 
     // Kiểm tra thiếu data
     if (!item.productColorId) {
-      alert(
-        "❌ Lỗi: Không tìm thấy productColorId. Màu này có thể chưa được lưu vào database."
-      );
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          "Không tìm thấy productColorId. Màu này có thể chưa được lưu vào database.",
+      });
       return;
     }
     if (!item.productId) {
-      alert("❌ Lỗi: Không tìm thấy productId.");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không tìm thấy productId.",
+      });
       return;
     }
     if (!item.colorId) {
-      alert("❌ Lỗi: Không tìm thấy colorId.");
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Không tìm thấy colorId.",
+      });
       return;
     }
 
@@ -439,7 +551,11 @@ const ProductForm: React.FC<Props> = ({
         arr[idx] = item;
         update({ colorRequests: arr });
 
-        alert("✅ Đã lưu ảnh mới thành công!");
+        showToast({
+          type: "success",
+          title: "Thành Công!",
+          description: "Đã lưu ảnh mới thành công!",
+        });
       } catch (error: any) {
         const errorMsg =
           error?.response?.data?.message ||
@@ -447,10 +563,18 @@ const ProductForm: React.FC<Props> = ({
           error?.message ||
           "Không thể lưu ảnh";
 
-        alert(`❌ Lỗi: ${errorMsg}`);
+        showToast({
+          type: "error",
+          title: "Lỗi",
+          description: errorMsg,
+        });
       }
     } else {
-      alert("⚠️ Chế độ create - ảnh sẽ được lưu khi submit form.");
+      showToast({
+        type: "warning",
+        title: "Lưu ý",
+        description: "Chế độ create - ảnh sẽ được lưu khi submit form.",
+      });
     }
   };
 
@@ -621,13 +745,31 @@ const ProductForm: React.FC<Props> = ({
                 <ImageIcon className="h-4 w-4 text-emerald-600" /> Ảnh thumbnail
                 (URL)
               </label>
-              <input
-                id={idOf("p-thumb")}
-                value={form.thumbnailImage || ""}
-                onChange={handleChange("thumbnailImage")}
-                placeholder="https://...jpg"
-                className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  id={idOf("p-thumb")}
+                  value={form.thumbnailImage || ""}
+                  onChange={handleChange("thumbnailImage")}
+                  placeholder="https://...jpg"
+                  className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+                <label className="relative cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailUpload}
+                    className="hidden"
+                    disabled={uploadingThumbnail}
+                  />
+                  <div className="flex h-full items-center rounded-xl border border-emerald-500 bg-emerald-50 px-4 py-3 text-emerald-600 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900">
+                    {uploadingThumbnail ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Upload className="h-5 w-5" />
+                    )}
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -796,7 +938,7 @@ const ProductForm: React.FC<Props> = ({
                 </p>
               ) : (
                 // ✅ cho phép kéo nếu quá dài, tránh “tràn”
-                <div className="grid gap-4 max-h-[34rem] overflow-auto pr-1">
+                <div className="grid gap-4 max-h-136 overflow-auto pr-1">
                   {(form.colorRequests || []).map((c, idx) => (
                     <div
                       key={idx}
@@ -970,6 +1112,30 @@ const ProductForm: React.FC<Props> = ({
                                       placeholder="https://example.com/image.jpg"
                                       className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                                     />
+                                    <label className="relative cursor-pointer">
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                          handleColorImageUpload(idx, imgIdx, e)
+                                        }
+                                        className="hidden"
+                                        disabled={
+                                          uploadingColorImages[
+                                            `${idx}-${imgIdx}`
+                                          ]
+                                        }
+                                      />
+                                      <div className="flex items-center rounded-lg border border-emerald-500 bg-emerald-50 px-3 py-2 text-emerald-600 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900">
+                                        {uploadingColorImages[
+                                          `${idx}-${imgIdx}`
+                                        ] ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Upload className="h-4 w-4" />
+                                        )}
+                                      </div>
+                                    </label>
                                     {/* Hiển thị nút Lưu cho ảnh mới chưa lưu */}
                                     {img.isNew && (
                                       <button
@@ -1245,7 +1411,7 @@ const ProductForm: React.FC<Props> = ({
             Xem trước
           </h3>
           <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-900/10">
-            <div className="aspect-[16/9] w-full">
+            <div className="aspect-video w-full">
               <img
                 src={form.thumbnailImage || fallbackImg}
                 alt={form.name || "Product"}
@@ -1253,7 +1419,7 @@ const ProductForm: React.FC<Props> = ({
                 onError={onImgError}
               />
             </div>
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent" />
             <div className="absolute bottom-4 left-4 text-white drop-shadow">
               <div className="text-sm opacity-90">{form.code || "CODE"}</div>
               <div className="text-xl font-bold">

@@ -48,7 +48,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <Toast.Root
         open={open}
         onOpenChange={setOpen}
-        duration={4000}
+        duration={3000}
         // 👇 THAY ĐỔI 1: Thêm 'relative' để làm điểm neo cho nút đóng
         className={`relative rounded-xl max-w-md w-full px-8 py-5 shadow-2xl border ${colorClass} data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right-100 data-[state=open]:slide-in-from-right-100`}
       >
@@ -87,7 +87,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       </Toast.Root>
 
-      <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" />
+      {/* Góc dưới bên phải */}
+      {/* <Toast.Viewport className="fixed bottom-4 right-4 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" /> */}
+      {/* Góc trên bên phải */}
+      <Toast.Viewport className="fixed top-4 right-4 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" />
+      {/* Góc trên ở giữa */}
+      {/* <Toast.Viewport className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-4 outline-none w-[400px] p-4" /> */}
     </Toast.Provider>
   );
 }
