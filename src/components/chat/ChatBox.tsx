@@ -312,7 +312,7 @@ export function ChatBox() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
         aria-label={isOpen ? "Đóng chat" : "Mở chat"}
       >
         {isOpen ? (
@@ -324,7 +324,7 @@ export function ChatBox() {
 
       {/* Chat Popup */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[360px] h-[500px] bg-background rounded-2xl shadow-2xl border overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className="fixed bottom-30 right-4 left-4 sm:left-auto sm:bottom-24 sm:right-6 z-50 w-auto sm:w-[360px] max-w-[calc(100vw-2rem)] h-[calc(100vh-10rem)] sm:h-[500px] max-h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
           {/* Header */}
           <div
             className={`p-4 border-b text-primary-foreground flex items-center gap-3 ${

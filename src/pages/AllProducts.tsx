@@ -94,9 +94,9 @@ const AllProducts: React.FC = () => {
   }, [selectedCat]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pb-24 sm:pb-20">
       {/* Layout 2 cột: Sidebar trái (danh mục) + Lưới sản phẩm */}
-      <section className="mx-auto max-w-7xl px-6 py-10">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <div className="grid grid-cols-12 gap-8">
           {/* Sidebar danh mục */}
           <aside className="col-span-12 md:col-span-3">

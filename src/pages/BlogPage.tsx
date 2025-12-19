@@ -1,58 +1,64 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Sparkles, ArrowRight, Calendar, User } from "lucide-react"
-import { getAllBlog, type Blog, getSafeImageUrl, truncateContent, formatDate } from "@/service/blogService"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { Sparkles, ArrowRight, Calendar, User } from "lucide-react";
+import {
+  getAllBlog,
+  type Blog,
+  getSafeImageUrl,
+  truncateContent,
+  formatDate,
+} from "@/service/blogService";
+import { useNavigate } from "react-router-dom";
 
 export default function BlogPage() {
-  const [blogs, setBlogs] = useState<Blog[]>([])
-  const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await getAllBlog()
-        const responseData = response as any
-        const data = responseData.data || responseData
-        let blogList: Blog[] = []
+        const response = await getAllBlog();
+        const responseData = response as any;
+        const data = responseData.data || responseData;
+        let blogList: Blog[] = [];
 
         if (Array.isArray(data)) {
-          blogList = data
+          blogList = data;
         } else if (data?.content && Array.isArray(data.content)) {
-          blogList = data.content
+          blogList = data.content;
         }
 
         // Filter only public blogs (status === true)
-        setBlogs(blogList.filter(b => b.status))
+        setBlogs(blogList.filter((b) => b.status));
       } catch (error) {
-        console.error("Failed to fetch blogs", error)
+        console.error("Failed to fetch blogs", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchBlogs()
-  }, [])
+    fetchBlogs();
+  }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-
-
+    <div className="min-h-screen bg-background pb-24 sm:pb-20">
       {/* Blog List */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         {blogs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Chưa có bài viết nào được đăng tải.</p>
+            <p className="text-gray-500 text-lg">
+              Chưa có bài viết nào được đăng tải.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -69,7 +75,7 @@ export default function BlogPage() {
                     alt={blog.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {
-                      ; (e.target as HTMLImageElement).style.display = "none"
+                      (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
@@ -85,7 +91,9 @@ export default function BlogPage() {
                     <span className="w-1 h-1 rounded-full bg-border" />
                     <div className="flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5" />
-                      <span>{blog.employeeName || blog.userName || "Admin"}</span>
+                      <span>
+                        {blog.employeeName || blog.userName || "Admin"}
+                      </span>
                     </div>
                   </div>
 
@@ -108,5 +116,5 @@ export default function BlogPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
