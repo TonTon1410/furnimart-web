@@ -95,11 +95,45 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
     "mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm " +
     "text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100";
 
-  // load tỉnh/thành
+  // load tỉnh/thành - sử dụng GitHub raw data làm nguồn chính
   useEffect(() => {
-    axios.get("https://provinces.open-api.vn/api/?depth=3").then((res) => {
-      setProvinces(res.data);
-    });
+    const fetchProvinces = async () => {
+      try {
+        // Use GitHub raw data (more reliable than provinces.open-api.vn)
+        const res = await axios.get<
+          Array<{
+            Id: string;
+            Name: string;
+            Districts: Array<{
+              Id: string;
+              Name: string;
+              Wards: Array<{ Id: string; Name: string }>;
+            }>;
+          }>
+        >(
+          "https://raw.githubusercontent.com/kenzouno1/DiaGioiHanhChinhVN/master/data.json"
+        );
+        // Transform to our format
+        const provincesData = res.data.map((province) => ({
+          code: parseInt(province.Id),
+          name: province.Name,
+          districts: province.Districts.map((district) => ({
+            code: parseInt(district.Id),
+            name: district.Name,
+            wards: district.Wards.map((ward) => ({
+              code: parseInt(ward.Id),
+              name: ward.Name,
+            })),
+          })),
+        }));
+        setProvinces(provincesData);
+      } catch (error) {
+        console.error("Failed to load provinces:", error);
+        alert("Không thể tải dữ liệu tỉnh/thành. Vui lòng thử lại sau.");
+      }
+    };
+
+    fetchProvinces();
   }, []);
 
   // đồng bộ value
