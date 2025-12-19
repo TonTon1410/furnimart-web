@@ -16,10 +16,23 @@ import {
   FileText,
   Phone,
   Eye,
+  Shield,
+  AlertCircle,
+  Upload,
+  X,
 } from "lucide-react";
 import { orderService } from "@/service/orderService";
 import type { OrderItem } from "../types/order";
 import { OrderProcessTimeline } from "@/components/OrderProcessTimeline";
+import warrantyService, {
+  type Warranty,
+  type WarrantyClaimItem,
+  type WarrantyClaim,
+} from "@/service/warrantyService";
+import { uploadToCloudinary } from "@/service/uploadService";
+import { addressService, type Address } from "@/service/addressService";
+import { authService } from "@/service/authService";
+import { productService, type ProductColor } from "@/service/productService";
 
 // Process status config
 const processStatusConfig: Record<
@@ -144,6 +157,7 @@ const orderTabs = [
   { key: "DELIVERED", label: "Đã giao", icon: CheckCircle },
   { key: "FINISHED", label: "Hoàn thành", icon: CheckCircle },
   { key: "CANCELLED", label: "Đã hủy", icon: XCircle },
+  { key: "WARRANTY_CLAIMS", label: "Bảo hành", icon: Shield },
 ];
 
 const getStatusColor = (status: string) => {
@@ -232,6 +246,33 @@ export default function OrderHistory() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Warranty states
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [selectedOrderForWarranty, setSelectedOrderForWarranty] =
+    useState<OrderItem | null>(null);
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [loadingWarranties, setLoadingWarranties] = useState(false);
+  const [selectedWarranties, setSelectedWarranties] = useState<
+    Map<number, WarrantyClaimItem>
+  >(new Map());
+  const [submittingClaim, setSubmittingClaim] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState<Set<number>>(
+    new Set()
+  );
+  const [userAddresses, setUserAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
+    null
+  );
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  // Warranty claims list
+  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>([]);
+  const [loadingWarrantyClaims, setLoadingWarrantyClaims] = useState(false);
+  const [warrantyProductColors, setWarrantyProductColors] = useState<
+    Map<string, ProductColor>
+  >(new Map());
+
   const ordersPerPage = 10;
 
   // Load tất cả orders một lần khi component mount
@@ -260,14 +301,87 @@ export default function OrderHistory() {
     loadAllOrders();
   }, []); // Chỉ chạy 1 lần khi mount
 
+  // Load warranty claims when WARRANTY_CLAIMS tab is selected
+  useEffect(() => {
+    const loadWarrantyClaims = async () => {
+      if (activeTab !== "WARRANTY_CLAIMS") return;
+
+      setLoadingWarrantyClaims(true);
+      try {
+        const profile = await authService.getProfile();
+        const customerId = profile?.id || authService.getUserId();
+
+        if (customerId) {
+          const claims = await warrantyService.getWarrantyClaimsByCustomer(
+            customerId
+          );
+
+          // Sắp xếp theo thứ tự mới nhất đến cũ nhất
+          const sortedClaims = claims.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.claimDate || 0).getTime();
+            const dateB = new Date(b.createdAt || b.claimDate || 0).getTime();
+            return dateB - dateA; // Mới nhất lên đầu
+          });
+
+          setWarrantyClaims(sortedClaims);
+
+          // Load product color details for all items
+          const productColorMap = new Map<string, ProductColor>();
+          const uniqueProductColorIds = new Set<string>();
+
+          claims.forEach((claim) => {
+            claim.items?.forEach((item) => {
+              if (item.productColorId) {
+                uniqueProductColorIds.add(item.productColorId);
+              }
+            });
+          });
+
+          // Load all product colors in parallel
+          await Promise.all(
+            Array.from(uniqueProductColorIds).map(async (productColorId) => {
+              try {
+                const response = await productService.getProductColorById(
+                  productColorId
+                );
+                if (response.data.data) {
+                  productColorMap.set(productColorId, response.data.data);
+                }
+              } catch (error) {
+                console.error(
+                  `Error loading product color ${productColorId}:`,
+                  error
+                );
+              }
+            })
+          );
+
+          setWarrantyProductColors(productColorMap);
+        }
+      } catch (error) {
+        console.error("Error loading warranty claims:", error);
+        setError("Không thể tải danh sách yêu cầu bảo hành");
+      } finally {
+        setLoadingWarrantyClaims(false);
+      }
+    };
+
+    loadWarrantyClaims();
+  }, [activeTab]);
+
   // Filter và pagination ở frontend
   useEffect(() => {
     let filtered = [...allOrders];
 
-    // API đã trả về theo thứ tự mới nhất trước
+    // Sắp xếp theo thứ tự mới nhất đến cũ nhất (dựa vào createdAt)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.orderDate || 0).getTime();
+      const dateB = new Date(b.createdAt || b.orderDate || 0).getTime();
+      return dateB - dateA; // Mới nhất lên đầu
+    });
 
     // Filter theo status
-    if (activeTab !== "all") {
+    if (activeTab !== "all" && activeTab !== "WARRANTY_CLAIMS") {
       if (activeTab === "PENDING_GROUP") {
         // Chờ xử lý: PENDING, PAYMENT, ASSIGN_ORDER_STORE
         filtered = filtered.filter((order) =>
@@ -391,6 +505,208 @@ export default function OrderHistory() {
     }
   };
 
+  // Handle warranty claim
+  const handleWarrantyClaim = async (order: OrderItem) => {
+    setSelectedOrderForWarranty(order);
+    setShowWarrantyModal(true);
+    setLoadingWarranties(true);
+    setLoadingAddresses(true);
+    setWarranties([]);
+    setSelectedWarranties(new Map());
+    setUserAddresses([]);
+    const orderAddressId =
+      typeof order.address === "object" && order.address?.id
+        ? order.address.id
+        : null;
+    setSelectedAddressId(orderAddressId);
+
+    try {
+      // Get user addresses
+      const profile = await authService.getProfile();
+      const userId = profile?.id || authService.getUserId();
+      if (userId) {
+        const addressResponse = await addressService.getAddressesByUserId(
+          userId
+        );
+        const addresses = addressResponse?.data || [];
+        setUserAddresses(addresses);
+
+        // Set default address or order address
+        const defaultAddress = addresses.find((addr) => addr.isDefault);
+        const orderAddress = orderAddressId
+          ? addresses.find((addr) => addr.id === orderAddressId)
+          : null;
+        setSelectedAddressId(
+          orderAddress?.id || defaultAddress?.id || addresses[0]?.id || null
+        );
+      }
+    } catch (error) {
+      console.error("Error loading addresses:", error);
+    } finally {
+      setLoadingAddresses(false);
+    }
+
+    try {
+      // Get full order details first
+      const orderDetail = await orderService.getOrderFullDetail(
+        Number(order.id)
+      );
+
+      // Get warranties list
+      const warrantyList = await warrantyService.getWarrantiesByOrder(
+        Number(order.id)
+      );
+
+      // Map warranties with product info from order details
+      const warrantiesWithProductInfo = warrantyList
+        .filter((w) => w.status === "ACTIVE")
+        .map((warranty) => {
+          // Find matching product from order details
+          const matchedDetail = orderDetail.orderDetails?.find(
+            (detail: OrderDetailProduct) =>
+              detail.productColorId === warranty.productColorId
+          );
+
+          return {
+            ...warranty,
+            productColor: matchedDetail?.productColor,
+          };
+        });
+
+      setWarranties(warrantiesWithProductInfo);
+    } catch (error) {
+      console.error("Error loading warranties:", error);
+      setError("Không thể tải danh sách bảo hành");
+    } finally {
+      setLoadingWarranties(false);
+    }
+  };
+
+  const handleWarrantySelect = (
+    warranty: Warranty,
+    checked: boolean,
+    description: string
+  ) => {
+    const newSelected = new Map(selectedWarranties);
+    if (checked) {
+      newSelected.set(warranty.id, {
+        warrantyId: warranty.id,
+        quantity: 1,
+        issueDescription: description,
+        customerPhotos: [],
+      });
+    } else {
+      newSelected.delete(warranty.id);
+    }
+    setSelectedWarranties(newSelected);
+  };
+
+  const handleWarrantyDescriptionChange = (
+    warrantyId: number,
+    description: string
+  ) => {
+    const newSelected = new Map(selectedWarranties);
+    const item = newSelected.get(warrantyId);
+    if (item) {
+      item.issueDescription = description;
+      newSelected.set(warrantyId, item);
+      setSelectedWarranties(newSelected);
+    }
+  };
+
+  const handlePhotoUpload = async (
+    warrantyId: number,
+    files: FileList | null
+  ) => {
+    if (!files || files.length === 0) return;
+
+    setUploadingPhotos((prev) => new Set(prev).add(warrantyId));
+
+    try {
+      const uploadPromises = Array.from(files).map((file) =>
+        uploadToCloudinary(file, "image")
+      );
+      const uploadedUrls = await Promise.all(uploadPromises);
+
+      const newSelected = new Map(selectedWarranties);
+      const item = newSelected.get(warrantyId);
+      if (item) {
+        item.customerPhotos = [...(item.customerPhotos || []), ...uploadedUrls];
+        newSelected.set(warrantyId, item);
+        setSelectedWarranties(newSelected);
+      }
+    } catch (error) {
+      console.error("Error uploading photos:", error);
+      setError("Không thể tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      setUploadingPhotos((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(warrantyId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemovePhoto = (warrantyId: number, photoUrl: string) => {
+    const newSelected = new Map(selectedWarranties);
+    const item = newSelected.get(warrantyId);
+    if (item && item.customerPhotos) {
+      item.customerPhotos = item.customerPhotos.filter(
+        (url) => url !== photoUrl
+      );
+      newSelected.set(warrantyId, item);
+      setSelectedWarranties(newSelected);
+    }
+  };
+
+  const handleSubmitWarrantyClaim = async () => {
+    if (!selectedOrderForWarranty || selectedWarranties.size === 0) return;
+
+    // Validate address selection
+    if (!selectedAddressId) {
+      setError("Vui lòng chọn địa chỉ nhận bảo hành");
+      return;
+    }
+
+    // Validate descriptions
+    for (const item of selectedWarranties.values()) {
+      if (!item.issueDescription.trim()) {
+        setError("Vui lòng mô tả vấn đề cho tất cả sản phẩm được chọn");
+        return;
+      }
+    }
+
+    setSubmittingClaim(true);
+    try {
+      await warrantyService.createWarrantyClaim({
+        orderId: Number(selectedOrderForWarranty.id),
+        addressId: selectedAddressId,
+        items: Array.from(selectedWarranties.values()),
+      });
+
+      setShowWarrantyModal(false);
+      setSelectedOrderForWarranty(null);
+      setSelectedWarranties(new Map());
+      setSelectedAddressId(null);
+      setError(null);
+
+      // Show success message
+      alert("Yêu cầu bảo hành đã được gửi thành công!");
+    } catch (error: unknown) {
+      console.error("Error submitting warranty claim:", error);
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : undefined;
+      setError(
+        errorMessage || "Không thể gửi yêu cầu bảo hành. Vui lòng thử lại."
+      );
+    } finally {
+      setSubmittingClaim(false);
+    }
+  };
+
   const formatAddress = (address: OrderAddress) => {
     if (!address) return "N/A";
     const parts = [
@@ -482,6 +798,255 @@ export default function OrderHistory() {
               Đang tải đơn hàng...
             </p>
           </div>
+        ) : activeTab === "WARRANTY_CLAIMS" ? (
+          loadingWarrantyClaims ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
+              <p className="text-sm text-muted-foreground">
+                Đang tải danh sách bảo hành...
+              </p>
+            </div>
+          ) : warrantyClaims.length === 0 ? (
+            <div className="text-center py-8">
+              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-foreground mb-1">
+                Chưa có yêu cầu bảo hành nào
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Các yêu cầu bảo hành của bạn sẽ hiển thị ở đây
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {warrantyClaims.map((claim) => (
+                <motion.div
+                  key={claim.id}
+                  variants={fadeUp}
+                  className="bg-muted/30 rounded-lg border border-border/50 p-3 sm:p-4 hover:shadow-lg transition-all duration-200"
+                >
+                  {/* Warranty Claim Header */}
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-green-500/10 rounded-lg">
+                        <Shield className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm sm:text-base font-semibold text-foreground">
+                          Yêu cầu bảo hành #{claim.id}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Đơn hàng: #{claim.orderId}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                        claim.status === "PENDING"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                          : claim.status === "UNDER_REVIEW"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                          : claim.status === "APPROVED"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : claim.status === "REJECTED"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : claim.status === "RESOLVED"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400"
+                          : claim.status === "CANCELLED"
+                          ? "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                      }`}
+                    >
+                      {claim.status === "PENDING"
+                        ? "Chờ xử lý"
+                        : claim.status === "UNDER_REVIEW"
+                        ? "Đang xem xét"
+                        : claim.status === "APPROVED"
+                        ? "Đã duyệt"
+                        : claim.status === "REJECTED"
+                        ? "Từ chối"
+                        : claim.status === "RESOLVED"
+                        ? "Đã xử lý"
+                        : claim.status === "CANCELLED"
+                        ? "Đã hủy"
+                        : claim.status}
+                    </span>
+                  </div>
+
+                  {/* Warranty Items */}
+                  <div className="mb-3 space-y-2">
+                    <h5 className="text-xs sm:text-sm font-semibold text-foreground">
+                      Sản phẩm yêu cầu bảo hành:
+                    </h5>
+                    {claim.items?.map((item, idx) => {
+                      const productColor = warrantyProductColors.get(
+                        item.productColorId
+                      );
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-2 bg-background/30 rounded-lg"
+                        >
+                          <div className="flex gap-3 items-start">
+                            {/* Product Image */}
+                            {productColor?.images?.[0]?.image && (
+                              <img
+                                src={productColor.images[0].image}
+                                alt={productColor.product?.name || "Product"}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-border shrink-0"
+                              />
+                            )}
+
+                            <div className="flex-1 min-w-0">
+                              {/* Product Name */}
+                              {productColor?.product?.name && (
+                                <p className="text-xs sm:text-sm font-semibold text-foreground mb-1">
+                                  {productColor.product.name}
+                                </p>
+                              )}
+
+                              {/* Color */}
+                              {productColor?.color?.colorName && (
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Màu: {productColor.color.colorName}
+                                </p>
+                              )}
+
+                              {/* Quantity */}
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Số lượng: {item.quantity}
+                              </p>
+
+                              {/* Issue Description */}
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Vấn đề:</span>{" "}
+                                {item.issueDescription}
+                              </p>
+
+                              {/* Customer Photos */}
+                              {item.customerPhotos &&
+                                item.customerPhotos.length > 0 && (
+                                  <div className="flex gap-1 mt-2 flex-wrap">
+                                    {item.customerPhotos.map(
+                                      (photo, photoIdx) => (
+                                        <img
+                                          key={photoIdx}
+                                          src={photo}
+                                          alt={`Photo ${photoIdx + 1}`}
+                                          className="w-12 h-12 object-cover rounded border border-border"
+                                        />
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action Type and Resolution Info */}
+                  {claim.actionType && (
+                    <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">
+                        Phương thức xử lý:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {claim.actionType === "REPAIR" && (
+                          <>
+                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs dark:bg-orange-900/30 dark:text-orange-400">
+                              Sửa chữa
+                            </span>
+                            {claim.repairCost !== null && (
+                              <span className="text-xs text-muted-foreground">
+                                Chi phí: {formatPrice(claim.repairCost)}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {claim.actionType === "RETURN" && (
+                          <>
+                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs dark:bg-green-900/30 dark:text-green-400">
+                              Hoàn trả
+                            </span>
+                            {claim.refundAmount !== null && (
+                              <span className="text-xs text-muted-foreground">
+                                Số tiền: {formatPrice(claim.refundAmount)}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {claim.actionType === "DO_NOTHING" && (
+                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs dark:bg-red-900/30 dark:text-red-400">
+                            Từ chối
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin Response */}
+                  {claim.adminResponse && (
+                    <div className="mb-3 p-2 bg-background/50 rounded-lg">
+                      <p className="text-xs font-medium text-foreground mb-1">
+                        Phản hồi từ quản trị viên:
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {claim.adminResponse}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Resolution Notes */}
+                  {claim.resolutionNotes && (
+                    <div className="mb-3 p-2 bg-background/50 rounded-lg">
+                      <p className="text-xs font-medium text-foreground mb-1">
+                        Ghi chú xử lý:
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {claim.resolutionNotes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Resolution Photos */}
+                  {claim.resolutionPhotos &&
+                    claim.resolutionPhotos.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-foreground mb-2">
+                          Hình ảnh sau xử lý:
+                        </p>
+                        <div className="flex gap-1 flex-wrap">
+                          {claim.resolutionPhotos.map((photo, photoIdx) => (
+                            <img
+                              key={photoIdx}
+                              src={photo}
+                              alt={`Resolution ${photoIdx + 1}`}
+                              className="w-16 h-16 object-cover rounded border border-border"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Timestamps */}
+                  <div className="flex flex-col gap-1 pt-2 border-t border-border/30">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>Tạo lúc: {formatDate(claim.createdAt)}</span>
+                    </div>
+                    {claim.resolvedDate && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Xử lý lúc: {formatDate(claim.resolvedDate)}</span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-8">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -667,6 +1232,19 @@ export default function OrderHistory() {
                       </span>
                     </button>
 
+                    {/* Warranty Claim Button - Only show for FINISHED orders */}
+                    {(order.rawStatus || order.status) === "FINISHED" && (
+                      <button
+                        onClick={() => handleWarrantyClaim(order)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition-colors dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/30"
+                      >
+                        <Shield className="h-3.5 w-3.5" />
+                        <span className="text-xs sm:text-sm font-medium">
+                          Yêu cầu bảo hành
+                        </span>
+                      </button>
+                    )}
+
                     {/* Cancel Button - Only show for cancelable orders */}
                     {canCancelOrder(order) && (
                       <button
@@ -698,7 +1276,7 @@ export default function OrderHistory() {
           </div>
         )}
 
-        {totalOrders > ordersPerPage && (
+        {totalOrders > ordersPerPage && activeTab !== "WARRANTY_CLAIMS" && (
           <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-border/30">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -1119,6 +1697,376 @@ export default function OrderHistory() {
                 Xác nhận hủy
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warranty Claim Modal */}
+      {showWarrantyModal && selectedOrderForWarranty && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Yêu cầu bảo hành
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Đơn hàng #{selectedOrderForWarranty.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowWarrantyModal(false);
+                  setSelectedOrderForWarranty(null);
+                  setSelectedWarranties(new Map());
+                }}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Đóng modal bảo hành"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingWarranties ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
+                  <p className="text-sm text-muted-foreground">
+                    Đang tải danh sách bảo hành...
+                  </p>
+                </div>
+              ) : warranties.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <AlertCircle className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Không có sản phẩm nào trong đơn hàng này có bảo hành khả
+                    dụng
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Address Selection */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-border">
+                    <label className="block text-sm font-medium text-foreground mb-3">
+                      Địa chỉ nhận bảo hành{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    {loadingAddresses ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        <span>Đang tải địa chỉ...</span>
+                      </div>
+                    ) : userAddresses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Không tìm thấy địa chỉ. Vui lòng thêm địa chỉ trong{" "}
+                        <a
+                          href="/address"
+                          className="text-green-600 hover:underline"
+                        >
+                          trang quản lý địa chỉ
+                        </a>
+                        .
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {userAddresses.map((address) => (
+                          <label
+                            key={address.id}
+                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                              selectedAddressId === address.id
+                                ? "border-green-500 bg-green-50 dark:bg-green-900/10"
+                                : "border-border hover:border-green-300 hover:bg-muted"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="warranty-address"
+                              value={address.id}
+                              checked={selectedAddressId === address.id}
+                              onChange={() => setSelectedAddressId(address.id)}
+                              className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-foreground">
+                                  {address.name}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                  {address.phone}
+                                </span>
+                                {address.isDefault && (
+                                  <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded dark:bg-green-900/30 dark:text-green-400">
+                                    Mặc định
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {[
+                                  address.addressLine,
+                                  address.street,
+                                  address.ward,
+                                  address.district,
+                                  address.city,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                      <div className="text-sm text-blue-900 dark:text-blue-300">
+                        <p className="font-medium mb-1">Lưu ý:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li>Chọn sản phẩm cần bảo hành và mô tả vấn đề</li>
+                          <li>
+                            Mỗi sản phẩm chỉ được yêu cầu bảo hành tối đa 3 lần
+                          </li>
+                          <li>Yêu cầu sẽ được xử lý trong 1-3 ngày làm việc</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {warranties.map((warranty) => {
+                    const isSelected = selectedWarranties.has(warranty.id);
+                    const selectedItem = selectedWarranties.get(warranty.id);
+
+                    return (
+                      <div
+                        key={warranty.id}
+                        className={`border rounded-lg p-4 transition-all ${
+                          isSelected
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/10"
+                            : "border-border bg-background"
+                        }`}
+                      >
+                        <div className="flex gap-4">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) =>
+                              handleWarrantySelect(
+                                warranty,
+                                e.target.checked,
+                                selectedItem?.issueDescription || ""
+                              )
+                            }
+                            className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                            aria-label={`Chọn sản phẩm ${
+                              warranty.productColor?.product?.name || "này"
+                            } để yêu cầu bảo hành`}
+                          />
+
+                          <div className="flex-1">
+                            <div className="flex gap-3 mb-3">
+                              {warranty.productColor?.images?.[0]?.image && (
+                                <img
+                                  src={warranty.productColor.images[0].image}
+                                  alt={
+                                    warranty.productColor.product?.name ||
+                                    "Product"
+                                  }
+                                  className="w-20 h-20 object-cover rounded-lg border border-border"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-foreground mb-1">
+                                  {warranty.productColor?.product?.name ||
+                                    "Sản phẩm"}
+                                </h4>
+                                <p className="text-sm text-muted-foreground mb-1">
+                                  Màu:{" "}
+                                  {warranty.productColor?.color?.colorName ||
+                                    "N/A"}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full dark:bg-green-900/30 dark:text-green-400">
+                                    Bảo hành {warranty.warrantyDurationMonths}{" "}
+                                    tháng
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    Còn{" "}
+                                    {warranty.maxClaims - warranty.claimCount}{" "}
+                                    lần
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  HSD:{" "}
+                                  {new Date(
+                                    warranty.warrantyEndDate
+                                  ).toLocaleDateString("vi-VN")}
+                                </p>
+                              </div>
+                            </div>
+
+                            {isSelected && (
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-foreground mb-2">
+                                    Mô tả vấn đề{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  <textarea
+                                    value={selectedItem?.issueDescription || ""}
+                                    onChange={(e) =>
+                                      handleWarrantyDescriptionChange(
+                                        warranty.id,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Mô tả chi tiết vấn đề của sản phẩm..."
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground resize-none text-sm"
+                                  />
+                                </div>
+
+                                {/* Photo Upload Section */}
+                                <div>
+                                  <label className="block text-sm font-medium text-foreground mb-2">
+                                    Hình ảnh minh chứng (Tùy chọn)
+                                  </label>
+
+                                  {/* Upload Button */}
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <label
+                                      htmlFor={`photo-upload-${warranty.id}`}
+                                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-border bg-background hover:bg-muted transition-colors cursor-pointer ${
+                                        uploadingPhotos.has(warranty.id)
+                                          ? "opacity-50 cursor-not-allowed"
+                                          : ""
+                                      }`}
+                                    >
+                                      {uploadingPhotos.has(warranty.id) ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                                          <span className="text-sm text-muted-foreground">
+                                            Đang tải...
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm text-muted-foreground">
+                                            Chọn ảnh
+                                          </span>
+                                        </>
+                                      )}
+                                    </label>
+                                    <input
+                                      id={`photo-upload-${warranty.id}`}
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      onChange={(e) =>
+                                        handlePhotoUpload(
+                                          warranty.id,
+                                          e.target.files
+                                        )
+                                      }
+                                      disabled={uploadingPhotos.has(
+                                        warranty.id
+                                      )}
+                                      className="hidden"
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                      Tối đa 5 ảnh, mỗi ảnh dưới 5MB
+                                    </span>
+                                  </div>
+
+                                  {/* Photo Preview Grid */}
+                                  {selectedItem?.customerPhotos &&
+                                    selectedItem.customerPhotos.length > 0 && (
+                                      <div className="grid grid-cols-3 gap-2">
+                                        {selectedItem.customerPhotos.map(
+                                          (photoUrl, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="relative group aspect-square"
+                                            >
+                                              <img
+                                                src={photoUrl}
+                                                alt={`Photo ${idx + 1}`}
+                                                className="w-full h-full object-cover rounded-lg border border-border"
+                                              />
+                                              <button
+                                                onClick={() =>
+                                                  handleRemovePhoto(
+                                                    warranty.id,
+                                                    photoUrl
+                                                  )
+                                                }
+                                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                aria-label="Xóa ảnh"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {warranties.length > 0 && (
+              <div className="px-6 py-4 border-t border-border bg-muted/30">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowWarrantyModal(false);
+                      setSelectedOrderForWarranty(null);
+                      setSelectedWarranties(new Map());
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors font-medium"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleSubmitWarrantyClaim}
+                    disabled={selectedWarranties.size === 0 || submittingClaim}
+                    className="flex-1 px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+                  >
+                    {submittingClaim ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Đang gửi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-4 w-4" />
+                        <span>
+                          Gửi yêu cầu ({selectedWarranties.size} sản phẩm)
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -116,6 +116,7 @@ export interface OrderItem {
   reason?: string | null;
   qrCode?: string | null;
   depositPrice?: number | null;
+  createdAt?: string;
 }
 
 export interface OrderFilters {
