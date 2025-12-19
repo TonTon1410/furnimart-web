@@ -99,7 +99,7 @@ export function RoomAnalyzer() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
         aria-label={isOpen ? "Đóng phân tích phòng" : "Mở phân tích phòng"}
       >
         {isOpen ? <X className="w-6 h-6" /> : <Camera className="w-6 h-6" />}
@@ -113,7 +113,7 @@ export function RoomAnalyzer() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-6 z-50 w-[450px] max-w-[calc(100vw-3rem)] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200"
+            className="fixed bottom-20 right-4 left-4 sm:left-auto sm:bottom-24 sm:right-6 z-50 w-auto sm:w-[450px] max-w-[calc(100vw-2rem)] h-[calc(100vh-8rem)] sm:h-[600px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-linear-to-r from-emerald-500 to-teal-500 text-white">
@@ -163,6 +163,7 @@ export function RoomAnalyzer() {
                         <button
                           onClick={handleReset}
                           className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                          aria-label="Xóa ảnh"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -219,6 +220,7 @@ export function RoomAnalyzer() {
                         accept="image/*"
                         onChange={handleImageSelect}
                         className="hidden"
+                        aria-label="Chọn ảnh phòng"
                       />
                     </div>
                   )}
