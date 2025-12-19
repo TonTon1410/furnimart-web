@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import CustomDropdown from "@/components/CustomDropdown";
+import { uploadToCloudinary } from "@/service/uploadService";
+import { Upload, Loader2 } from "lucide-react";
 
 export type Status = "ACTIVE" | "INACTIVE";
 export type Role = "STAFF" | "BRANCH_MANAGER" | "DELIVERY";
@@ -66,6 +68,7 @@ const EmployeeForm: React.FC<Props> = ({
   // preview avatar
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [previewBroken, setPreviewBroken] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Đồng bộ khi initial thay đổi
   useEffect(() => {
@@ -119,6 +122,34 @@ const EmployeeForm: React.FC<Props> = ({
       ...s,
       [name]: value,
     }));
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File không được vượt quá 5MB");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const cloudinaryUrl = await uploadToCloudinary(file, "image");
+      setForm((prev) => ({ ...prev, avatar: cloudinaryUrl }));
+    } catch (error) {
+      console.error("Upload avatar error:", error);
+      alert("Upload ảnh thất bại. Vui lòng thử lại.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -275,16 +306,35 @@ const EmployeeForm: React.FC<Props> = ({
           {/* Avatar URL + Preview */}
           <div>
             <label htmlFor="avatar" className={labelClass}>
-              Ảnh đại diện (URL)
+              Ảnh đại diện
             </label>
-            <input
-              id="avatar"
-              name="avatar"
-              value={form.avatar}
-              onChange={handleChange}
-              placeholder="https://..."
-              className={inputClass}
-            />
+            <div className="flex gap-2">
+              <input
+                id="avatar"
+                name="avatar"
+                value={form.avatar}
+                onChange={handleChange}
+                placeholder="https://... hoặc upload ảnh"
+                className={inputClass}
+                disabled={uploading}
+              />
+              <label className="relative cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+                <div className="flex h-full items-center rounded-xl border border-emerald-500 bg-emerald-50 px-4 py-3 text-emerald-600 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900">
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Upload className="h-5 w-5" />
+                  )}
+                </div>
+              </label>
+            </div>
             {/* preview ảnh nếu có URL */}
             {previewUrl && (
               <div className="mt-2">

@@ -4,8 +4,8 @@ import { Facebook, Instagram, Twitter } from "lucide-react";
 
 const Footer = React.memo(() => {
   return (
-    <footer className="bg-[#095544] text-gray-200 pt-16 pb-8 mt-20">
-      <div className="mx-auto max-w-7xl px-6 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="bg-[#095544] text-gray-200 pt-12 sm:pt-16 pb-8 mt-12 sm:mt-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 grid gap-8 sm:gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Cột 1 */}
         <div>
           <h3 className="text-lg font-bold text-white">

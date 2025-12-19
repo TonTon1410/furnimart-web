@@ -1,11 +1,11 @@
 // src/router/AppRouter.tsx
 import { lazy, Suspense, type PropsWithChildren } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { authService } from "@/service/authService";
 import { DP } from "./paths";
 import type { RoleKey } from "./paths";
 import ScrollToTop from "@/components/ScrollToTop";
-import ChatBox from "@/components/chat/ChatBox"
+import ChatBox from "@/components/chat/ChatBox";
 
 // Loading component
 const PageLoader = () => (
@@ -68,10 +68,26 @@ const DashboardLayout = () => {
   return <AppLayout />;
 };
 
+const ConditionalChatBox = () => {
+  const location = useLocation();
+  const role = authService.getRole?.() as RoleKey | null;
+
+  // Không hiển thị ChatBox nếu:
+  // 1. Đang ở trang login
+  // 2. Đang ở trong dashboard (bất kỳ role nào khác customer)
+  const isLoginPage = location.pathname === "/login";
+  const isDashboard = location.pathname.startsWith("/dashboard");
+  const isStaffRole = role && role !== "customer";
+
+  const shouldShowChat = !isLoginPage && !isDashboard && !isStaffRole;
+
+  return shouldShowChat ? <ChatBox /> : null;
+};
+
 export default function AppRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
-      <ChatBox />
+      <ConditionalChatBox />
       <Routes>
         {/* Trang công khai - Chỉ cho CUSTOMER, role khác redirect về dashboard */}
         <Route

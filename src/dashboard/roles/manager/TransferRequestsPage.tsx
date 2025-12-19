@@ -188,24 +188,23 @@ export default function TransferRequestsPage() {
       );
       const transferData = transferRes.data?.data || transferRes.data || [];
 
-      // Sắp xếp: PENDING lên đầu, sau đó theo id giảm dần (mới nhất lên trước)
-      const sortedData = Array.isArray(transferData)
-        ? [...transferData].sort((a, b) => {
-            // Ưu tiên PENDING lên đầu
-            if (
-              a.transferStatus === "PENDING" &&
-              b.transferStatus !== "PENDING"
-            )
-              return -1;
-            if (
-              a.transferStatus !== "PENDING" &&
-              b.transferStatus === "PENDING"
-            )
-              return 1;
-            // Cùng status thì sắp xếp theo id giảm dần
-            return b.id - a.id;
-          })
+      // Lọc chỉ các phiếu TRANSFER (loại bỏ EXPORT, IMPORT, RESERVE)
+      const transferOnly = Array.isArray(transferData)
+        ? transferData.filter(
+            (item: TransferRequest) => item.type === "TRANSFER"
+          )
         : [];
+
+      // Sắp xếp: PENDING lên đầu, sau đó theo id giảm dần (mới nhất lên trước)
+      const sortedData = transferOnly.sort((a, b) => {
+        // Ưu tiên PENDING lên đầu
+        if (a.transferStatus === "PENDING" && b.transferStatus !== "PENDING")
+          return -1;
+        if (a.transferStatus !== "PENDING" && b.transferStatus === "PENDING")
+          return 1;
+        // Cùng status thì sắp xếp theo id giảm dần
+        return b.id - a.id;
+      });
 
       setRequests(sortedData);
     } catch (err: any) {

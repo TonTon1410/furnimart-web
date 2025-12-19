@@ -10,7 +10,6 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 import ProductCard from "@/components/ProductCard";
-// import { useCartStore } from "@/store/cart"; // Không dùng nữa vì cần chọn màu ở trang chi tiết
 import { productService, type Product } from "@/service/homeService";
 import axios from "axios";
 
@@ -101,25 +100,25 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <main className="min-h-screen relative">
+    <main className="min-h-screen relative pb-24 sm:pb-20">
       {/* HERO – 2 cột */}
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden bg-emerald-50 sm:grid-cols-2">
         {/* overlay để navbar dễ đọc */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-black/60 to-transparent" />
 
         {/* Cột trái: text */}
-        <div className="relative flex flex-col justify-center px-8 py-20 sm:pl-16">
+        <div className="relative flex flex-col justify-center px-4 sm:px-8 py-12 sm:py-20 sm:pl-16">
           <motion.div
             initial="hidden"
             animate="show"
             variants={fadeUp}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-5xl font-extrabold leading-tight text-gray-900 sm:text-6xl">
+            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight text-gray-900 lg:text-6xl">
               Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối
               giản
             </h1>
-            <p className="mt-6 max-w-prose text-lg text-gray-600">
+            <p className="mt-4 sm:mt-6 max-w-prose text-base sm:text-lg text-gray-600">
               Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm
               không gian sống của bạn.
             </p>
@@ -140,7 +139,7 @@ const Home: React.FC = () => {
             </div>
 
             {/* Feature pills */}
-            <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
               {[
                 { icon: Truck, label: "Miễn phí vận chuyển" },
                 { icon: ShieldCheck, label: "Thanh toán an toàn" },
@@ -149,7 +148,7 @@ const Home: React.FC = () => {
               ].map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-white/90 px-3 py-2 text-sm text-gray-700 shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border border-emerald-100 bg-white/90 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 shadow-sm"
                 >
                   <Icon className="h-4 w-4 text-emerald-600" />
                   <span>{label}</span>
@@ -169,16 +168,16 @@ const Home: React.FC = () => {
           <img
             src={heroImg}
             alt="Phòng khách hiện đại"
-            className="w-[650px] max-w-full object-contain drop-shadow-2xl"
+            className="w-full sm:w-[650px] max-w-full object-contain drop-shadow-2xl px-4 sm:px-0"
             onError={onImgError}
           />
         </motion.div>
       </section>
 
       {/* ✅ CATEGORIES – 1 hàng, tự chạy bằng Swiper */}
-      <section className="mx-auto max-w-7xl px-6 py-14">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10 sm:py-14">
         <div>
-          <div className="mb-6 flex items-end justify-between">
+          <div className="mb-4 sm:mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
                 Danh mục

@@ -270,7 +270,68 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Section 2: Ghi chú */}
+          {/* Section 2: Thông tin kho đích và trạng thái chuyển */}
+          {(data.toWarehouseId ||
+            data.transferStatus ||
+            data.pdfUrl ||
+            data.totalQuantity !== undefined) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.toWarehouseId && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800">
+                  <p className="text-xs font-medium text-purple-400 uppercase mb-2">
+                    Kho đích
+                  </p>
+                  <p className="font-semibold text-purple-900 dark:text-purple-100">
+                    {data.toWarehouseName || "N/A"}
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">
+                    ID: {data.toWarehouseId}
+                  </p>
+                </div>
+              )}
+              {data.transferStatus && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                  <p className="text-xs font-medium text-indigo-400 uppercase mb-2">
+                    Trạng thái chuyển kho
+                  </p>
+                  <p className="font-semibold text-indigo-900 dark:text-indigo-100">
+                    {data.transferStatus === "PENDING" && "Chờ duyệt"}
+                    {data.transferStatus === "ACCEPTED" && "Đã chấp nhận"}
+                    {data.transferStatus === "FINISHED" && "Hoàn thành"}
+                    {data.transferStatus === "REJECTED" && "Đã từ chối"}
+                  </p>
+                </div>
+              )}
+              {data.totalQuantity !== undefined &&
+                data.totalQuantity !== null && (
+                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800">
+                    <p className="text-xs font-medium text-green-400 uppercase mb-2">
+                      Tổng số lượng
+                    </p>
+                    <p className="font-semibold text-green-900 dark:text-green-100 text-xl">
+                      {data.totalQuantity.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              {data.pdfUrl && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800">
+                  <p className="text-xs font-medium text-orange-400 uppercase mb-2">
+                    Tài liệu PDF
+                  </p>
+                  <a
+                    href={data.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-orange-600 dark:text-orange-300 hover:underline font-medium"
+                  >
+                    Xem PDF
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 3: Ghi chú */}
           {data.note && (
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 flex gap-3">
               <FileText className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
@@ -285,7 +346,63 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
             </div>
           )}
 
-          {/* Section 3: Danh sách sản phẩm */}
+          {/* Section 4: Danh sách kho đã giữ hàng */}
+          {data.reservedWarehouses && data.reservedWarehouses.length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                <MapPin className="w-5 h-5 text-gray-400" />
+                Kho đã giữ hàng
+              </h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                      <th className="px-6 py-4">Kho</th>
+                      <th className="px-6 py-4 text-right">Số lượng giữ</th>
+                      <th className="px-6 py-4 text-center">Được phân công</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {data.reservedWarehouses.map((warehouse, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-white block">
+                              {warehouse.warehouseName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ID: {warehouse.warehouseId}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="font-bold text-amber-600 dark:text-amber-400 text-base">
+                            {warehouse.reservedQuantity.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {warehouse.assignedWarehouse ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium rounded-full">
+                              ✓ Có
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 text-xs font-medium rounded-full">
+                              ✗ Không
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Section 5: Danh sách sản phẩm */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
