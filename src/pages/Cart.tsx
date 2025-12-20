@@ -26,7 +26,7 @@ const Cart: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10 pb-24 sm:pb-20">
       <h1 className="text-2xl font-bold">Giỏ hàng của bạn</h1>
 
       {loading ? (

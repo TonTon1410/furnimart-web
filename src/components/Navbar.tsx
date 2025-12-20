@@ -143,7 +143,7 @@ export default function Navbar() {
 
   return (
     <header className={`${headerClass} ${bgClass}`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-4 sm:py-5">
         {/* Logo */}
         <Link
           to="/"
@@ -225,7 +225,7 @@ export default function Navbar() {
                   >
                     Hồ sơ của tôi
                   </Link>
-                
+
                   <Link
                     to="/mywallet"
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
@@ -322,7 +322,11 @@ export default function Navbar() {
                 Đăng nhập
               </Link>
             ) : (
-              <div className="flex items-center gap-3 text-white">
+              <button
+                onClick={() => setUserMenuOpen((v) => !v)}
+                className="flex items-center gap-2 text-white hover:text-yellow-300"
+                aria-label="Menu tài khoản"
+              >
                 <img
                   src={getAvatarUrl(user)}
                   alt={user.fullName}
@@ -336,21 +340,70 @@ export default function Navbar() {
                     )}&background=0ea5e9&color=fff&size=128`;
                   }}
                 />
-                <span className="truncate max-w-[120px] text-sm">
+                <span className="truncate max-w-[100px] text-sm font-medium">
                   {user.fullName}
                 </span>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileOpen(false);
-                  }}
-                  className="rounded-md border border-white/30 px-2 py-1 text-xs hover:bg-white/10"
-                >
-                  Đăng xuất
-                </button>
-              </div>
+                <ChevronDown className="h-4 w-4" />
+              </button>
             )}
           </div>
+
+          {/* Mobile User Menu Dropdown */}
+          {user && userMenuOpen && (
+            <div className="pt-3 border-t border-white/10 space-y-2">
+              <Link
+                to="/user"
+                className="block text-gray-200 hover:text-white text-sm py-2"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setMobileOpen(false);
+                }}
+              >
+                👤 Hồ sơ của tôi
+              </Link>
+              <Link
+                to="/mywallet"
+                className="block text-gray-200 hover:text-white text-sm py-2"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setMobileOpen(false);
+                }}
+              >
+                💳 My Wallet
+              </Link>
+              <Link
+                to="/orders"
+                className="block text-gray-200 hover:text-white text-sm py-2"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setMobileOpen(false);
+                }}
+              >
+                📦 Lịch sử đơn hàng
+              </Link>
+              <Link
+                to="/addresses"
+                className="block text-gray-200 hover:text-white text-sm py-2"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setMobileOpen(false);
+                }}
+              >
+                📍 Địa chỉ giao hàng
+              </Link>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setUserMenuOpen(false);
+                  setMobileOpen(false);
+                }}
+                className="flex items-center gap-2 text-red-300 hover:text-red-200 text-sm py-2 w-full"
+              >
+                <LogOut className="h-4 w-4" />
+                Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
       )}
 

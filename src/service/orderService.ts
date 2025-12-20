@@ -298,7 +298,10 @@ class OrderService {
   async cancelOrder(id: number, reason?: string): Promise<void> {
     try {
       console.log(`❌ Cancelling order ${id}, reason: ${reason}`);
-      await this.updateOrderStatus(id, "CANCELLED");
+      await axiosClient.post("/orders/cancel", {
+        orderId: id,
+        reason: reason || "Không có lý do"
+      });
     } catch (error: any) {
       throw new Error(this.handleError(error, "Không thể hủy đơn hàng"));
     }
