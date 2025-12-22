@@ -32,14 +32,14 @@ import adminDashboardService, {
 
 // ... (Giữ nguyên các component con StatCardSkeleton, StatCard, CustomTooltip) ...
 const StatCardSkeleton = () => (
-  <div className="bg-white dark:!bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:!border-gray-700 animate-pulse h-full">
+  <div className="bg-white dark:bg-gray-800! p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700! animate-pulse h-full">
     <div className="flex justify-between items-start">
       <div className="w-full">
-        <div className="h-3 bg-gray-200 dark:!bg-gray-700 rounded w-1/2 mb-3"></div>
-        <div className="h-6 bg-gray-200 dark:!bg-gray-700 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-200 dark:!bg-gray-700 rounded w-1/3"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-700! rounded w-1/2 mb-3"></div>
+        <div className="h-6 bg-gray-200 dark:bg-gray-700! rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-700! rounded w-1/3"></div>
       </div>
-      <div className="w-10 h-10 bg-gray-200 dark:!bg-gray-700 rounded-xl"></div>
+      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700! rounded-xl"></div>
     </div>
   </div>
 );
@@ -57,16 +57,16 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, iconBgColor, ic
   if (loading) return <StatCardSkeleton />;
 
   return (
-    <div className="bg-white dark:!bg-gray-800 p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 dark:!border-gray-700 hover:shadow-lg dark:hover:!shadow-gray-900/50 transition-all duration-300 transform hover:-translate-y-1 h-full relative overflow-hidden group">
+    <div className="bg-white dark:bg-gray-800! p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 dark:border-gray-700! hover:shadow-lg dark:hover:shadow-gray-900/50! transition-all duration-300 transform hover:-translate-y-1 h-full relative overflow-hidden group">
       <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 ${iconBgColor}`}></div>
       <div className="flex justify-between items-start relative z-10 gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-gray-500 dark:!text-gray-400 text-xs font-bold mb-1 tracking-wider uppercase truncate">{title}</p>
-          <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:!text-white tracking-tight truncate" title={String(value)}>
+          <p className="text-gray-500 dark:text-gray-400! text-xs font-bold mb-1 tracking-wider uppercase truncate">{title}</p>
+          <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white! tracking-tight truncate" title={String(value)}>
             {value}
           </h3>
         </div>
-        <div className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-md flex-shrink-0 ${iconBgColor} ${iconColor}`}>
+        <div className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-md shrink-0 ${iconBgColor} ${iconColor}`}>
           {icon}
         </div>
       </div>
@@ -77,13 +77,13 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, iconBgColor, ic
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:!bg-gray-800 p-3 border border-gray-100 dark:!border-gray-700 rounded-lg shadow-lg">
-          <p className="text-xs font-semibold text-gray-500 dark:!text-gray-400 mb-2">{label}</p>
+        <div className="bg-white dark:bg-gray-800! p-3 border border-gray-100 dark:border-gray-700! rounded-lg shadow-lg">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400! mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-gray-600 dark:!text-gray-300">{entry.name}:</span>
-              <span className="font-bold text-gray-900 dark:!text-gray-100">
+              <span className="text-gray-600 dark:text-gray-300!">{entry.name}:</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100!">
                 {entry.name === 'Doanh thu' 
                   ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(entry.value)
                   : entry.value}
@@ -99,8 +99,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // Component con hiển thị trạng thái rỗng (để tái sử dụng cho code gọn hơn)
 const EmptyDataState = ({ message }: { message: string }) => (
     <div className="flex h-full items-center justify-center flex-col gap-2 min-h-[200px]">
-        <Inventory2 className="text-gray-300 dark:!text-gray-600" fontSize="large" />
-        <span className="text-gray-400 dark:!text-gray-500 text-sm">{message}</span>
+        <Inventory2 className="text-gray-300 dark:text-gray-600!" fontSize="large" />
+        <span className="text-gray-400 dark:text-gray-500! text-sm">{message}</span>
     </div>
 );
 
@@ -189,12 +189,12 @@ const AdminDashboard: React.FC = () => {
   }, [deliveryData]);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:!bg-gray-900 p-4 md:p-6 lg:p-8 font-sans text-slate-900 dark:!text-slate-100">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900! p-4 md:p-6 lg:p-8 font-sans text-slate-900 dark:text-slate-100!">
       {/* Header */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:!text-white tracking-tight">Tổng quan quản trị</h1>
-          <p className="text-gray-500 dark:!text-gray-400 mt-1 text-sm">Số liệu kinh doanh thời gian thực.</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white! tracking-tight">Tổng quan quản trị</h1>
+          <p className="text-gray-500 dark:text-gray-400! mt-1 text-sm">Số liệu kinh doanh thời gian thực.</p>
         </div>
         <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-colors flex items-center gap-2 w-fit">
             <Inventory2 fontSize="small" />
@@ -211,16 +211,16 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Chart Section - Revenue By Branch (ĐÃ SỬA: Thêm logic check empty) */}
-      <div className="mb-6 bg-white dark:!bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:!border-gray-700">
+      <div className="mb-6 bg-white dark:bg-gray-800! p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700!">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:!text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white! flex items-center gap-2">
                 <BarChartIcon fontSize="small" className="text-indigo-500" />
                 Doanh Thu Chi Nhánh
             </h2>
           </div>
           <div className="h-[350px] w-full"> 
             {loading ? (
-                <div className="h-full w-full bg-gray-100 dark:!bg-gray-700 animate-pulse rounded-lg"></div> 
+                <div className="h-full w-full bg-gray-100 dark:bg-gray-700! animate-pulse rounded-lg"></div> 
             ) : revenueData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
@@ -242,8 +242,8 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Delivery Performance Pie Chart */}
-        <div className="lg:col-span-5 bg-white dark:!bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:!border-gray-700 flex flex-col h-[400px]">
-          <h2 className="text-lg font-bold text-gray-800 dark:!text-white mb-2">Hiệu Quả Giao Hàng</h2>
+        <div className="lg:col-span-5 bg-white dark:bg-gray-800! p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700! flex flex-col h-[400px]">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-white! mb-2">Hiệu Quả Giao Hàng</h2>
           <div className="flex-1 relative">
             {!loading && pieChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -254,59 +254,59 @@ const AdminDashboard: React.FC = () => {
                         ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" formatter={(value) => <span className="text-xs font-medium text-gray-600 dark:!text-gray-300 ml-1">{value}</span>} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" formatter={(value) => <span className="text-xs font-medium text-gray-600 dark:text-gray-300! ml-1">{value}</span>} />
                     </PieChart>
                 </ResponsiveContainer>
             ) : !loading ? (
                 // EMPTY STATE CHO PIE CHART (Giữ nguyên như code gốc)
                 <EmptyDataState message="Chưa có dữ liệu giao hàng" />
             ) : (
-                <div className="h-full w-full bg-gray-100 dark:!bg-gray-700 animate-pulse rounded-full opacity-20"></div>
+                <div className="h-full w-full bg-gray-100 dark:bg-gray-700! animate-pulse rounded-full opacity-20"></div>
             )}
             
              {!loading && pieChartData.length > 0 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                    <span className="text-3xl font-black text-gray-800 dark:!text-white">{successfulRate}%</span>
-                    <span className="text-[10px] text-gray-500 dark:!text-gray-400 font-bold uppercase">Thành công</span>
+                    <span className="text-3xl font-black text-gray-800 dark:text-white!">{successfulRate}%</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400! font-bold uppercase">Thành công</span>
                 </div>
              )}
           </div>
         </div>
 
         {/* Top Products (ĐÃ SỬA: Thêm logic check empty bên ngoài) */}
-        <div className="lg:col-span-7 bg-white dark:!bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:!border-gray-700 overflow-hidden flex flex-col h-[400px]">
-            <div className="p-5 border-b border-gray-100 dark:!border-gray-700 flex justify-between items-center">
-                <h2 className="text-lg font-bold text-gray-800 dark:!text-white">Top Sản Phẩm</h2>
-                <span className="text-xs text-indigo-600 dark:!text-indigo-400 font-bold cursor-pointer hover:underline">Xem tất cả</span>
+        <div className="lg:col-span-7 bg-white dark:bg-gray-800! rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700! overflow-hidden flex flex-col h-[400px]">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700! flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800 dark:text-white!">Top Sản Phẩm</h2>
+                <span className="text-xs text-indigo-600 dark:text-indigo-400! font-bold cursor-pointer hover:underline">Xem tất cả</span>
             </div>
             <div className="flex-1 overflow-auto p-0 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
                 {!loading && topProducts.length === 0 ? (
                     // EMPTY STATE CHO TOP PRODUCTS
                     <EmptyDataState message="Chưa có dữ liệu sản phẩm" />
                 ) : (
-                    <ul className="divide-y divide-gray-50 dark:!divide-gray-700">
+                    <ul className="divide-y divide-gray-50 dark:divide-gray-700!">
                         {!loading && topProducts.map((product, index) => (
-                            <li key={product.productColorId || index} className="group hover:bg-gray-50 dark:hover:!bg-gray-700/50 p-4 flex items-center gap-3 transition-colors">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index < 3 ? 'bg-indigo-100 text-indigo-700 dark:!bg-indigo-900/50 dark:!text-indigo-300' : 'bg-gray-100 text-gray-500 dark:!bg-gray-700 dark:!text-gray-400'}`}>
+                            <li key={product.productColorId || index} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50! p-4 flex items-center gap-3 transition-colors">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index < 3 ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50! dark:text-indigo-300!' : 'bg-gray-100 text-gray-500 dark:bg-gray-700! dark:text-gray-400!'}`}>
                                     #{index + 1}
                                 </div>
                                 <img 
                                     src={(product as any).image || `https://placehold.co/100x100/e2e8f0/64748b?text=${product.productName.charAt(0)}`} 
                                     alt={product.productName} 
-                                    className="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:!border-gray-600" 
+                                    className="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-600!" 
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).src = `https://placehold.co/100x100/e2e8f0/64748b?text=${product.productName.charAt(0)}`;
                                     }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-semibold text-gray-900 dark:!text-white truncate" title={product.productName}>
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white! truncate" title={product.productName}>
                                         {product.productName}
                                     </h4>
-                                    <p className="text-xs text-gray-500 dark:!text-gray-400">
-                                        Màu: {product.colorName} • Đã bán: <span className="font-medium text-gray-700 dark:!text-gray-300">{product.totalQuantitySold}</span>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400!">
+                                        Màu: {product.colorName} • Đã bán: <span className="font-medium text-gray-700 dark:text-gray-300!">{product.totalQuantitySold}</span>
                                     </p>
                                 </div>
-                                <div className="font-bold text-indigo-600 dark:!text-indigo-300 text-xs whitespace-nowrap bg-indigo-50 dark:!bg-indigo-900/30 px-2 py-1 rounded">
+                                <div className="font-bold text-indigo-600 dark:text-indigo-300! text-xs whitespace-nowrap bg-indigo-50 dark:bg-indigo-900/30! px-2 py-1 rounded">
                                     {formatCurrency(product.totalRevenue)}
                                 </div>
                             </li>

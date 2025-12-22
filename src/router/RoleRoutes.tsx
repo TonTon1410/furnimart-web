@@ -94,6 +94,11 @@ const StaffOrderPage = lazy(
   () => import("@/dashboard/roles/seller/OrderOffline/StaffOrderPage")
 );
 
+// Warranty Management Page
+const WarrantyManagement = lazy(
+  () => import("@/dashboard/pages/WarrantyManagement")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
@@ -208,6 +213,7 @@ export default function RoleRoutes() {
           path="delivery-management"
           element={<DeliveryManagementPage />}
         />
+        <Route path="warranty-management" element={<WarrantyManagement />} />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />

@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Truck, ShieldCheck, RotateCcw, MessageSquare } from "lucide-react";
+import {
+  Truck,
+  ShieldCheck,
+  Box,
+  MousePointer2,
+  Eye,
+  Maximize2,
+} from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Link } from "react-router-dom";
@@ -100,7 +107,7 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <main className="min-h-screen relative pb-24 sm:pb-20">
+    <main className="min-h-screen relative">
       {/* HERO – 2 cột */}
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden bg-emerald-50 sm:grid-cols-2">
         {/* overlay để navbar dễ đọc */}
@@ -114,13 +121,27 @@ const Home: React.FC = () => {
             variants={fadeUp}
             transition={{ duration: 0.6 }}
           >
+            {/* 3D Badge */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-lg"
+            >
+              <Box className="h-5 w-5" />
+              <span className="text-sm font-semibold">
+                Xem thử 3D ngay trên web
+              </span>
+            </motion.div>
+
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight text-gray-900 lg:text-6xl">
-              Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối
-              giản
+              Trải nghiệm nội thất <span className="text-emerald-600">3D</span>{" "}
+              trước khi mua
             </h1>
             <p className="mt-4 sm:mt-6 max-w-prose text-base sm:text-lg text-gray-600">
-              Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm
-              không gian sống của bạn.
+              Xoay, phóng to, xem chi tiết từng góc độ với công nghệ 3D tiên
+              tiến. Tự tin lựa chọn nội thất phù hợp cho không gian sống của
+              bạn.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -139,18 +160,30 @@ const Home: React.FC = () => {
             </div>
 
             {/* Feature pills */}
-            <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
+            <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-2 sm:gap-3">
               {[
-                { icon: Truck, label: "Miễn phí vận chuyển" },
+                { icon: Box, label: "Xem 3D chi tiết", highlight: true },
+                {
+                  icon: MousePointer2,
+                  label: "Tương tác 360°",
+                  highlight: true,
+                },
                 { icon: ShieldCheck, label: "Thanh toán an toàn" },
-                { icon: RotateCcw, label: "Dễ đổi trả" },
-                { icon: MessageSquare, label: "Hỗ trợ 24/7" },
-              ].map(({ icon: Icon, label }) => (
+                { icon: Truck, label: "Miễn phí vận chuyển" },
+              ].map(({ icon: Icon, label, highlight }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border border-emerald-100 bg-white/90 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 shadow-sm"
+                  className={`flex items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm shadow-sm transition-all hover:scale-105 ${
+                    highlight
+                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
+                      : "border border-emerald-100 bg-white/90 text-gray-700"
+                  }`}
                 >
-                  <Icon className="h-4 w-4 text-emerald-600" />
+                  <Icon
+                    className={`h-4 w-4 ${
+                      highlight ? "text-emerald-600" : "text-emerald-600"
+                    }`}
+                  />
                   <span>{label}</span>
                 </div>
               ))}
@@ -172,6 +205,79 @@ const Home: React.FC = () => {
             onError={onImgError}
           />
         </motion.div>
+      </section>
+
+      {/* 3D SHOWCASE SECTION */}
+      <section className="relative overflow-hidden bg-linear-to-br from-emerald-500 via-teal-500 to-cyan-600 py-16 sm:py-24">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30"></div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm mb-6">
+              <Box className="h-5 w-5 text-white" />
+              <span className="text-sm font-semibold text-white">
+                Công nghệ 3D
+              </span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+              Trải nghiệm nội thất như thật
+            </h2>
+            <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto mb-12">
+              Xoay, phóng to, khám phá từng chi tiết với mô hình 3D tương tác.
+              Đặt thử nội thất vào không gian của bạn trước khi quyết định mua.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
+              {[
+                {
+                  icon: Eye,
+                  title: "Xem từ mọi góc độ",
+                  desc: "Xoay 360° để khám phá sản phẩm từ mọi hướng nhìn",
+                },
+                {
+                  icon: Maximize2,
+                  title: "Phóng to chi tiết",
+                  desc: "Zoom để xem rõ chất liệu, đường nét thiết kế",
+                },
+                {
+                  icon: MousePointer2,
+                  title: "Tương tác dễ dàng",
+                  desc: "Điều khiển mượt mà bằng chuột hoặc cảm ứng",
+                },
+              ].map((feature, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all"
+                >
+                  <feature.icon className="h-10 w-10 text-white mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-white/80">{feature.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-2 mt-12 px-8 py-4 bg-white text-emerald-600 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+            >
+              <Box className="h-5 w-5" />
+              Khám phá mô hình 3D ngay
+            </Link>
+          </motion.div>
+        </div>
       </section>
 
       {/* ✅ CATEGORIES – 1 hàng, tự chạy bằng Swiper */}
@@ -305,18 +411,22 @@ const Home: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl flex items-center gap-3">
                 Sản phẩm nổi bật
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold">
+                  <Box className="h-4 w-4" />
+                  3D
+                </span>
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Gợi ý cho không gian tối giản
+                Xem mô hình 3D chi tiết cho mỗi sản phẩm
               </p>
             </div>
             <Link
               to="/shop"
-              className="text-sm font-semibold text-emerald-700 hover:underline"
+              className="text-sm font-semibold text-emerald-700 hover:underline flex items-center gap-1"
             >
-              Xem tất cả →
+              Xem tất cả <Box className="h-4 w-4" />
             </Link>
           </div>
 
@@ -332,18 +442,25 @@ const Home: React.FC = () => {
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
-                  <ProductCard
-                    className="group"
-                    data={{
-                      id: p.id,
-                      slug: p.slug,
-                      description: p.name,
-                      price: p.price,
-                      thumbnailImage: img,
-                    }}
-                    // Note: ProductCard không có onAdd prop
-                    // Người dùng cần vào trang chi tiết để chọn màu trước khi thêm vào giỏ
-                  />
+                  <div className="relative">
+                    {/* 3D Badge on product card */}
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-linear-to-r from-emerald-500 to-teal-500 text-white text-xs font-semibold shadow-lg">
+                      <Box className="h-3 w-3" />
+                      3D
+                    </div>
+                    <ProductCard
+                      className="group"
+                      data={{
+                        id: p.id,
+                        slug: p.slug,
+                        description: p.name,
+                        price: p.price,
+                        thumbnailImage: img,
+                      }}
+                      // Note: ProductCard không có onAdd prop
+                      // Người dùng cần vào trang chi tiết để chọn màu trước khi thêm vào giỏ
+                    />
+                  </div>
                 </motion.div>
               );
             })}
@@ -368,16 +485,20 @@ const Home: React.FC = () => {
             >
               {[
                 {
-                  q: "Thiết kế tối giản nhưng chắc chắn. Giao hàng nhanh.",
+                  q: "Xem mô hình 3D giúp tôi tự tin hơn khi chọn sofa. Sản phẩm thực tế đúng như mong đợi!",
                   n: "Minh T.",
                 },
                 {
-                  q: "Sofa êm và mát. Dịch vụ chăm sóc khách hàng tuyệt vời.",
+                  q: "Công nghệ 3D rất tiện lợi, xoay xem từng góc cạnh trước khi mua. Không lo mua nhầm nữa.",
                   n: "Lan P.",
                 },
                 {
-                  q: "Bàn trà gỗ sồi đẹp hơn mong đợi. Sẽ quay lại mua lần nữa.",
+                  q: "Lần đầu mua nội thất online nhưng nhờ có 3D nên rất yên tâm. Bàn trà đẹp hơn tưởng tượng!",
                   n: "Hải D.",
+                },
+                {
+                  q: "Tính năng xem 3D chi tiết quá, zoom vào thấy cả vân gỗ. Chất lượng sản phẩm xuất sắc.",
+                  n: "Thu N.",
                 },
               ].map((t, i) => (
                 <SwiperSlide key={i}>
@@ -391,6 +512,51 @@ const Home: React.FC = () => {
               ))}
             </Swiper>
           </div>
+        </div>
+      </section>
+
+      {/* CTA SECTION - 3D */}
+      <section className="relative bg-linear-to-r from-gray-900 to-gray-800 pt-16 sm:pt-20 pb-0 overflow-hidden mb-0">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50"></div>
+
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 text-center pb-16 sm:pb-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
+              <Box className="h-5 w-5 text-emerald-400" />
+              <span className="text-sm font-semibold text-emerald-300">
+                Trải nghiệm 3D miễn phí
+              </span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+              Sẵn sàng khám phá nội thất của bạn?
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+              Hàng trăm mô hình 3D chất lượng cao đang chờ bạn. Xem thử, tương
+              tác và tìm món đồ hoàn hảo cho không gian sống.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/shop"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-linear-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                <Box className="h-5 w-5" />
+                Xem mô hình 3D ngay
+              </Link>
+              <Link
+                to="/about"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-lg border-2 border-white/20 hover:bg-white/20 transition-all"
+              >
+                Tìm hiểu thêm
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
     </main>
