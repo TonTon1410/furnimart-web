@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import ProductCard from "../ProductCard";
+// Import component RatingSection vừa tạo
+import RatingSection from "./RatingSection";
 
 interface Product {
   id: string;
@@ -29,16 +31,17 @@ interface BottomSectionProps {
 }
 
 const BottomSection = React.memo<BottomSectionProps>(({ related, product }) => {
-  const [activeTab, setActiveTab] = useState<"desc" | "detail">("desc");
+  // Thêm trạng thái "review" vào state activeTab
+  const [activeTab, setActiveTab] = useState<"desc" | "detail" | "review">("desc");
 
   return (
     <>
       {/* Tabs */}
       <div className="bg-white rounded-lg md:rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex border-b">
+        <div className="flex border-b overflow-x-auto">
           <button
             onClick={() => setActiveTab("desc")}
-            className={`flex-1 py-2 md:py-3 text-sm md:text-base text-center font-semibold transition ${
+            className={`flex-1 min-w-[100px] py-2 md:py-3 text-sm md:text-base text-center font-semibold transition whitespace-nowrap ${
               activeTab === "desc"
                 ? "border-b-2 border-emerald-600 text-emerald-600"
                 : "text-gray-500 hover:text-emerald-600"
@@ -48,7 +51,7 @@ const BottomSection = React.memo<BottomSectionProps>(({ related, product }) => {
           </button>
           <button
             onClick={() => setActiveTab("detail")}
-            className={`flex-1 py-2 md:py-3 text-sm md:text-base text-center font-semibold transition ${
+            className={`flex-1 min-w-[120px] py-2 md:py-3 text-sm md:text-base text-center font-semibold transition whitespace-nowrap ${
               activeTab === "detail"
                 ? "border-b-2 border-emerald-600 text-emerald-600"
                 : "text-gray-500 hover:text-emerald-600"
@@ -56,14 +59,28 @@ const BottomSection = React.memo<BottomSectionProps>(({ related, product }) => {
           >
             Thông tin chi tiết
           </button>
+          <button
+            onClick={() => setActiveTab("review")}
+            className={`flex-1 min-w-[100px] py-2 md:py-3 text-sm md:text-base text-center font-semibold transition whitespace-nowrap ${
+              activeTab === "review"
+                ? "border-b-2 border-emerald-600 text-emerald-600"
+                : "text-gray-500 hover:text-emerald-600"
+            }`}
+          >
+            Đánh giá
+          </button>
         </div>
 
         <div className="p-3 md:p-6">
-          {activeTab === "desc" ? (
+          {/* TAB: MÔ TẢ */}
+          {activeTab === "desc" && (
             <p className="text-sm md:text-base lg:text-lg leading-relaxed text-gray-700 whitespace-pre-line">
               {product.description || "Không có mô tả cho sản phẩm này."}
             </p>
-          ) : (
+          )}
+
+          {/* TAB: CHI TIẾT */}
+          {activeTab === "detail" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 text-gray-700">
               {/* Vật liệu & Danh mục */}
               <div>
@@ -127,6 +144,11 @@ const BottomSection = React.memo<BottomSectionProps>(({ related, product }) => {
                 </ul>
               </div>
             </div>
+          )}
+
+          {/* TAB: ĐÁNH GIÁ (MỚI) */}
+          {activeTab === "review" && (
+             <RatingSection productId={product.id} />
           )}
         </div>
       </div>
