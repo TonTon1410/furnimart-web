@@ -231,7 +231,7 @@ export default function Navbar() {
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    My Wallet{" "}
+                    Ví Của tôi{" "}
                   </Link>
                   <Link
                     to="/orders"

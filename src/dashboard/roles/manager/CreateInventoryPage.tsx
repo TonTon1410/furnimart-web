@@ -690,7 +690,7 @@ const CreateInventoryPage: React.FC = () => {
                 >
                   {type === "EXPORT" && purpose === "MOVE"
                     ? "XUẤT ĐẾN KHO"
-                    : "CHUYỂN ĐẾN KHO"}
+                    : "Đơn Yêu Cầu"}
                 </Typography>
                 <Divider className="border-orange-200 dark:border-orange-800" />
 
@@ -703,7 +703,7 @@ const CreateInventoryPage: React.FC = () => {
                   }}
                 >
                   <WarehouseZoneLocationSelector
-                    labelPrefix="Đến"
+                    labelPrefix="Từ"
                     selectedWarehouseId={toWarehouseId}
                     selectedZoneId={toZoneId}
                     selectedLocationId={toLocationId}
