@@ -16,6 +16,7 @@ import {
   FileText,
   Phone,
   Eye,
+  Star,
   Shield,
   AlertCircle,
   Upload,
@@ -24,6 +25,7 @@ import {
 import { orderService } from "@/service/orderService";
 import type { OrderItem } from "../types/order";
 import { OrderProcessTimeline } from "@/components/OrderProcessTimeline";
+import { RatingModal } from "@/components/RatingModal";
 import warrantyService, {
   type Warranty,
   type WarrantyClaimItem,
@@ -275,6 +277,11 @@ export default function OrderHistory() {
 
   const ordersPerPage = 10;
 
+  // ⭐ Rating modal state
+  const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [ratingProductId, setRatingProductId] = useState<string | null>(null);
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
+
   // Load tất cả orders một lần khi component mount
   useEffect(() => {
     const loadAllOrders = async () => {
@@ -371,7 +378,11 @@ export default function OrderHistory() {
 
   // Filter và pagination ở frontend
   useEffect(() => {
-    let filtered = [...allOrders];
+    let filtered = [...allOrders].sort(
+      (a, b) =>
+        new Date(b.orderDate).getTime() -
+        new Date(a.orderDate).getTime()
+    );
 
     // Sắp xếp theo thứ tự mới nhất đến cũ nhất (dựa vào createdAt)
     filtered.sort((a, b) => {
@@ -719,6 +730,13 @@ export default function OrderHistory() {
     return parts.length > 0 ? parts.join(", ") : "N/A";
   };
 
+  // ⭐ Handle open rating modal
+  const openRatingModal = (productId: string, orderId: string) => {
+    setRatingProductId(productId);
+    setRatingOrderId(orderId);
+    setIsRatingOpen(true);
+  };
+
   return (
     <motion.div
       initial="hidden"
@@ -758,11 +776,10 @@ export default function OrderHistory() {
                   setActiveTab(tab.key);
                   setCurrentPage(1); // Reset về trang 1 khi đổi tab
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isActive
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
@@ -1203,6 +1220,21 @@ export default function OrderHistory() {
                           <span className="font-medium text-foreground min-w-16 sm:min-w-20 text-right text-xs sm:text-sm">
                             {formatPrice(detail.price)}
                           </span>
+                          {/* Rating Button */}
+                          {(order.rawStatus || order.status) === "FINISHED" && (
+                            <button
+                              onClick={() =>
+                                openRatingModal(
+                                  detail.productColor!.product.id, // Đã thêm dấu ! để fix lỗi TS
+                                  order.id
+                                )
+                              }
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 transition-colors dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/30"
+                            >
+                              <Star className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium whitespace-nowrap">Đánh giá</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1218,6 +1250,18 @@ export default function OrderHistory() {
                     <span className="text-lg sm:text-xl font-bold text-primary">
                       {formatPrice(order.price)}
                     </span>
+                    {ratingProductId && ratingOrderId && (
+                      <RatingModal
+                        isOpen={isRatingOpen}
+                        onClose={() => setIsRatingOpen(false)}
+                        productId={ratingProductId}
+                        orderId={ratingOrderId}
+                        onSuccess={() => {
+                          // không bắt buộc
+                          console.log("Đánh giá thành công");
+                        }}
+                      />
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1448,20 +1492,19 @@ export default function OrderHistory() {
                           Trạng thái TT:{" "}
                         </span>
                         <span
-                          className={`font-medium ${
-                            selectedOrderDetail.payment.paymentStatus === "PAID"
-                              ? "text-green-600"
-                              : "text-yellow-600"
-                          }`}
+                          className={`font-medium ${selectedOrderDetail.payment.paymentStatus === "PAID"
+                            ? "text-green-600"
+                            : "text-yellow-600"
+                            }`}
                         >
                           {selectedOrderDetail.payment.paymentStatus === "PAID"
                             ? "Đã thanh toán"
                             : selectedOrderDetail.payment.paymentStatus ===
-                                "PENDING" ||
+                              "PENDING" ||
                               selectedOrderDetail.payment.paymentStatus ===
-                                "NOT_PAID"
-                            ? "Chưa thanh toán"
-                            : selectedOrderDetail.payment.paymentStatus}
+                              "NOT_PAID"
+                              ? "Chưa thanh toán"
+                              : selectedOrderDetail.payment.paymentStatus}
                         </span>
                       </div>
                     </div>
@@ -1543,53 +1586,53 @@ export default function OrderHistory() {
                   ?.deliveryPhotos ||
                   selectedOrderDetail.deliveryConfirmationResponse
                     ?.customerSignature) && (
-                  <div className="mb-4 rounded-lg bg-muted/30 p-3">
-                    <div className="text-xs font-medium text-foreground mb-3 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      Xác nhận giao hàng thành công
-                    </div>
-
-                    {selectedOrderDetail.deliveryConfirmationResponse
-                      ?.deliveryPhotos &&
-                      selectedOrderDetail.deliveryConfirmationResponse
-                        .deliveryPhotos.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Hình ảnh giao hàng:
-                          </p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {selectedOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
-                              (photo: string, idx: number) => (
-                                <img
-                                  key={idx}
-                                  src={photo}
-                                  alt={`Delivery photo ${idx + 1}`}
-                                  className="w-full h-32 object-cover rounded-lg border border-border"
-                                />
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                    {selectedOrderDetail.deliveryConfirmationResponse
-                      ?.customerSignature && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Chữ ký khách hàng:
-                        </p>
-                        <img
-                          src={
-                            selectedOrderDetail.deliveryConfirmationResponse
-                              .customerSignature
-                          }
-                          alt="Customer signature"
-                          className="w-full max-w-sm h-32 object-contain rounded-lg border border-border bg-white dark:bg-gray-900"
-                        />
+                    <div className="mb-4 rounded-lg bg-muted/30 p-3">
+                      <div className="text-xs font-medium text-foreground mb-3 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Xác nhận giao hàng thành công
                       </div>
-                    )}
-                  </div>
-                )}
+
+                      {selectedOrderDetail.deliveryConfirmationResponse
+                        ?.deliveryPhotos &&
+                        selectedOrderDetail.deliveryConfirmationResponse
+                          .deliveryPhotos.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Hình ảnh giao hàng:
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {selectedOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
+                                (photo: string, idx: number) => (
+                                  <img
+                                    key={idx}
+                                    src={photo}
+                                    alt={`Delivery photo ${idx + 1}`}
+                                    className="w-full h-32 object-cover rounded-lg border border-border"
+                                  />
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {selectedOrderDetail.deliveryConfirmationResponse
+                        ?.customerSignature && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Chữ ký khách hàng:
+                            </p>
+                            <img
+                              src={
+                                selectedOrderDetail.deliveryConfirmationResponse
+                                  .customerSignature
+                              }
+                              alt="Customer signature"
+                              className="w-full max-w-sm h-32 object-contain rounded-lg border border-border bg-white dark:bg-gray-900"
+                            />
+                          </div>
+                        )}
+                    </div>
+                  )}
 
                 {/* Total */}
                 <div className="border-t border-border pt-4">

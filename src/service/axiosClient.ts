@@ -5,9 +5,8 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 // ───────────────────────────────────────────────
 // Tạo instance Axios chính
 // ───────────────────────────────────────────────
-const API_BASE_URL =
-import.meta.env.VITE_API_BASE_URL || "https://furnimart.click/api";
-  // import.meta.env.VITE_API_BASE_URL || "http://152.53.244.124:8080/api";
+const API_BASE_URL = "https://furnimart.click/api";
+// import.meta.env.VITE_API_BASE_URL || "http://152.53.244.124:8080/api";
 
 // 🔍 LOG BASE URL ĐỂ DEBUG
 console.log("🌐 API_BASE_URL:", API_BASE_URL);
