@@ -173,6 +173,7 @@ export default function RoleRoutes() {
         <Route path="reports/revenue" element={<ManagerRevenue />} />
         <Route path="reports/performance" element={<ManagerPerformance />} />
         <Route path="reports/delivery" element={<ManagerDelivery />} />
+        <Route path="warranty-management" element={<WarrantyManagement />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );

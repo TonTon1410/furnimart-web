@@ -6,6 +6,7 @@ import {
   Users,
   Clock,
   LayoutDashboard,
+  Shield,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -61,7 +62,16 @@ export const managerNav = async (): Promise<RoleNav> => {
       },
       { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
       { icon: <Users />, name: "Quản lí nhân viên", path: DP("employees") },
-      { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
-    ]
+      {
+        icon: <Shield />,
+        name: "Quản lí bảo hành",
+        path: DP("warranty-management"),
+      },
+      {
+        icon: <LayoutDashboard />,
+        name: "Thống kê & Báo cáo",
+        path: DP("dashboard"),
+      },
+    ],
   };
 };

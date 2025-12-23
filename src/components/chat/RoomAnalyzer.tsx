@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { X, Upload, Camera, Loader2, Sparkles, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/context/ToastContext";
 
 interface ProductSuggestion {
   id: string;
@@ -22,6 +23,7 @@ interface RoomAnalysisResponse {
 }
 
 export function RoomAnalyzer() {
+  const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -71,7 +73,10 @@ export function RoomAnalyzer() {
       setResult(data.data);
     } catch (error) {
       console.error("Error analyzing room:", error);
-      alert("Không thể phân tích phòng. Vui lòng thử lại.");
+      showToast({
+        type: "error",
+        title: "Không thể phân tích phòng. Vui lòng thử lại.",
+      });
     } finally {
       setLoading(false);
     }

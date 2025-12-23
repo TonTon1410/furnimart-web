@@ -42,6 +42,9 @@ export interface WarrantyClaim {
   orderId: number;
   customerId: string;
   addressId: number;
+  address: string;
+  name: string;
+  phone: string;
   claimDate: string;
   status:
     | "PENDING"
@@ -223,12 +226,29 @@ const warrantyService = {
   // Get warranty claims by store
   getWarrantyClaimsByStore: async (
     storeId: string
-  ): Promise<WarrantyClaim[]> => {
+  ): Promise<{
+    content: WarrantyClaim[];
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  }> => {
     try {
-      const response = await axiosClient.get(
-        `/warranties/claims/store/${storeId}`
+      const response = await axiosClient.get(`/warranties/store/${storeId}`);
+      return (
+        response.data.data ||
+        response.data || {
+          content: [],
+          number: 1,
+          size: 10,
+          totalElements: 0,
+          totalPages: 0,
+          first: true,
+          last: true,
+        }
       );
-      return response.data.data || response.data || [];
     } catch (error: any) {
       console.error("Error fetching store warranty claims:", error);
       throw error;

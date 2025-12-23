@@ -56,7 +56,7 @@ const TYPE_OPTIONS = [
   { value: "EXPORT", label: "Xuất kho", icon: <OutputIcon color="error" /> },
   {
     value: "TRANSFER",
-    label: "Chuyển kho",
+    label: "Yêu cầu chuyển kho",
     icon: <TransferIcon color="warning" />,
   },
 ];

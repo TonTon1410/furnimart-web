@@ -10,6 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 import { uploadToCloudinary } from "@/service/uploadService";
+import { useToast } from "@/context/ToastContext";
 
 export type Status = "ACTIVE" | "INACTIVE";
 
@@ -49,6 +50,7 @@ const MaterialForm: React.FC<Props> = ({
   onSubmit,
   onCancel,
 }) => {
+  const { showToast } = useToast();
   const [form, setForm] = useState<MaterialFormValues>({
     materialName: initial?.materialName ?? "",
     description: initial?.description ?? "",
@@ -77,13 +79,19 @@ const MaterialForm: React.FC<Props> = ({
 
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      alert("Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)");
+      showToast({
+        type: "error",
+        title: "Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)",
+      });
       return;
     }
 
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert("File không được vượt quá 5MB");
+      showToast({
+        type: "error",
+        title: "File không được vượt quá 5MB",
+      });
       return;
     }
 
@@ -93,7 +101,10 @@ const MaterialForm: React.FC<Props> = ({
       setForm((prev) => ({ ...prev, image: cloudinaryUrl }));
     } catch (error) {
       console.error("Upload image error:", error);
-      alert("Upload ảnh thất bại. Vui lòng thử lại.");
+      showToast({
+        type: "error",
+        title: "Upload ảnh thất bại. Vui lòng thử lại.",
+      });
     } finally {
       setUploading(false);
     }
