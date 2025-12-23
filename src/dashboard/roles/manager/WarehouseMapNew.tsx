@@ -1227,11 +1227,11 @@ export default function WarehouseMapNew({
                               <div className="font-bold text-emerald-600">
                                 {item.quantity} sản phẩm
                               </div>
-                              {item.reservedQuantity > 0 && (
+                              {/* {item.reservedQuantity > 0 && (
                                 <div className="text-xs text-amber-600">
                                   Đặt trước: {item.reservedQuantity}
                                 </div>
-                              )}
+                              )} */}
                             </div>
                           </div>
                         </div>

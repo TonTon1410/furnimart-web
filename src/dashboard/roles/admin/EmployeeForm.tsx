@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import CustomDropdown from "@/components/CustomDropdown";
 import { uploadToCloudinary } from "@/service/uploadService";
 import { Upload, Loader2 } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 export type Status = "ACTIVE" | "INACTIVE";
 export type Role = "STAFF" | "BRANCH_MANAGER" | "DELIVERY";
@@ -51,6 +52,7 @@ const EmployeeForm: React.FC<Props> = ({
   onSubmit,
   onCancel,
 }) => {
+  const { showToast } = useToast();
   const [form, setForm] = useState<EmployeeFormValues>({
     fullName: initial?.fullName ?? "",
     password: initial?.password ?? "",
@@ -130,13 +132,19 @@ const EmployeeForm: React.FC<Props> = ({
 
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      alert("Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)");
+      showToast({
+        type: "error",
+        title: "Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)",
+      });
       return;
     }
 
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert("File không được vượt quá 5MB");
+      showToast({
+        type: "error",
+        title: "File không được vượt quá 5MB",
+      });
       return;
     }
 
@@ -146,7 +154,10 @@ const EmployeeForm: React.FC<Props> = ({
       setForm((prev) => ({ ...prev, avatar: cloudinaryUrl }));
     } catch (error) {
       console.error("Upload avatar error:", error);
-      alert("Upload ảnh thất bại. Vui lòng thử lại.");
+      showToast({
+        type: "error",
+        title: "Upload ảnh thất bại. Vui lòng thử lại.",
+      });
     } finally {
       setUploading(false);
     }

@@ -35,6 +35,7 @@ import { uploadToCloudinary } from "@/service/uploadService";
 import { addressService, type Address } from "@/service/addressService";
 import { authService } from "@/service/authService";
 import { productService, type ProductColor } from "@/service/productService";
+import { useToast } from "@/context/ToastContext";
 
 // Process status config
 const processStatusConfig: Record<
@@ -229,6 +230,7 @@ const getPaymentMethodLabel = (method: string) => {
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 export default function OrderHistory() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredOrders, setFilteredOrders] = useState<OrderItem[]>([]);
@@ -275,6 +277,11 @@ export default function OrderHistory() {
     Map<string, ProductColor>
   >(new Map());
 
+  // Product colors for order details
+  const [orderProductColors, setOrderProductColors] = useState<
+    Map<string, ProductColor>
+  >(new Map());
+
   const ordersPerPage = 10;
 
   // ⭐ Rating modal state
@@ -292,6 +299,41 @@ export default function OrderHistory() {
         const result = await orderService.searchOrdersByCustomer();
 
         setAllOrders(result.orders || []);
+
+        // Load product colors for order details
+        const productColorMap = new Map<string, ProductColor>();
+        const uniqueProductColorIds = new Set<string>();
+
+        result.orders?.forEach((order) => {
+          order.orderDetails?.forEach((detail) => {
+            if (detail.productColorId && !detail.productColor) {
+              uniqueProductColorIds.add(detail.productColorId);
+            }
+          });
+        });
+
+        // Load all product colors in parallel
+        if (uniqueProductColorIds.size > 0) {
+          await Promise.all(
+            Array.from(uniqueProductColorIds).map(async (productColorId) => {
+              try {
+                const response = await productService.getProductColorById(
+                  productColorId
+                );
+                if (response.data.data) {
+                  productColorMap.set(productColorId, response.data.data);
+                }
+              } catch (error) {
+                console.error(
+                  `Error loading product color ${productColorId}:`,
+                  error
+                );
+              }
+            })
+          );
+
+          setOrderProductColors(productColorMap);
+        }
       } catch (error) {
         console.error("Error loading orders:", error);
         setError(
@@ -380,8 +422,7 @@ export default function OrderHistory() {
   useEffect(() => {
     let filtered = [...allOrders].sort(
       (a, b) =>
-        new Date(b.orderDate).getTime() -
-        new Date(a.orderDate).getTime()
+        new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
     );
 
     // Sắp xếp theo thứ tự mới nhất đến cũ nhất (dựa vào createdAt)
@@ -701,8 +742,15 @@ export default function OrderHistory() {
       setSelectedAddressId(null);
       setError(null);
 
-      // Show success message
-      alert("Yêu cầu bảo hành đã được gửi thành công!");
+      // Show success toast
+      showToast({
+        type: "success",
+        title:
+          "Yêu cầu bảo hành đã được gửi thành công! Chúng tôi sẽ xem xét và phản hồi sớm nhất.",
+      });
+
+      // Switch to WARRANTY_CLAIMS tab to show the new claim
+      setActiveTab("WARRANTY_CLAIMS");
     } catch (error: unknown) {
       console.error("Error submitting warranty claim:", error);
       const errorMessage =
@@ -776,10 +824,11 @@ export default function OrderHistory() {
                   setActiveTab(tab.key);
                   setCurrentPage(1); // Reset về trang 1 khi đổi tab
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isActive
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
@@ -906,21 +955,24 @@ export default function OrderHistory() {
                         >
                           <div className="flex gap-3 items-start">
                             {/* Product Image */}
-                            {productColor?.images?.[0]?.image && (
+                            {productColor?.images?.[0]?.image ? (
                               <img
                                 src={productColor.images[0].image}
                                 alt={productColor.product?.name || "Product"}
                                 className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-border shrink-0"
                               />
+                            ) : (
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg border border-border shrink-0 flex items-center justify-center">
+                                <Package className="h-8 w-8 text-muted-foreground" />
+                              </div>
                             )}
 
                             <div className="flex-1 min-w-0">
                               {/* Product Name */}
-                              {productColor?.product?.name && (
-                                <p className="text-xs sm:text-sm font-semibold text-foreground mb-1">
-                                  {productColor.product.name}
-                                </p>
-                              )}
+                              <p className="text-xs sm:text-sm font-semibold text-foreground mb-1">
+                                {productColor?.product?.name ||
+                                  "Đang tải thông tin sản phẩm..."}
+                              </p>
 
                               {/* Color */}
                               {productColor?.color?.colorName && (
@@ -1188,56 +1240,65 @@ export default function OrderHistory() {
                     <h5 className="text-xs sm:text-sm font-semibold text-foreground mb-1.5">
                       Chi tiết sản phẩm:
                     </h5>
-                    {order.orderDetails.map((detail, idx) => (
-                      <div
-                        key={detail.id}
-                        className="flex gap-2 items-center p-2 bg-background/30 rounded-lg text-xs sm:text-sm"
-                      >
-                        {detail.productColor?.images?.[0]?.image && (
-                          <img
-                            src={detail.productColor.images[0].image}
-                            alt={
-                              detail.productColor?.product?.name ||
-                              `Sản phẩm ${idx + 1}`
-                            }
-                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate text-xs sm:text-sm">
-                            {detail.productColor?.product?.name ||
-                              `Sản phẩm ${idx + 1}`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Màu:{" "}
-                            {detail.productColor?.color?.colorName || "N/A"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-foreground text-xs">
-                            x{detail.quantity}
-                          </span>
-                          <span className="font-medium text-foreground min-w-16 sm:min-w-20 text-right text-xs sm:text-sm">
-                            {formatPrice(detail.price)}
-                          </span>
-                          {/* Rating Button */}
-                          {(order.rawStatus || order.status) === "FINISHED" && (
-                            <button
-                              onClick={() =>
-                                openRatingModal(
-                                  detail.productColor!.product.id, // Đã thêm dấu ! để fix lỗi TS
-                                  order.id
-                                )
+                    {order.orderDetails.map((detail, idx) => {
+                      const productColor =
+                        detail.productColor ||
+                        (detail.productColorId
+                          ? orderProductColors.get(detail.productColorId)
+                          : undefined);
+                      return (
+                        <div
+                          key={detail.id}
+                          className="flex gap-2 items-center p-2 bg-background/30 rounded-lg text-xs sm:text-sm"
+                        >
+                          {productColor?.images?.[0]?.image && (
+                            <img
+                              src={productColor.images[0].image}
+                              alt={
+                                productColor?.product?.name ||
+                                `Sản phẩm ${idx + 1}`
                               }
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 transition-colors dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/30"
-                            >
-                              <Star className="h-3.5 w-3.5" />
-                              <span className="text-xs font-medium whitespace-nowrap">Đánh giá</span>
-                            </button>
-                          )}
+                              className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg shrink-0"
+                            />
+                          )}{" "}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate text-xs sm:text-sm">
+                              {productColor?.product?.name ||
+                                `Sản phẩm ${idx + 1}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Màu: {productColor?.color?.colorName || "N/A"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-foreground text-xs">
+                              x{detail.quantity}
+                            </span>
+                            <span className="font-medium text-foreground min-w-16 sm:min-w-20 text-right text-xs sm:text-sm">
+                              {formatPrice(detail.price)}
+                            </span>
+                            {/* Rating Button */}
+                            {(order.rawStatus || order.status) === "FINISHED" &&
+                              productColor?.product?.id && (
+                                <button
+                                  onClick={() =>
+                                    openRatingModal(
+                                      productColor.product.id,
+                                      order.id
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 transition-colors dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/30"
+                                >
+                                  <Star className="h-3.5 w-3.5" />
+                                  <span className="text-xs font-medium whitespace-nowrap">
+                                    Đánh giá
+                                  </span>
+                                </button>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1492,19 +1553,20 @@ export default function OrderHistory() {
                           Trạng thái TT:{" "}
                         </span>
                         <span
-                          className={`font-medium ${selectedOrderDetail.payment.paymentStatus === "PAID"
-                            ? "text-green-600"
-                            : "text-yellow-600"
-                            }`}
+                          className={`font-medium ${
+                            selectedOrderDetail.payment.paymentStatus === "PAID"
+                              ? "text-green-600"
+                              : "text-yellow-600"
+                          }`}
                         >
                           {selectedOrderDetail.payment.paymentStatus === "PAID"
                             ? "Đã thanh toán"
                             : selectedOrderDetail.payment.paymentStatus ===
-                              "PENDING" ||
+                                "PENDING" ||
                               selectedOrderDetail.payment.paymentStatus ===
-                              "NOT_PAID"
-                              ? "Chưa thanh toán"
-                              : selectedOrderDetail.payment.paymentStatus}
+                                "NOT_PAID"
+                            ? "Chưa thanh toán"
+                            : selectedOrderDetail.payment.paymentStatus}
                         </span>
                       </div>
                     </div>
@@ -1586,53 +1648,53 @@ export default function OrderHistory() {
                   ?.deliveryPhotos ||
                   selectedOrderDetail.deliveryConfirmationResponse
                     ?.customerSignature) && (
-                    <div className="mb-4 rounded-lg bg-muted/30 p-3">
-                      <div className="text-xs font-medium text-foreground mb-3 flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        Xác nhận giao hàng thành công
-                      </div>
-
-                      {selectedOrderDetail.deliveryConfirmationResponse
-                        ?.deliveryPhotos &&
-                        selectedOrderDetail.deliveryConfirmationResponse
-                          .deliveryPhotos.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Hình ảnh giao hàng:
-                            </p>
-                            <div className="grid grid-cols-2 gap-2">
-                              {selectedOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
-                                (photo: string, idx: number) => (
-                                  <img
-                                    key={idx}
-                                    src={photo}
-                                    alt={`Delivery photo ${idx + 1}`}
-                                    className="w-full h-32 object-cover rounded-lg border border-border"
-                                  />
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {selectedOrderDetail.deliveryConfirmationResponse
-                        ?.customerSignature && (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Chữ ký khách hàng:
-                            </p>
-                            <img
-                              src={
-                                selectedOrderDetail.deliveryConfirmationResponse
-                                  .customerSignature
-                              }
-                              alt="Customer signature"
-                              className="w-full max-w-sm h-32 object-contain rounded-lg border border-border bg-white dark:bg-gray-900"
-                            />
-                          </div>
-                        )}
+                  <div className="mb-4 rounded-lg bg-muted/30 p-3">
+                    <div className="text-xs font-medium text-foreground mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Xác nhận giao hàng thành công
                     </div>
-                  )}
+
+                    {selectedOrderDetail.deliveryConfirmationResponse
+                      ?.deliveryPhotos &&
+                      selectedOrderDetail.deliveryConfirmationResponse
+                        .deliveryPhotos.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Hình ảnh giao hàng:
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {selectedOrderDetail.deliveryConfirmationResponse.deliveryPhotos.map(
+                              (photo: string, idx: number) => (
+                                <img
+                                  key={idx}
+                                  src={photo}
+                                  alt={`Delivery photo ${idx + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-border"
+                                />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {selectedOrderDetail.deliveryConfirmationResponse
+                      ?.customerSignature && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Chữ ký khách hàng:
+                        </p>
+                        <img
+                          src={
+                            selectedOrderDetail.deliveryConfirmationResponse
+                              .customerSignature
+                          }
+                          alt="Customer signature"
+                          className="w-full max-w-sm h-32 object-contain rounded-lg border border-border bg-white dark:bg-gray-900"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Total */}
                 <div className="border-t border-border pt-4">

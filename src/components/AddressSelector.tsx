@@ -9,6 +9,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useToast } from "@/context/ToastContext";
 
 // Fix icon
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,6 +78,7 @@ const RecenterMap = React.memo(({ lat, lng }: { lat: number; lng: number }) => {
 });
 
 const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
+  const { showToast } = useToast();
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(
     null
@@ -129,11 +131,15 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
         setProvinces(provincesData);
       } catch (error) {
         console.error("Failed to load provinces:", error);
-        alert("Không thể tải dữ liệu tỉnh/thành. Vui lòng thử lại sau.");
+        showToast({
+          type: "error",
+          title: "Không thể tải dữ liệu tỉnh/thành. Vui lòng thử lại sau.",
+        });
       }
     };
 
     fetchProvinces();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // đồng bộ value

@@ -22,6 +22,7 @@ export interface CreateInventoryRequest {
   warehouseId?: string; // Kho nguồn / Kho tác động
   toWarehouseId?: string; // Kho đích (nếu là chuyển kho)
   orderId?: number;
+  transferId?: string; // ID của phiếu chuyển (nếu là nhập từ transfer)
   items: InventoryItemRequest[];
 }
 
