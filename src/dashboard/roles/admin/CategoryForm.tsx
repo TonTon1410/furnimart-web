@@ -10,6 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 import { uploadToCloudinary } from "@/service/uploadService";
+import { useToast } from "@/context/ToastContext";
 
 export type Status = "ACTIVE" | "INACTIVE";
 
@@ -49,6 +50,7 @@ const CategoryForm: React.FC<Props> = ({
   onSubmit,
   onCancel,
 }) => {
+  const { showToast } = useToast();
   const [form, setForm] = useState<CategoryFormValues>({
     categoryName: initial?.categoryName ?? "",
     description: initial?.description ?? "",
@@ -76,11 +78,17 @@ const CategoryForm: React.FC<Props> = ({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Vui lòng chọn file ảnh");
+      showToast({
+        type: "error",
+        title: "Vui lòng chọn file ảnh",
+      });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("File không được vượt quá 5MB");
+      showToast({
+        type: "error",
+        title: "File không được vượt quá 5MB",
+      });
       return;
     }
 
@@ -90,7 +98,10 @@ const CategoryForm: React.FC<Props> = ({
       setForm((s) => ({ ...s, image: url }));
     } catch (err) {
       console.error(err);
-      alert("Upload ảnh thất bại");
+      showToast({
+        type: "error",
+        title: "Upload ảnh thất bại",
+      });
     } finally {
       setUploading(false);
     }

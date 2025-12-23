@@ -24,6 +24,7 @@ import { authService } from "@/service/authService";
 import { productService } from "@/service/productService";
 import { useToast } from "@/context/ToastContext";
 import WarehouseZoneLocationSelector from "./components/WarehouseZoneLocationSelector";
+import CustomDropdown from "@/components/CustomDropdown";
 
 interface LocationItem {
   createdAt: string;
@@ -86,7 +87,12 @@ interface TransferRequest {
   toWarehouseName?: string;
   toWarehouseId?: string;
   orderId: number;
-  transferStatus: "PENDING" | "ACCEPTED" | "FINISHED" | "REJECTED";
+  transferStatus:
+    | "PENDING"
+    | "ACCEPTED"
+    | "FINISHED"
+    | "REJECTED"
+    | "PENDING_CONFIRM";
   itemResponseList: TransferItem[];
 }
 
@@ -124,6 +130,40 @@ export default function TransferRequestsPage() {
   const [exportNote, setExportNote] = useState("");
   const [exportingStock, setExportingStock] = useState(false);
 
+  // Modal nhập kho (cho PENDING_CONFIRM)
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedImportRequest, setSelectedImportRequest] =
+    useState<TransferRequest | null>(null);
+  const [importLocations, setImportLocations] = useState<
+    Record<
+      string,
+      { zoneId: string | null; locationId: string | null; locationCode: string }
+    >
+  >({});
+  const [importLocationTypes, setImportLocationTypes] = useState<
+    Record<string, "existing" | "new">
+  >({});
+  const [existingLocations, setExistingLocations] = useState<
+    Record<
+      string,
+      Array<{
+        locationId: string;
+        locationCode: string;
+        quantity: number;
+        zoneId: string;
+        zoneName: string;
+      }>
+    >
+  >({});
+  const [importNote, setImportNote] = useState("");
+  const [importingStock, setImportingStock] = useState(false);
+  const [currentWarehouseId, setCurrentWarehouseId] = useState<string | null>(
+    null
+  );
+  const [currentStoreId, setCurrentStoreId] = useState<string | null>(null);
+  const [loadingExistingLocations, setLoadingExistingLocations] =
+    useState(false);
+
   useEffect(() => {
     loadWarehouseAndRequests();
   }, []);
@@ -149,16 +189,15 @@ export default function TransferRequestsPage() {
     setProductColors(newColors);
   };
 
-  // Load product color details when requests are loaded or expanded
+  // Load product color details when requests are loaded
   useEffect(() => {
-    if (expandedIds.size > 0) {
-      const expandedRequests = requests.filter((r) => expandedIds.has(r.id));
-      expandedRequests.forEach((request) => {
-        loadProductColors(request.itemResponseList);
-      });
+    if (requests.length > 0) {
+      // Load tất cả product colors ngay khi có requests
+      const allItems = requests.flatMap((r) => r.itemResponseList);
+      loadProductColors(allItems);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expandedIds, requests]);
+  }, [requests]);
 
   const loadWarehouseAndRequests = async () => {
     try {
@@ -181,6 +220,10 @@ export default function TransferRequestsPage() {
         setLoading(false);
         return;
       }
+
+      // Lưu warehouse ID và storeId
+      setCurrentWarehouseId(warehouseData.id);
+      setCurrentStoreId(storeId);
 
       // Lấy danh sách yêu cầu chuyển kho đang chờ
       const transferRes = await inventoryService.getPendingTransfers(
@@ -479,12 +522,201 @@ export default function TransferRequestsPage() {
     }
   };
 
+  // Load vị trí có sẵn cho các sản phẩm
+  const loadExistingLocationsForProducts = async (itemList: TransferItem[]) => {
+    if (!currentStoreId) {
+      console.warn("Cannot load existing locations: currentStoreId is null");
+      return;
+    }
+
+    console.log(
+      "Loading existing locations for products:",
+      itemList.map((i) => i.productColorId)
+    );
+    console.log("Using storeId:", currentStoreId);
+
+    setLoadingExistingLocations(true);
+    try {
+      const locationsMap: Record<
+        string,
+        Array<{
+          locationId: string;
+          locationCode: string;
+          quantity: number;
+          zoneId: string;
+          zoneName: string;
+        }>
+      > = {};
+
+      for (const item of itemList) {
+        try {
+          const response = await inventoryService.getLocationsByWarehouse({
+            productColorId: item.productColorId,
+            storeId: currentStoreId, // Dùng storeId thay vì warehouseId
+          });
+
+          console.log(
+            `Response for product ${item.productColorId}:`,
+            response.data
+          );
+
+          // API trả về response.data.data.locations (nested data object)
+          const responseData = response.data?.data || response.data;
+          if (
+            responseData?.locations &&
+            Array.isArray(responseData.locations)
+          ) {
+            locationsMap[item.productColorId] = responseData.locations.map(
+              (loc: any) => ({
+                locationId: loc.locationItemId,
+                locationCode: loc.locationCode,
+                quantity: loc.available || 0,
+                zoneId: loc.zoneId,
+                zoneName: loc.zoneName,
+              })
+            );
+            console.log(
+              `Mapped ${
+                locationsMap[item.productColorId].length
+              } locations for product ${item.productColorId}`
+            );
+          } else {
+            locationsMap[item.productColorId] = [];
+            console.log(
+              `No locations in response for product ${item.productColorId}`
+            );
+          }
+        } catch (error: any) {
+          // Nếu API trả về 404 hoặc lỗi khác, mặc định là không có vị trí sẵn
+          if (error?.response?.status === 404) {
+            console.log(
+              `No existing locations found for product ${item.productColorId}`
+            );
+          } else {
+            console.error(
+              `Error loading locations for product ${item.productColorId}:`,
+              error
+            );
+          }
+          locationsMap[item.productColorId] = [];
+        }
+      }
+
+      console.log("Final locationsMap:", locationsMap);
+      setExistingLocations(locationsMap);
+
+      // Set mặc định: nếu có vị trí sẵn thì chọn 'existing', không thì 'new'
+      const defaultTypes: Record<string, "existing" | "new"> = {};
+      itemList.forEach((item) => {
+        defaultTypes[item.productColorId] =
+          locationsMap[item.productColorId]?.length > 0 ? "existing" : "new";
+      });
+      console.log("Default location types:", defaultTypes);
+      setImportLocationTypes(defaultTypes);
+    } catch (error) {
+      console.error("Error loading existing locations:", error);
+      // Mặc định tất cả là 'new' nếu có lỗi
+      const defaultTypes: Record<string, "existing" | "new"> = {};
+      itemList.forEach((item) => {
+        defaultTypes[item.productColorId] = "new";
+      });
+      setImportLocationTypes(defaultTypes);
+    } finally {
+      setLoadingExistingLocations(false);
+    }
+  };
+
+  // Handler nhập kho (cho PENDING_CONFIRM)
+  const handleImportStock = async () => {
+    if (!selectedImportRequest || !currentWarehouseId) return;
+
+    // Validate: Kiểm tra tất cả sản phẩm đã chọn vị trí chưa
+    const missingLocations = selectedImportRequest.itemResponseList.filter(
+      (item) => {
+        const loc = importLocations[item.productColorId];
+        return !loc || !loc.locationId;
+      }
+    );
+
+    if (missingLocations.length > 0) {
+      showToast({
+        type: "error",
+        title: "Thiếu vị trí",
+        description: "Vui lòng chọn vị trí nhập kho cho tất cả sản phẩm",
+      });
+      return;
+    }
+
+    setImportingStock(true);
+    setProcessingIds((prev) => new Set(prev).add(selectedImportRequest.id));
+
+    try {
+      // Tạo phiếu nhập kho từ transfer request
+      const items = selectedImportRequest.itemResponseList.map((item) => {
+        const loc = importLocations[item.productColorId];
+        return {
+          productColorId: item.productColorId,
+          quantity: item.quantity,
+          locationItemId: loc.locationId!,
+        };
+      });
+
+      await inventoryService.createOrUpdateInventory({
+        type: "IMPORT",
+        purpose: "MOVE",
+        note:
+          importNote || `Nhập kho từ phiếu chuyển #${selectedImportRequest.id}`,
+        warehouseId: currentWarehouseId,
+        toWarehouseId: selectedImportRequest.warehouseId, // kho nguồn
+        transferId: selectedImportRequest.id.toString(),
+        items,
+      });
+
+      // Cập nhật trạng thái phiếu chuyển thành FINISHED
+      await inventoryService.approveOrRejectTransfer(
+        selectedImportRequest.id,
+        "FINISHED"
+      );
+
+      showToast({
+        type: "success",
+        title: "Thành công",
+        description: "Nhập kho thành công và đã hoàn thành phiếu chuyển!",
+      });
+
+      setShowImportModal(false);
+      setSelectedImportRequest(null);
+      setImportLocations({});
+      setImportLocationTypes({});
+      setExistingLocations({});
+      setImportNote("");
+      await loadWarehouseAndRequests();
+    } catch (err: any) {
+      console.error("Error importing stock:", err);
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description:
+          err?.response?.data?.message || err?.message || "Không thể nhập kho",
+      });
+    } finally {
+      setImportingStock(false);
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(selectedImportRequest.id);
+        return next;
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
       case "ACCEPTED":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case "PENDING_CONFIRM":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
       case "FINISHED":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
       case "REJECTED":
@@ -500,6 +732,8 @@ export default function TransferRequestsPage() {
         return <Clock className="w-4 h-4" />;
       case "ACCEPTED":
         return <CheckCircle className="w-4 h-4" />;
+      case "PENDING_CONFIRM":
+        return <Package className="w-4 h-4" />;
       case "FINISHED":
         return <CheckCircle className="w-4 h-4" />;
       case "REJECTED":
@@ -515,6 +749,8 @@ export default function TransferRequestsPage() {
         return "Chờ duyệt";
       case "ACCEPTED":
         return "Đã chấp nhận";
+      case "PENDING_CONFIRM":
+        return "Đơn yêu cầu đã đến";
       case "FINISHED":
         return "Hoàn thành";
       case "REJECTED":
@@ -586,7 +822,7 @@ export default function TransferRequestsPage() {
       </div>
 
       {/* Stats - Filter Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <button
           onClick={() => toggleStatusFilter("PENDING")}
           className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
@@ -628,6 +864,32 @@ export default function TransferRequestsPage() {
               </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {requests.filter((r) => r.transferStatus === "ACCEPTED").length}
+              </p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => toggleStatusFilter("PENDING_CONFIRM")}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
+            statusFilter === "PENDING_CONFIRM"
+              ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-200 dark:ring-purple-900/50"
+              : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
+          }`}
+        >
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg shrink-0">
+              <Package className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
+                Đã đến
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                {
+                  requests.filter((r) => r.transferStatus === "PENDING_CONFIRM")
+                    .length
+                }
               </p>
             </div>
           </div>
@@ -769,6 +1031,47 @@ export default function TransferRequestsPage() {
                     </div>
                   </div>
 
+                  {/* Danh sách sản phẩm hiển thị luôn - Bên ngoài click handler */}
+                  <div className="mt-4 space-y-2">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">
+                      Danh sách sản phẩm
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {request.itemResponseList.map((item) => {
+                        const productColor = productColors.get(
+                          item.productColorId
+                        );
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                          >
+                            {productColor?.images?.[0]?.image && (
+                              <img
+                                src={productColor.images[0].image}
+                                alt={item.productName}
+                                className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-600"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                {item.productName}
+                              </p>
+                              {productColor?.color && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  {productColor.color.colorName}
+                                </p>
+                              )}
+                              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+                                SL: {item.quantity}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Action Buttons */}
                   {request.transferStatus === "PENDING" && (
                     <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -811,6 +1114,24 @@ export default function TransferRequestsPage() {
                             Từ chối
                           </>
                         )}
+                      </button>
+                    </div>
+                  )}
+                  {request.transferStatus === "PENDING_CONFIRM" && (
+                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImportRequest(request);
+                          setShowImportModal(true);
+                          loadExistingLocationsForProducts(
+                            request.itemResponseList
+                          );
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <Package className="w-4 h-4" />
+                        Nhập hàng
                       </button>
                     </div>
                   )}
@@ -1303,6 +1624,336 @@ export default function TransferRequestsPage() {
                   <>
                     <Send className="w-4 h-4" />
                     Xuất Kho & Duyệt
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nhập Hàng (cho PENDING_CONFIRM) */}
+      {showImportModal && selectedImportRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 bg-linear-to-r from-purple-600 to-purple-700 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Package className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Nhập Hàng</h3>
+                  <p className="text-sm text-purple-100">
+                    Phiếu chuyển #{selectedImportRequest.id} - Chọn vị trí nhập
+                    kho
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setSelectedImportRequest(null);
+                  setImportLocations({});
+                  setImportLocationTypes({});
+                  setExistingLocations({});
+                  setImportNote("");
+                }}
+                disabled={importingStock}
+                aria-label="Đóng modal"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                <p className="text-sm text-purple-900 dark:text-purple-300">
+                  <Info className="w-4 h-4 inline mr-2" />
+                  Chọn vị trí kho để nhập từng sản phẩm. Vị trí có thể là vị trí
+                  đang có sản phẩm hoặc vị trí trống.
+                </p>
+              </div>
+
+              {/* Danh sách sản phẩm */}
+              <div className="space-y-4">
+                {selectedImportRequest.itemResponseList.map((item) => {
+                  const productColor = productColors.get(item.productColorId);
+                  const selectedLocation = importLocations[item.productColorId];
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50"
+                    >
+                      <div className="flex gap-4 mb-4">
+                        {/* Product Image */}
+                        {productColor?.images?.[0]?.image && (
+                          <img
+                            src={productColor.images[0].image}
+                            alt={item.productName}
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                          />
+                        )}
+
+                        {/* Product Info */}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            {item.productName}
+                          </h4>
+                          {productColor?.color && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Màu: {productColor.color.colorName}
+                            </p>
+                          )}
+                          <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mt-1">
+                            Số lượng: {item.quantity}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Location Selector */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Chọn vị trí nhập kho{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+
+                        {/* Radio buttons: Vị trí có sẵn / Vị trí mới */}
+                        {loadingExistingLocations ? (
+                          <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                            Đang tải vị trí có sẵn...
+                          </div>
+                        ) : (
+                          <div className="flex gap-6 mb-4">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`locationType-${item.productColorId}`}
+                                value="existing"
+                                checked={
+                                  importLocationTypes[item.productColorId] ===
+                                  "existing"
+                                }
+                                onChange={() => {
+                                  setImportLocationTypes((prev) => ({
+                                    ...prev,
+                                    [item.productColorId]: "existing",
+                                  }));
+                                  // Reset location selection
+                                  setImportLocations((prev) => ({
+                                    ...prev,
+                                    [item.productColorId]: {
+                                      zoneId: null,
+                                      locationId: null,
+                                      locationCode: "",
+                                    },
+                                  }));
+                                }}
+                                disabled={
+                                  importingStock ||
+                                  existingLocations[item.productColorId]
+                                    ?.length === 0
+                                }
+                                className="mr-2"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Vị trí có sẵn
+                                {existingLocations[item.productColorId]
+                                  ?.length > 0 && (
+                                  <span className="ml-1 text-purple-600 dark:text-purple-400 font-medium">
+                                    (
+                                    {
+                                      existingLocations[item.productColorId]
+                                        .length
+                                    }
+                                    )
+                                  </span>
+                                )}
+                                {existingLocations[item.productColorId]
+                                  ?.length === 0 && (
+                                  <span className="ml-1 text-gray-400 text-xs">
+                                    (Không có)
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`locationType-${item.productColorId}`}
+                                value="new"
+                                checked={
+                                  importLocationTypes[item.productColorId] ===
+                                  "new"
+                                }
+                                onChange={() => {
+                                  setImportLocationTypes((prev) => ({
+                                    ...prev,
+                                    [item.productColorId]: "new",
+                                  }));
+                                  // Reset location selection
+                                  setImportLocations((prev) => ({
+                                    ...prev,
+                                    [item.productColorId]: {
+                                      zoneId: null,
+                                      locationId: null,
+                                      locationCode: "",
+                                    },
+                                  }));
+                                }}
+                                disabled={importingStock}
+                                className="mr-2"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Vị trí mới
+                              </span>
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Hiển thị selector tương ứng */}
+                        {importLocationTypes[item.productColorId] ===
+                        "existing" ? (
+                          // Dropdown chọn vị trí có sẵn
+                          <div>
+                            <CustomDropdown
+                              id={`location-${item.productColorId}`}
+                              label=""
+                              value={selectedLocation?.locationId || ""}
+                              options={[
+                                {
+                                  value: "",
+                                  label: "-- Chọn vị trí có sẵn --",
+                                },
+                                ...(
+                                  existingLocations[item.productColorId] || []
+                                ).map((loc) => ({
+                                  value: loc.locationId,
+                                  label: `${loc.locationCode} - ${loc.zoneName} (Tồn kho: ${loc.quantity})`,
+                                })),
+                              ]}
+                              onChange={(locationId) => {
+                                const selectedLoc = existingLocations[
+                                  item.productColorId
+                                ]?.find((loc) => loc.locationId === locationId);
+                                if (selectedLoc) {
+                                  setImportLocations((prev) => ({
+                                    ...prev,
+                                    [item.productColorId]: {
+                                      zoneId: selectedLoc.zoneId,
+                                      locationId: selectedLoc.locationId,
+                                      locationCode: selectedLoc.locationCode,
+                                    },
+                                  }));
+                                }
+                              }}
+                              placeholder="-- Chọn vị trí có sẵn --"
+                              fullWidth
+                            />
+                            {selectedLocation?.locationCode && (
+                              <div className="mt-2 text-sm text-green-600 dark:text-green-400">
+                                ✓ Đã chọn: {selectedLocation.locationCode}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          // WarehouseZoneLocationSelector cho vị trí mới
+                          <div>
+                            <WarehouseZoneLocationSelector
+                              labelPrefix=""
+                              onWarehouseChange={() => {}} // Warehouse đã được fix
+                              onZoneChange={(zoneId) => {
+                                setImportLocations((prev) => ({
+                                  ...prev,
+                                  [item.productColorId]: {
+                                    ...prev[item.productColorId],
+                                    zoneId,
+                                    locationId: null,
+                                    locationCode: "",
+                                  },
+                                }));
+                              }}
+                              onLocationChange={(locationId, locationCode) => {
+                                setImportLocations((prev) => ({
+                                  ...prev,
+                                  [item.productColorId]: {
+                                    ...prev[item.productColorId],
+                                    locationId,
+                                    locationCode: locationCode || "",
+                                  },
+                                }));
+                              }}
+                              selectedWarehouseId={currentWarehouseId}
+                              selectedZoneId={selectedLocation?.zoneId || null}
+                              selectedLocationId={
+                                selectedLocation?.locationId || null
+                              }
+                              disabled={importingStock}
+                              hideWarehouse={true}
+                            />
+                            {selectedLocation?.locationCode && (
+                              <div className="mt-2 text-sm text-green-600 dark:text-green-400">
+                                ✓ Đã chọn: {selectedLocation.locationCode}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Ghi chú */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ghi chú
+                </label>
+                <textarea
+                  value={importNote}
+                  onChange={(e) => setImportNote(e.target.value)}
+                  disabled={importingStock}
+                  placeholder={`Nhập kho từ phiếu chuyển #${selectedImportRequest.id}`}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setSelectedImportRequest(null);
+                  setImportLocations({});
+                  setImportLocationTypes({});
+                  setExistingLocations({});
+                  setImportNote("");
+                }}
+                disabled={importingStock}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleImportStock}
+                disabled={importingStock}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                {importingStock ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Xác nhận nhập kho
                   </>
                 )}
               </button>

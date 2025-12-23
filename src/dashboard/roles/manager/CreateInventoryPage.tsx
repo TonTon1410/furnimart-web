@@ -56,7 +56,7 @@ const TYPE_OPTIONS = [
   { value: "EXPORT", label: "Xuất kho", icon: <OutputIcon color="error" /> },
   {
     value: "TRANSFER",
-    label: "Chuyển kho",
+    label: "Yêu cầu chuyển kho",
     icon: <TransferIcon color="warning" />,
   },
 ];
@@ -690,7 +690,7 @@ const CreateInventoryPage: React.FC = () => {
                 >
                   {type === "EXPORT" && purpose === "MOVE"
                     ? "XUẤT ĐẾN KHO"
-                    : "CHUYỂN ĐẾN KHO"}
+                    : "Đơn Yêu Cầu"}
                 </Typography>
                 <Divider className="border-orange-200 dark:border-orange-800" />
 
@@ -703,7 +703,7 @@ const CreateInventoryPage: React.FC = () => {
                   }}
                 >
                   <WarehouseZoneLocationSelector
-                    labelPrefix="Đến"
+                    labelPrefix="Từ"
                     selectedWarehouseId={toWarehouseId}
                     selectedZoneId={toZoneId}
                     selectedLocationId={toLocationId}

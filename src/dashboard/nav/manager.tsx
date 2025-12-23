@@ -1,13 +1,12 @@
 // src/config/nav/manager.tsx
 import {
-  BarChart3,
-  MessageSquare,
   Warehouse,
   Package,
   ShoppingCart,
   Users,
   Clock,
   LayoutDashboard,
+  Shield,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -45,7 +44,6 @@ export const managerNav = async (): Promise<RoleNav> => {
 
   return {
     main: [
-      { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
       {
         icon: <Package />,
         name: "Quản lí xuất nhập kho",
@@ -64,21 +62,15 @@ export const managerNav = async (): Promise<RoleNav> => {
       },
       { icon: <ShoppingCart />, name: "Quản lí đơn hàng", path: DP("orders") },
       { icon: <Users />, name: "Quản lí nhân viên", path: DP("employees") },
-    ],
-    others: [
       {
-        icon: <BarChart3 />,
-        name: "Reports",
-        subItems: [
-          { name: "Revenue", path: DP("reports/revenue") },
-          { name: "Performance", path: DP("reports/performance") },
-          { name: "Delivery", path: DP("reports/delivery") },
-        ],
+        icon: <Shield />,
+        name: "Quản lí bảo hành",
+        path: DP("warranty-management"),
       },
       {
-        icon: <MessageSquare />,
-        name: "Chat",
-        path: DP("chat"),
+        icon: <LayoutDashboard />,
+        name: "Thống kê & Báo cáo",
+        path: DP("dashboard"),
       },
     ],
   };

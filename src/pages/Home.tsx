@@ -324,7 +324,7 @@ const Home: React.FC = () => {
               {
                 year: "2021",
                 title: "Công nghệ 3D",
-                desc: "Triển khai ứng dụng visualize nội thất , giúp khách hàng thấy hàng hóa trước khi mua",
+                desc: "Triển khai ứng dụng visualize nội thất với AR, giúp khách hàng thấy hàng hóa trước khi mua",
               },
               {
                 year: "2023",

@@ -42,6 +42,9 @@ export interface WarrantyClaim {
   orderId: number;
   customerId: string;
   addressId: number;
+  address: string;
+  name: string;
+  phone: string;
   claimDate: string;
   status:
     | "PENDING"
@@ -126,6 +129,128 @@ const warrantyService = {
       return response.data.data || response.data || [];
     } catch (error: any) {
       console.error("Error fetching customer warranty claims:", error);
+      throw error;
+    }
+  },
+
+  // Lấy danh sách warranties của store
+  getWarrantiesByStore: async (
+    storeId: string,
+    page = 1,
+    size = 10
+  ): Promise<{
+    content: Warranty[];
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  }> => {
+    try {
+      const response = await axiosClient.get(`/warranties/store/${storeId}`, {
+        params: { page, size },
+      });
+      return (
+        response.data.data ||
+        response.data || {
+          content: [],
+          number: 0,
+          size: 0,
+          totalElements: 0,
+          totalPages: 0,
+          first: true,
+          last: true,
+        }
+      );
+    } catch (error: any) {
+      console.error("Error fetching store warranties:", error);
+      throw error;
+    }
+  },
+
+  // Update warranty claim status (Admin/Staff)
+  updateWarrantyClaimStatus: async (
+    claimId: number,
+    params: {
+      status:
+        | "PENDING"
+        | "UNDER_REVIEW"
+        | "APPROVED"
+        | "REJECTED"
+        | "RESOLVED"
+        | "CANCELLED";
+      adminResponse?: string;
+      resolutionNotes?: string;
+    }
+  ): Promise<WarrantyClaim> => {
+    try {
+      const response = await axiosClient.put(
+        `/warranties/claims/${claimId}/status`,
+        null,
+        {
+          params,
+        }
+      );
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error("Error updating warranty claim status:", error);
+      throw error;
+    }
+  },
+
+  // Resolve warranty claim (Admin/Staff)
+  resolveWarrantyClaim: async (
+    claimId: number,
+    payload: {
+      claimId: number;
+      actionType: "RETURN" | "REPAIR" | "DO_NOTHING";
+      adminResponse: string;
+      resolutionNotes?: string;
+      repairCost?: number;
+      refundAmount?: number;
+    }
+  ): Promise<WarrantyClaim> => {
+    try {
+      const response = await axiosClient.post(
+        `/warranties/claims/${claimId}/resolve`,
+        payload
+      );
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error("Error resolving warranty claim:", error);
+      throw error;
+    }
+  },
+
+  // Get warranty claims by store
+  getWarrantyClaimsByStore: async (
+    storeId: string
+  ): Promise<{
+    content: WarrantyClaim[];
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  }> => {
+    try {
+      const response = await axiosClient.get(`/warranties/store/${storeId}`);
+      return (
+        response.data.data ||
+        response.data || {
+          content: [],
+          number: 1,
+          size: 10,
+          totalElements: 0,
+          totalPages: 0,
+          first: true,
+          last: true,
+        }
+      );
+    } catch (error: any) {
+      console.error("Error fetching store warranty claims:", error);
       throw error;
     }
   },
