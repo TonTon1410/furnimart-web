@@ -6,6 +6,7 @@ import { motion, type Variants } from "framer-motion"
 import { ArrowLeft, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { authService } from "@/service/authService"
+import noithatImg from "@/assets/noithat.jpg"
 
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }
 
@@ -130,7 +131,7 @@ export default function ForgotPassword() {
     return (
       <main className="min-h-screen flex">
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-          <img src="/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
+          <img src={noithatImg} alt="Nội thất hiện đại" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
           <Link
             to="/"
@@ -239,7 +240,7 @@ export default function ForgotPassword() {
   return (
     <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src="/assets/noithat.jpg" alt="Nội thất hiện đại" className="w-full h-full object-cover" />
+        <img src={noithatImg} alt="Nội thất hiện đại" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-cyan-600/20" />
         <Link
           to="/"

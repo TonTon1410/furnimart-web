@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { MessageSquare, Users } from "lucide-react"
 
 interface ChatHeaderProps {
@@ -17,7 +17,7 @@ export function ChatHeader({ title, subtitle, type, staffMode, staffInfo }: Chat
       {/* Navigation tabs */}
       <div className="flex border-b">
         <Link
-          href="/chat/ai"
+          to="/chat/ai"
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
             type === "ai" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
           }`}
@@ -26,7 +26,7 @@ export function ChatHeader({ title, subtitle, type, staffMode, staffInfo }: Chat
           Chat AI
         </Link>
         <Link
-          href="/chat/staff"
+          to="/chat/staff"
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
             type === "staff" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
           }`}

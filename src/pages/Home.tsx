@@ -1,24 +1,26 @@
+"use client"
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Truck, ShieldCheck, RotateCcw, MessageSquare } from "lucide-react";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
-import { Link } from "react-router-dom";
+import type React from "react"
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { Truck, ShieldCheck, RotateCcw, MessageSquare } from "lucide-react"
+import { Swiper, SwiperSlide } from "swiper/react"
+import { Autoplay, Pagination } from "swiper/modules"
+import { Link } from "react-router-dom"
 
-import "swiper/css";
-import "swiper/css/pagination";
+import "swiper/css"
+import "swiper/css/pagination"
 
-import ProductCard from "@/components/ProductCard";
-import { productService, type Product } from "@/service/homeService";
-import axios from "axios";
+import ProductCard from "@/components/ProductCard"
+import { productService, type Product } from "@/service/homeService"
+import axios from "axios"
 
 // Import ảnh local đúng chuẩn
-import heroImg from "@/assets/home-image.png";
+import heroImg from "@/assets/home-image.png"
 
 // Sử dụng API Gateway chính (port 8080) để routing đến service categories
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://furnimart.click/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://furnimart.click/api"
 
 // Tạo axios instance cho public API (không cần token)
 const publicAxios = axios.create({
@@ -27,77 +29,72 @@ const publicAxios = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 10000,
-});
+})
 
 // ---- helpers & animation ----
-const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
-const stagger = { show: { transition: { staggerChildren: 0.06 } } };
+const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }
+const stagger = { show: { transition: { staggerChildren: 0.06 } } }
 
 const onImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  const t = e.currentTarget as HTMLImageElement;
-  if ((t as any)._fb) return;
-  (t as any)._fb = 1;
-  t.src =
-    "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80";
-};
+  const t = e.currentTarget as HTMLImageElement
+  if ((t as any)._fb) return
+  ;(t as any)._fb = 1
+  t.src = "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+}
 
 // ---------------- Home ----------------
 type Category = {
-  id: number;
-  categoryName: string;
-  description?: string;
-  image?: string;
-  status: "ACTIVE" | "INACTIVE";
-};
+  id: number
+  categoryName: string
+  description?: string
+  image?: string
+  status: "ACTIVE" | "INACTIVE"
+}
 
 const Home: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([])
 
   // ✅ Categories (load bằng axiosClient tại chỗ)
-  const [cats, setCats] = useState<Category[]>([]);
-  const [catsLoading, setCatsLoading] = useState(true);
-  const [catsErr, setCatsErr] = useState<string | null>(null);
+  const [cats, setCats] = useState<Category[]>([])
+  const [catsLoading, setCatsLoading] = useState(true)
+  const [catsErr, setCatsErr] = useState<string | null>(null)
 
   useEffect(() => {
     productService
       .getAll()
       .then((res) => setProducts(res.data.data))
       .catch((err) => {
-        console.error("Load products error:", err);
-      });
-  }, []);
+        console.error("Load products error:", err)
+      })
+  }, [])
 
   useEffect(() => {
     // Gọi API public không cần token - sử dụng publicAxios
     publicAxios
       .get<{ status: number; message: string; data: Category[] }>("/categories")
       .then((res) => {
-        console.log("✅ Categories loaded:", res.data);
-        const all = res.data?.data ?? [];
-        const activeCats = all.filter((c: Category) => c.status === "ACTIVE");
+        console.log("✅ Categories loaded:", res.data)
+        const all = res.data?.data ?? []
+        const activeCats = all.filter((c: Category) => c.status === "ACTIVE")
 
         // Delay nhỏ để đảm bảo DOM ready trước khi render Swiper
         setTimeout(() => {
-          setCats(activeCats);
-          setCatsLoading(false);
-        }, 50);
+          setCats(activeCats)
+          setCatsLoading(false)
+        }, 50)
       })
       .catch((err: any) => {
         console.error("❌ Load categories error:", {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
-        });
+        })
         // Nếu lỗi, vẫn set empty array để không hiển thị loading mãi
-        setCats([]);
-        setCatsErr(
-          err?.response?.data?.message ||
-            err?.message ||
-            "Không tải được danh mục"
-        );
-        setCatsLoading(false);
-      });
-  }, []);
+        setCats([])
+        setCatsErr(err?.response?.data?.message || err?.message || "Không tải được danh mục")
+        setCatsLoading(false)
+      })
+  }, [])
 
   return (
     <main className="min-h-screen relative pb-24 sm:pb-20">
@@ -108,19 +105,12 @@ const Home: React.FC = () => {
 
         {/* Cột trái: text */}
         <div className="relative flex flex-col justify-center px-4 sm:px-8 py-12 sm:py-20 sm:pl-16">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div initial="hidden" animate="show" variants={fadeUp} transition={{ duration: 0.6 }}>
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight text-gray-900 lg:text-6xl">
-              Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối
-              giản
+              Nội thất <span className="text-emerald-600">Hiện đại</span> & Tối giản
             </h1>
             <p className="mt-4 sm:mt-6 max-w-prose text-base sm:text-lg text-gray-600">
-              Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm
-              không gian sống của bạn.
+              Thiết kế tinh gọn, chất liệu bền bỉ, cảm hứng Bắc Âu. Nâng tầm không gian sống của bạn.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -141,7 +131,10 @@ const Home: React.FC = () => {
             {/* Feature pills */}
             <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
               {[
-                { icon: Truck, label: "Miễn phí vận chuyển" },
+                {
+                  icon: Truck,
+                  label: "Miễn phí vận chuyển",
+                },
                 { icon: ShieldCheck, label: "Thanh toán an toàn" },
                 { icon: RotateCcw, label: "Dễ đổi trả" },
                 { icon: MessageSquare, label: "Hỗ trợ 24/7" },
@@ -166,7 +159,7 @@ const Home: React.FC = () => {
           className="relative flex items-end justify-center"
         >
           <img
-            src={heroImg}
+            src={heroImg || "/placeholder.svg"}
             alt="Phòng khách hiện đại"
             className="w-full sm:w-[650px] max-w-full object-contain drop-shadow-2xl px-4 sm:px-0"
             onError={onImgError}
@@ -179,17 +172,10 @@ const Home: React.FC = () => {
         <div>
           <div className="mb-4 sm:mb-6 flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                Danh mục
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Khám phá các nhóm sản phẩm nổi bật
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Danh mục</h2>
+              <p className="mt-1 text-sm text-gray-500">Khám phá các nhóm sản phẩm nổi bật</p>
             </div>
-            <Link
-              to="/shop"
-              className="text-sm font-semibold text-emerald-700 hover:underline"
-            >
+            <Link to="/shop" className="text-sm font-semibold text-emerald-700 hover:underline">
               Xem tất cả →
             </Link>
           </div>
@@ -215,9 +201,7 @@ const Home: React.FC = () => {
               ))}
             </Swiper>
           ) : catsErr ? (
-            <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {catsErr}
-            </div>
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{catsErr}</div>
           ) : cats.length === 0 ? (
             <div className="rounded-3xl border border-gray-200 bg-white p-6 text-gray-600">
               Chưa có danh mục khả dụng.
@@ -234,7 +218,8 @@ const Home: React.FC = () => {
                     <img
                       src={
                         c.image ||
-                        "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+                        "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80" ||
+                        "/placeholder.svg"
                       }
                       alt={c.categoryName}
                       onError={onImgError}
@@ -270,15 +255,13 @@ const Home: React.FC = () => {
             >
               {cats.map((c) => (
                 <SwiperSlide key={c.id}>
-                  <motion.div
-                    variants={fadeUp}
-                    className="group relative overflow-hidden rounded-3xl"
-                  >
+                  <motion.div variants={fadeUp} className="group relative overflow-hidden rounded-3xl">
                     <Link to={`/shop?catId=${c.id}`}>
                       <img
                         src={
                           c.image ||
-                          "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80"
+                          "https://images.unsplash.com/photo-1616627981169-f97ab76673be?auto=format&fit=crop&w=1200&q=80" ||
+                          "/placeholder.svg"
                         }
                         alt={c.categoryName}
                         onError={onImgError}
@@ -287,9 +270,7 @@ const Home: React.FC = () => {
                       <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent" />
                       <div className="absolute bottom-4 left-4 text-white">
                         <div className="text-sm opacity-90">Khám phá</div>
-                        <div className="text-xl font-bold">
-                          {c.categoryName}
-                        </div>
+                        <div className="text-xl font-bold">{c.categoryName}</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -300,22 +281,113 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+      <section className="bg-emerald-50 py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          {/* Tiêu đề */}
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            variants={fadeUp}
+            viewport={{ once: true, margin: "-100px" }}
+            className="mb-12 sm:mb-16 text-center"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              Câu chuyện <span className="text-emerald-600">FurniMart</span>
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-gray-600">
+              Hành trình từ một cửa hàng nhỏ đến thương hiệu nội thất hàng đầu Việt Nam
+            </p>
+          </motion.div>
+
+          {/* Timeline */}
+          <div className="relative space-y-8 sm:space-y-12">
+            {/* Đường vertical */}
+            <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-1 bg-emerald-200 transform sm:-translate-x-1/2" />
+
+            {/* Timeline Items */}
+            {[
+              {
+                year: "2015",
+                title: "Khởi đầu nhỏ",
+                desc: "FurniMart được thành lập với mơ ước mang nội thất chất lượng đến mọi gia đình Việt Nam",
+              },
+              {
+                year: "2017",
+                title: "Mở chi nhánh thứ nhất",
+                desc: "Khai trương showroom Hà Nội, mở rộng quy mô kinh doanh với đội ngũ 15 nhân viên",
+              },
+              {
+                year: "2019",
+                title: "Bước ngoặt lớn",
+                desc: "Hợp tác với các hãng nội thất quốc tế, đưa xu hướng Scandinavia vào thị trường",
+              },
+              {
+                year: "2021",
+                title: "Công nghệ 3D",
+                desc: "Triển khai ứng dụng visualize nội thất , giúp khách hàng thấy hàng hóa trước khi mua",
+              },
+              {
+                year: "2023",
+                title: "Mở rộng toàn quốc",
+                desc: "Hiện có 8 chi nhánh ở các thành phố lớn, phục vụ hơn 50,000 khách hàng hài lòng",
+              },
+              {
+                year: "2024",
+                title: "Tầm nhìn mới",
+                desc: "Cam kết trở thành địa chỉ tin cậy số 1 cho nội thất bền vững tại Việt Nam",
+              },
+            ].map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                className={`relative pl-12 sm:pl-0 sm:w-1/2 ${idx % 2 === 0 ? "sm:pr-12" : "sm:ml-auto sm:pl-12"}`}
+              >
+                {/* Dot trên timeline */}
+                <div className="absolute left-0 top-2 sm:left-1/2 w-8 h-8 bg-emerald-600 rounded-full border-4 border-emerald-50 transform sm:-translate-x-1/2 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full" />
+                </div>
+
+                {/* Nội dung card */}
+                <div className="bg-white rounded-2xl border border-emerald-100 p-6 sm:p-8 shadow-sm hover:shadow-lg transition-shadow">
+                  <div className="text-sm font-bold text-emerald-600 uppercase tracking-wide">{item.year}</div>
+                  <h3 className="mt-2 text-xl sm:text-2xl font-bold text-gray-900">{item.title}</h3>
+                  <p className="mt-3 text-gray-600 leading-relaxed">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mt-16 text-center"
+          >
+            <p className="text-gray-600 mb-6">Hãy cùng chúng tôi tiếp tục viết nên câu chuyện thành công này</p>
+            <Link
+              to="/shop"
+              className="inline-block rounded-xl bg-emerald-600 px-8 py-4 text-sm font-semibold text-white shadow hover:bg-emerald-700 active:scale-95 transition-transform"
+            >
+              Khám phá bộ sưu tập ngay
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
       {/* SẢN PHẨM NỔI BẬT */}
       <section id="collection" className="bg-gray-50 py-16">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                Sản phẩm nổi bật
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Gợi ý cho không gian tối giản
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Sản phẩm nổi bật</h2>
+              <p className="mt-1 text-sm text-gray-500">Gợi ý cho không gian tối giản</p>
             </div>
-            <Link
-              to="/shop"
-              className="text-sm font-semibold text-emerald-700 hover:underline"
-            >
+            <Link to="/shop" className="text-sm font-semibold text-emerald-700 hover:underline">
               Xem tất cả →
             </Link>
           </div>
@@ -327,8 +399,7 @@ const Home: React.FC = () => {
             animate="show"
           >
             {products.map((p) => {
-              const img =
-                p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg";
+              const img = p.thumbnailImage || p.images?.[0]?.image || "/fallback.jpg"
 
               return (
                 <motion.div key={p.id} variants={fadeUp}>
@@ -345,7 +416,7 @@ const Home: React.FC = () => {
                     // Người dùng cần vào trang chi tiết để chọn màu trước khi thêm vào giỏ
                   />
                 </motion.div>
-              );
+              )
             })}
           </motion.div>
         </div>
@@ -354,9 +425,7 @@ const Home: React.FC = () => {
       {/* KHÁCH HÀNG NÓI GÌ */}
       <section className="bg-white py-16">
         <div className="mx-auto max-w-3xl px-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-            Khách hàng nói gì
-          </h3>
+          <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">Khách hàng nói gì</h3>
 
           <div className="mt-6">
             <Swiper
@@ -382,10 +451,7 @@ const Home: React.FC = () => {
               ].map((t, i) => (
                 <SwiperSlide key={i}>
                   <blockquote className="mx-auto max-w-xl rounded-3xl border border-gray-100 bg-gray-50 px-6 py-8 text-gray-700 shadow">
-                    “{t.q}”
-                    <footer className="mt-4 text-sm font-semibold text-gray-900">
-                      — {t.n}
-                    </footer>
+                    “{t.q}”<footer className="mt-4 text-sm font-semibold text-gray-900">— {t.n}</footer>
                   </blockquote>
                 </SwiperSlide>
               ))}
@@ -394,7 +460,7 @@ const Home: React.FC = () => {
         </div>
       </section>
     </main>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home

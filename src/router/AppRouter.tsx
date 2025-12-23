@@ -24,6 +24,7 @@ const Cart = lazy(() => import("@/pages/Cart"));
 const AllProducts = lazy(() => import("@/pages/AllProducts"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const ServicesPage = lazy(() => import("@/pages/ServicesPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 
 const OrderConfirmationPage = lazy(
@@ -130,6 +131,14 @@ export default function AppRouter() {
           element={
             <ProtectCustomerRoutes>
               <AboutPage />
+            </ProtectCustomerRoutes>
+          }
+        />
+        <Route
+          path="/services"
+          element={
+            <ProtectCustomerRoutes>
+              <ServicesPage />
             </ProtectCustomerRoutes>
           }
         />
