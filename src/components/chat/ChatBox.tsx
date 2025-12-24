@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import chatService from "@/service/chatService";
 import { authService } from "@/service/authService";
+import { useToast } from "@/context/ToastContext";
 
 interface Message {
   id: string;
@@ -43,6 +44,7 @@ interface RoomAnalysisResponse {
 type ChatMode = "selection" | "ai" | "staff";
 
 export function ChatBox() {
+  const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("selection");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -221,11 +223,12 @@ export function ChatBox() {
       }
     } catch (error) {
       console.error("💥 Error analyzing room:", error);
-      alert(
-        `Không thể phân tích phòng: ${
+      showToast({
+        type: "error",
+        title: `Không thể phân tích phòng: ${
           error instanceof Error ? error.message : "Lỗi không xác định"
-        }`
-      );
+        }`,
+      });
     } finally {
       setLoading(false);
     }

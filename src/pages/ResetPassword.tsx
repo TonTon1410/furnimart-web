@@ -182,7 +182,7 @@ export default function ResetPassword() {
       <main className="min-h-screen flex">
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
           <img
-            src="/assets/noithat.jpg"
+            src={noithatImg}
             alt="Nội thất hiện đại"
             className="w-full h-full object-cover"
           />

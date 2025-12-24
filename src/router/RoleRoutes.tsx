@@ -40,6 +40,9 @@ const ColorManagementPage = lazy(
 const DeliveryManagementPage = lazy(
   () => import("@/dashboard/roles/seller/DeliveryManagementPage")
 );
+const ChatManagement = lazy(
+  () => import("@/dashboard/roles/seller/ChatManagementPage")
+);
 
 const InventoryManagement = lazy(
   () => import("@/dashboard/roles/manager/InventoryManagement")
@@ -56,6 +59,7 @@ const TransferRequestsPage = lazy(
 const OrderManagement = lazy(
   () => import("@/dashboard/roles/manager/OrderManagement")
 );
+
 
 const ManagerEmployeesPage = lazy(
   () => import("@/dashboard/roles/manager/ManagerEmployeesPage")
@@ -94,21 +98,23 @@ const StaffOrderPage = lazy(
   () => import("@/dashboard/roles/seller/OrderOffline/StaffOrderPage")
 );
 
+// Warranty Management Page
+const WarrantyManagement = lazy(
+  () => import("@/dashboard/pages/WarrantyManagement")
+);
+
 const AdminSettings = Placeholder("Admin • Settings");
 const AdminSales = Placeholder("Admin • Sales Report");
 const AdminTop = Placeholder("Admin • Top Products");
 const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
-const AdminChat = Placeholder("Admin • Chat");
+
+
 
 const SellerStock = Placeholder("Seller • Branch Stock");
 const SellerOrders = Placeholder("Seller • Orders");
 const SellerInvoices = Placeholder("Seller • Invoices");
-const SellerChat = Placeholder("Seller • Chat");
-const BlogStaffManagement = lazy(
-  () => import("@/dashboard/roles/seller/BlogManagementPage")
-);
 
 const ManagerApproval = Placeholder("Manager • Approve Orders");
 const ManagerAssign = Placeholder("Manager • Assign Delivery");
@@ -142,7 +148,6 @@ export default function RoleRoutes() {
         <Route path="reports/delivery" element={<AdminDeliveryEff />} />
         <Route path="wallet" element={<AdminWallet />} />
         <Route path="disputes" element={<AdminDisputes />} />
-        <Route path="chat" element={<AdminChat />} />
         <Route path="vouchers" element={<VoucherManagement />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
@@ -168,6 +173,7 @@ export default function RoleRoutes() {
         <Route path="reports/revenue" element={<ManagerRevenue />} />
         <Route path="reports/performance" element={<ManagerPerformance />} />
         <Route path="reports/delivery" element={<ManagerDelivery />} />
+        <Route path="warranty-management" element={<WarrantyManagement />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
@@ -198,20 +204,21 @@ export default function RoleRoutes() {
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="staff-order" element={<StaffOrderPage />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="blog" element={<BlogStaffManagement />} />
+        <Route path="blog" element={< BlogManagement/>} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="colors" element={<ColorManagementPage />} />
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="inventory/create" element={<CreateInventoryPage />} />
         <Route path="warehouse-map" element={<WarehouseMapNew readOnly />} />
+        <Route path="chats" element={<ChatManagement />} />
         <Route
           path="delivery-management"
           element={<DeliveryManagementPage />}
         />
+        <Route path="warranty-management" element={<WarrantyManagement />} />
         <Route path="stock" element={<SellerStock />} />
         <Route path="orders" element={<SellerOrders />} />
         <Route path="invoices" element={<SellerInvoices />} />
-        <Route path="chat" element={<SellerChat />} />
         <Route path="*" element={<Navigate to={DP()} replace />} />
       </Routes>
     );
