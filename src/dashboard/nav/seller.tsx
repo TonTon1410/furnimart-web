@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Shield,
+  MessageCircle,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -36,6 +37,11 @@ export const sellerNav = (): RoleNav => ({
       icon: <Shield />,
       name: "Quản lý bảo hành",
       path: DP("warranty-management"),
+    },
+    {
+      icon: <MessageCircle />,
+      name: "Hỗ trợ khách hàng",
+      path: DP("chat"), 
     },
     { icon: <FileText />, name: "Bài viết", path: DP("blog") },
     {
