@@ -40,9 +40,9 @@ const ColorManagementPage = lazy(
 const DeliveryManagementPage = lazy(
   () => import("@/dashboard/roles/seller/DeliveryManagementPage")
 );
-const ChatManagement = lazy(
-  () => import("@/dashboard/roles/seller/ChatManagementPage")
-);
+// const ChatManagement = lazy(
+//   () => import("@/dashboard/roles/seller/ChatManagementPage")
+// );
 
 const InventoryManagement = lazy(
   () => import("@/dashboard/roles/manager/InventoryManagement")
@@ -101,6 +101,10 @@ const StaffOrderPage = lazy(
 // Warranty Management Page
 const WarrantyManagement = lazy(
   () => import("@/dashboard/pages/WarrantyManagement")
+);
+
+const StaffChatPage = lazy(
+  () => import("@/dashboard/roles/seller/StaffChatPage")
 );
 
 const AdminSettings = Placeholder("Admin • Settings");
@@ -210,7 +214,8 @@ export default function RoleRoutes() {
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="inventory/create" element={<CreateInventoryPage />} />
         <Route path="warehouse-map" element={<WarehouseMapNew readOnly />} />
-        <Route path="chats" element={<ChatManagement />} />
+        {/* <Route path="chats" element={<ChatManagement />} /> */}
+        <Route path="chat" element={<StaffChatPage />} />
         <Route
           path="delivery-management"
           element={<DeliveryManagementPage />}

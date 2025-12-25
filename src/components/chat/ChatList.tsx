@@ -15,12 +15,16 @@ import {
   MoreVertical,
   Trash2,
 } from "lucide-react"
-import type { Chat } from "@/service/chatApi"
+
+// --- THAY ĐỔI Ở ĐÂY: Import từ types/chat ---
+import type { ChatSession } from "@/types/chat"
 
 interface ChatListProps {
-  chats: Chat[]
+  // Đổi Chat[] thành ChatSession[]
+  chats: ChatSession[] 
   selectedChatId: string | null
-  onSelectChat: (chat: Chat) => void
+  // Đổi callback type
+  onSelectChat: (chat: ChatSession) => void 
   onDeleteChat: (chatId: string) => void
   onTogglePin: (chatId: string) => void
   onToggleMute: (chatId: string) => void
@@ -34,7 +38,7 @@ function ChatItemDropdown({
   onToggleMute,
   onDeleteChat,
 }: {
-  chat: Chat
+  chat: ChatSession // Cập nhật type
   onTogglePin: (id: string) => void
   onToggleMute: (id: string) => void
   onDeleteChat: (id: string) => void
@@ -125,7 +129,8 @@ export function ChatList({
     onSearch(value)
   }
 
-  const getChatModeIcon = (mode: Chat["chatMode"]) => {
+  // Cập nhật type cho tham số mode
+  const getChatModeIcon = (mode: string | undefined) => {
     switch (mode) {
       case "AI":
         return <Bot className="w-4 h-4 text-blue-500" />
@@ -133,10 +138,12 @@ export function ChatList({
         return <Clock className="w-4 h-4 text-yellow-500" />
       case "STAFF_CONNECTED":
         return <CheckCircle2 className="w-4 h-4 text-green-500" />
+      default:
+        return <Users className="w-4 h-4 text-gray-500" />
     }
   }
 
-  const getChatModeBadge = (mode: Chat["chatMode"]) => {
+  const getChatModeBadge = (mode: string | undefined) => {
     switch (mode) {
       case "AI":
         return (
@@ -156,15 +163,17 @@ export function ChatList({
             Đã kết nối
           </span>
         )
+      default:
+        return null
     }
   }
 
-  // Sắp xếp: pinned trước, sau đó theo thời gian
   const sortedChats = [...chats].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1
     if (!a.isPinned && b.isPinned) return 1
-    const aTime = a.lastMessage?.createdAt || a.createdAt || ""
-    const bTime = b.lastMessage?.createdAt || b.createdAt || ""
+    // Xử lý null safety cho createdAt
+    const aTime = a.lastMessage?.createdAt || a.createdAt || new Date().toISOString()
+    const bTime = b.lastMessage?.createdAt || b.createdAt || new Date().toISOString()
     return new Date(bTime).getTime() - new Date(aTime).getTime()
   })
 
@@ -223,7 +232,10 @@ export function ChatList({
                   <div className="flex items-center gap-2">
                     {chat.isPinned && <Pin className="w-3 h-3 text-blue-500" />}
                     {chat.isMuted && <BellOff className="w-3 h-3 text-gray-400" />}
-                    <span className="font-medium truncate text-gray-900 dark:text-gray-100">{chat.name}</span>
+                    {/* THAY ĐỔI Ở ĐÂY: Thêm fallback string vì name có thể undefined */}
+                    <span className="font-medium truncate text-gray-900 dark:text-gray-100">
+                      {chat.name || "Khách hàng"} 
+                    </span>
                     {getChatModeBadge(chat.chatMode)}
                   </div>
                   <p className="text-sm text-gray-500 truncate mt-0.5">
@@ -246,14 +258,14 @@ export function ChatList({
                   </div>
                 </div>
 
-                {/* Unread count - Badge thuần HTML */}
+                {/* Unread count */}
                 {chat.unreadCount > 0 && (
                   <span className="absolute top-4 right-12 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-600 text-white">
                     {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                   </span>
                 )}
 
-                {/* Actions - Custom dropdown */}
+                {/* Actions */}
                 <ChatItemDropdown
                   chat={chat}
                   onTogglePin={onTogglePin}

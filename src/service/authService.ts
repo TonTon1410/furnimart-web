@@ -506,7 +506,7 @@ export const authService = {
       const payload = JSON.parse(decoded);
 
       // Tùy backend, có thể là id, userId hoặc sub
-      return payload?.id || payload?.userId || payload?.sub || null;
+      return payload?.accountId || payload?.id || payload?.userId || payload?.sub || null;
     } catch (err) {
       console.error("Decode token error:", err);
       return null;
