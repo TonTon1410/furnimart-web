@@ -873,6 +873,7 @@ export default function InventoryManagement() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         data={selectedInventory}
+        onRefresh={loadInventories}
       />
     </div>
   );

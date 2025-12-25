@@ -82,7 +82,7 @@ const processStatusConfig: Record<
     icon: <CheckCircle className="h-3 w-3" />,
   },
   PACKAGED: {
-    label: "Đang đóng gói hàng",
+    label: "Đã đóng gói hàng",
     color:
       "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800",
     icon: <Package className="h-3 w-3" />,
@@ -807,7 +807,7 @@ const OrderManagement: React.FC = () => {
 
                         {/* Nút phân công giao hàng - chỉ hiện khi đã được manager accept */}
                         {order.isAssigned &&
-                          order.rawStatus === "MANAGER_ACCEPT" && (
+                          order.rawStatus === "PACKAGED" && (
                             <button
                               onClick={() => handleAssignDelivery(order.id)}
                               className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-white px-2 py-1 text-xs font-medium text-purple-600 transition-all hover:bg-purple-50 active:scale-95 dark:border-purple-800 dark:bg-gray-900 dark:text-purple-300 dark:hover:bg-purple-900/20"

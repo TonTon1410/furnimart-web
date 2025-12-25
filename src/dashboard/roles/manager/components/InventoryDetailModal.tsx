@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Calendar,
@@ -12,9 +13,12 @@ import {
   RefreshCw,
   Printer,
   Hash,
+  XCircle,
 } from "lucide-react";
 import dayjs from "dayjs";
 import type { InventoryResponse } from "@/service/inventoryService";
+import inventoryService from "@/service/inventoryService";
+import { useToast } from "@/context/ToastContext";
 
 // Định nghĩa Interface cho response API ProductColor
 interface ProductColorDetail {
@@ -34,6 +38,7 @@ interface InventoryDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: InventoryResponse | null;
+  onRefresh?: () => void; // Callback để refresh danh sách sau khi hủy
 }
 
 const PURPOSE_MAP: Record<string, string> = {
@@ -50,7 +55,11 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
   isOpen,
   onClose,
   data,
+  onRefresh,
 }) => {
+  const { showToast } = useToast();
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   // State lưu trữ thông tin chi tiết của từng ProductColor (image, hexCode...)
   const [productDetails, setProductDetails] = useState<
     Record<string, ProductColorDetail>
@@ -105,6 +114,38 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
 
     fetchDetails();
   }, [isOpen, data]);
+
+  const handleCancelReserve = async () => {
+    if (!data) return;
+
+    setCancelling(true);
+    setShowCancelConfirm(false);
+    try {
+      await inventoryService.cancelReserveTicket(data.id);
+      showToast({
+        type: "success",
+        title: "Hủy phiếu thành công",
+        description: `Phiếu giữ hàng #${data.id} đã được hủy.`,
+      });
+      onClose();
+      if (onRefresh) {
+        onRefresh();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error cancelling reserve ticket:", error);
+      showToast({
+        type: "error",
+        title: "Không thể hủy phiếu",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Vui lòng thử lại sau.",
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (!isOpen || !data) return null;
 
@@ -196,6 +237,22 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {data.type === "RESERVE" &&
+              (!data.reservedWarehouses ||
+                data.reservedWarehouses.length === 0 ||
+                data.reservedWarehouses.every(
+                  (w) => w.assignedWarehouse === false
+                )) && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  disabled={cancelling}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Hủy phiếu giữ hàng"
+                >
+                  <XCircle className="w-4 h-4" />
+                  {cancelling ? "Đang hủy..." : "Hủy phiếu"}
+                </button>
+              )}
             <button
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="In phiếu"
@@ -227,9 +284,6 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
               >
                 {data.warehouseName}
               </p>
-              <p className="text-xs text-gray-500 mt-1 truncate">
-                ID: {data.warehouseId}
-              </p>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -238,12 +292,6 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
               </p>
               <p className="font-semibold text-gray-900 dark:text-white truncate">
                 Nhân viên kho
-              </p>
-              <p
-                className="text-xs text-gray-500 mt-1 truncate"
-                title={data.employeeId}
-              >
-                ID: {data.employeeId}
               </p>
             </div>
 
@@ -283,9 +331,6 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                   </p>
                   <p className="font-semibold text-purple-900 dark:text-purple-100">
                     {data.toWarehouseName || "N/A"}
-                  </p>
-                  <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">
-                    ID: {data.toWarehouseId}
                   </p>
                 </div>
               )}
@@ -372,9 +417,6 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                           <div>
                             <span className="font-medium text-gray-900 dark:text-white block">
                               {warehouse.warehouseName}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ID: {warehouse.warehouseId}
                             </span>
                           </div>
                         </td>
@@ -556,6 +598,87 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal Xác Nhận Hủy Phiếu */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4"
+            onClick={() => setShowCancelConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Xác nhận hủy phiếu giữ hàng
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                    Bạn có chắc chắn muốn hủy phiếu giữ hàng{" "}
+                    <span className="font-semibold">#{data.id}</span>?
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                    ⚠️ Hành động này không thể hoàn tác.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Không, quay lại
+                </button>
+                <button
+                  onClick={handleCancelReserve}
+                  disabled={cancelling}
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {cancelling ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Đang hủy...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-4 h-4" />
+                      Có, hủy phiếu
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

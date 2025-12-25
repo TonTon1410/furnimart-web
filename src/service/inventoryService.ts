@@ -86,6 +86,7 @@ export interface InventoryResponse {
   transferStatus?: string;
   itemResponseList: InventoryItemResponse[];
   reservedWarehouses?: ReservedWarehouse[];
+  assignedWarehouse?: boolean;
 }
 
 // Response từ API warehouse view
@@ -258,6 +259,11 @@ const inventoryService = {
     return axiosClient.get(`/inventories/warehouse/view`, {
       params: { warehouseId },
     });
+  },
+
+  // 🚫 Hủy phiếu giữ hàng
+  cancelReserveTicket: async (ticketId: number) => {
+    return axiosClient.delete(`/inventories/cancel/ticket/${ticketId}`);
   },
 };
 
