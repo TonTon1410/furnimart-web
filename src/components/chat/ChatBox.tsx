@@ -131,25 +131,46 @@ export function ChatBox() {
     setMode("staff");
     setLoading(true);
     try {
-      // B1: Kiểm tra xem user đã có chat ACTIVE nào chưa
+      // B1: Lấy danh sách chat hiện tại
       const res = await chatService.getUserChats();
-      const existingChat = res.data?.find(c => c.status === 'ACTIVE');
+      
+      // Tìm xem có đoạn chat nào đang ACTIVE không (bất kể là AI hay Staff)
+      let currentChat = res.data?.find(c => c.status === 'ACTIVE');
 
-      if (existingChat) {
-        // Nếu có rồi -> Load lại
-        setChatId(existingChat.id);
-        setChatStatus(existingChat.chatMode as StaffChatStatus);
-        await loadMessages(existingChat.id);
-      } else {
-        // [QUAN TRỌNG] B2: Nếu chưa có -> Dùng QUICK CREATE (Thay vì createChat)
-        // API này sẽ tự set chatMode = WAITING_STAFF
-        const quickRes = await chatService.quickCreateChat();
-        if (quickRes.data) {
-          setChatId(quickRes.data.id);
-          setChatStatus(quickRes.data.chatMode as StaffChatStatus); // WAITING_STAFF
-          setMessages([]);
-        }
+      // B2: Nếu chưa có chat nào -> Tạo mới bằng quickCreateChat
+      if (!currentChat) {
+        const createRes = await chatService.quickCreateChat();
+        currentChat = createRes.data;
       }
+
+      // B3: Xử lý đoạn chat đã có (hoặc vừa tạo)
+      if (currentChat) {
+        setChatId(currentChat.id);
+        
+        // [QUAN TRỌNG] Kiểm tra chế độ của chat
+        // Nếu chat đang là AI (hoặc chưa set mode), ta phải gọi requestStaff để chuyển sang WAITING
+        if (currentChat.chatMode !== 'WAITING_STAFF' && currentChat.chatMode !== 'STAFF_CONNECTED') {
+            console.log("Chat đang ở chế độ AI, gửi yêu cầu gặp nhân viên...");
+            try {
+                // Gọi API ép trạng thái sang WAITING_STAFF
+                const upgradeRes = await chatService.requestStaff(currentChat.id);
+                if (upgradeRes.data) {
+                    setChatStatus(upgradeRes.data.chatMode as StaffChatStatus); // Sẽ là WAITING_STAFF
+                }
+            } catch (err) {
+                console.error("Lỗi khi request staff:", err);
+                // Fallback nếu API lỗi (để UI vẫn hiện waiting giả lập nếu cần)
+                setChatStatus("WAITING_STAFF"); 
+            }
+        } else {
+            // Nếu đã là WAITING hoặc CONNECTED rồi thì giữ nguyên
+            setChatStatus(currentChat.chatMode as StaffChatStatus);
+        }
+
+        // Load tin nhắn cũ
+        await loadMessages(currentChat.id);
+      }
+
     } catch (error) {
       console.error("Lỗi khởi tạo chat:", error);
       showToast({ type: "error", title: "Không thể kết nối đến hệ thống chat" });
