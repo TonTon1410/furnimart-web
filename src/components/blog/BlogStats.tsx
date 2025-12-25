@@ -25,7 +25,7 @@ export function BlogStats({ total, published, hidden }: BlogStatsProps) {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-1">Đang hiển thị</p>
-            <p className="font-serif text-3xl font-bold text-accent">{published}</p>
+            <p className="font-serif text-3xl font-bold text-foreground ">{published}</p>
           </div>
           <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center">
             <Eye className="h-5 w-5 text-accent" />

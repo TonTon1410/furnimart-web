@@ -23,7 +23,7 @@ export function BlogCard({ blog, canCreate, onEdit, onDelete, onToggleStatus }: 
           {blog.status ? (
             <>
               <Eye className="h-3.5 w-3.5 text-accent" />
-              <span className="text-xs font-semibold text-accent uppercase tracking-wide">Đang hiển thị</span>
+              <span className="text-xs font-bold text-foreground uppercase tracking-wide">Đang hiển thị</span>
             </>
           ) : (
             <>
@@ -35,7 +35,7 @@ export function BlogCard({ blog, canCreate, onEdit, onDelete, onToggleStatus }: 
         {canCreate && (
           <button
             onClick={() => onToggleStatus(blog.id)}
-            className="text-xs text-accent hover:text-accent/80 font-semibold transition-colors"
+            className="text-xs text-accent hover:text-accent/80 dark:text-accent-foreground dark:hover:text-accent-foreground font-semibold transition-colors"
           >
             Thay đổi
           </button>
@@ -74,14 +74,14 @@ export function BlogCard({ blog, canCreate, onEdit, onDelete, onToggleStatus }: 
           <div className="flex gap-2">
             <button
               onClick={() => onEdit(blog)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-accent bg-accent/10 hover:bg-accent/20 rounded-lg transition-all font-semibold text-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-accent-foreground bg-accent/10 hover:bg-accent/20 rounded-lg transition-all font-bold text-foreground"
             >
               <Edit className="h-3.5 w-3.5" />
               Sửa
             </button>
             <button
               onClick={() => onDelete(blog.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-all font-semibold text-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-destructive-foreground bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-all font-bold text-foreground"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Xóa

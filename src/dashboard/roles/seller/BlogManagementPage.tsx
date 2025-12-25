@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getAllBlog, type Blog, deleteBlog, updateBlog, createBlog } from "@/service/blogService";
 import { authService } from "@/service/authService";
 import { BlogForm } from "@/components/blog/BlogForm";
-import { Plus, Edit, Trash2, Search, FileText, User, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText, User, Calendar, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/context/ToastContext";
 
 export default function BlogManagementPage() {
@@ -10,6 +11,7 @@ export default function BlogManagementPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   // Form state
   const [isCreating, setIsCreating] = useState(false);
@@ -30,8 +32,8 @@ export default function BlogManagementPage() {
 
       if (Array.isArray(data)) {
         setBlogs(data);
-      } else if (data.content && Array.isArray(data.content)) {
-        setBlogs(data.content);
+      } else if (data && typeof data === 'object' && 'content' in data && Array.isArray((data as any).content)) {
+        setBlogs((data as any).content);
       } else {
         setBlogs([]);
       }
@@ -242,6 +244,13 @@ export default function BlogManagementPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => navigate(`/dashboard/blogs/${blog.id}`)}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Xem"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleEditClick(blog)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"

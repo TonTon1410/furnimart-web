@@ -82,7 +82,6 @@ export function ChatBox() {
       }));
       setMessages(formattedMessages);
     } catch (error) {
-      console.error("Error loading messages:", error);
       // Không hiển thị lỗi cho user nếu chỉ là lỗi load messages
     }
   };
@@ -191,30 +190,21 @@ export function ChatBox() {
         url += `?note=${encodeURIComponent(note)}`;
       }
 
-      console.log("🔍 Calling API:", url);
-      console.log(
-        "📦 FormData - image file:",
-        selectedImage.name,
-        selectedImage.type,
-        selectedImage.size,
-        "bytes"
-      );
+      
 
       const response = await fetch(url, {
         method: "POST",
         body: formData,
       });
 
-      console.log("📡 Response status:", response.status);
+
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ API Error:", errorText);
+        
         throw new Error(`Phân tích thất bại: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("✅ API Response:", data);
 
       if (data.status === 200 && data.data) {
         setRoomAnalysisResult(data.data);
@@ -222,7 +212,6 @@ export function ChatBox() {
         throw new Error(data.message || "Không nhận được kết quả phân tích");
       }
     } catch (error) {
-      console.error("💥 Error analyzing room:", error);
       showToast({
         type: "error",
         title: `Không thể phân tích phòng: ${
