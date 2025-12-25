@@ -5,6 +5,7 @@ import { BlogForm } from "@/components/blog/BlogForm";
 import { Plus, Edit, Trash2, Search, FileText, User, Calendar, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/context/ToastContext";
+import { DP } from "@/router/paths";
 
 export default function BlogManagementPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -245,7 +246,7 @@ export default function BlogManagementPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(`/dashboard/blogs/${blog.id}`)}
+                            onClick={() => navigate(DP(`blog/detail`))}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             title="Xem"
                           >

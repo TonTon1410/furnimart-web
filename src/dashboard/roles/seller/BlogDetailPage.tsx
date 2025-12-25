@@ -44,7 +44,7 @@ export default function BlogDetailPage() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Đã có lỗi xảy ra</h2>
           <p className="text-gray-600 mb-6">{error || "Không tìm thấy bài viết"}</p>
           <button
-            onClick={() => navigate('/dashboard/blogs')}
+            onClick={() => navigate('/dashboard/blog')}
             className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Quay lại danh sách

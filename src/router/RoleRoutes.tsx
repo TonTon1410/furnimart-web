@@ -23,7 +23,7 @@ const AdminEmployeesPage = lazy(
 const AdminStoresPage = lazy(
   () => import("@/dashboard/roles/admin/AdminStoresPage")
 );
-const BlogManagement = lazy(() => import("@/dashboard/roles/admin/OwnBlog"));
+const BlogManagement = lazy(() => import("@/dashboard/roles/seller/BlogManagementPage"));
 
 const VoucherManagement = lazy(
   () => import("@/dashboard/roles/admin/VoucherManagement")
@@ -41,7 +41,7 @@ const DeliveryManagementPage = lazy(
   () => import("@/dashboard/roles/seller/DeliveryManagementPage")
 );
 const ChatManagement = lazy(
-  () => import("@/dashboard/roles/seller/ChatManagementPage")
+  () => import("@/dashboard/roles/seller/StaffChatPage")
 );
 
 const InventoryManagement = lazy(
@@ -109,6 +109,7 @@ const AdminTop = Placeholder("Admin • Top Products");
 const AdminDeliveryEff = Placeholder("Admin • Delivery Efficiency");
 const AdminWallet = Placeholder("Admin • Wallet");
 const AdminDisputes = Placeholder("Admin • Disputes");
+
 
 
 

@@ -71,6 +71,14 @@ export interface ManagerDashboardData {
   ordersForShipper: ManagerShipperOrder[];
 }
 
+// --- STAFF DASHBOARD TYPES (Mới thêm) ---
+
+export interface StaffDashboardData {
+  personalRevenue: number;
+  createdOrdersCount: number;
+  pendingStoreOrdersCount: number;
+}
+
 // ==========================================
 // SERVICE
 // ==========================================
@@ -98,6 +106,16 @@ const dashboardService = {
     return axiosClient.get<ApiResponse<ManagerDashboardData>>(url, {
       params: { storeId }
     });
+  },
+
+  /**
+   * Dashboard tổng hợp cho Staff
+   * (doanh thu cá nhân, số đơn đã tạo, số đơn chờ của cửa hàng)
+   * GET /api/dashboard/staff
+   */
+  getStaffDashboard: async () => {
+    const url = "/dashboard/staff";
+    return axiosClient.get<ApiResponse<StaffDashboardData>>(url);
   }
 };
 

@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { format } from "date-fns"
 import { Send, Bot, Users, Clock, CheckCircle2, MoreVertical, Trash2, Edit2, X, Search, ArrowDown } from "lucide-react"
-import type { Chat, ChatMessage } from "@/service/chatApi"
+
+// --- THAY ĐỔI: Import types mới ---
+import type { ChatSession, ChatMessage } from "@/types/chat"
 
 interface ChatDetailProps {
-  chat: Chat
+  chat: ChatSession // Dùng ChatSession thay vì Chat
   messages: ChatMessage[]
   currentUserId: string
   onSendMessage: (content: string) => void
@@ -160,6 +162,9 @@ export function ChatDetail({
           label: chat.assignedStaffName || "Nhân viên đã kết nối",
           color: "text-green-600",
         }
+      default:
+        // Default case để tránh lỗi type nếu string lạ
+        return { icon: <Users className="w-4 h-4" />, label: "Chat", color: "text-gray-600" }
     }
   }
 
@@ -178,7 +183,8 @@ export function ChatDetail({
             {chat.type === "GROUP" ? <Users className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{chat.name}</h3>
+            {/* THAY ĐỔI: Thêm fallback cho name */}
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{chat.name || "Khách hàng"}</h3>
             <div className={`flex items-center gap-1 text-xs ${modeInfo.color}`}>
               {modeInfo.icon}
               <span>{modeInfo.label}</span>
