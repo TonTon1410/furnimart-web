@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/chat.ts
 
 // 1. Wrapper chung cho Response của API
@@ -24,6 +25,7 @@ export interface ChatParticipant {
 
 // 3. Đối tượng Tin nhắn
 export interface ChatMessage {
+  isOwnMessage: any;
   id: string;
   content: string;
   type: 'TEXT' | 'IMAGE' | 'FILE' | string;
