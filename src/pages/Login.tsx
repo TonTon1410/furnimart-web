@@ -240,8 +240,13 @@ export default function Login() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Ngăn form submit mặc định
+  const handleLogin = async (e?: React.FormEvent) => {
+    // preventDefault if called from form submit; allow calling from button onClick too
+    try {
+      e?.preventDefault(); // Ngăn form submit mặc định
+    } catch {
+      /* ignore */
+    }
 
     if (!loginData.email || !loginData.password) {
       setError("Vui lòng nhập đầy đủ thông tin");
@@ -278,11 +283,12 @@ export default function Login() {
       console.error("Lỗi đăng nhập:", error);
 
       // Xử lý lỗi chi tiết hơn
-      if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.response?.status === 401) {
+      const backendMessage = error?.response?.data?.message || error?.message;
+      if (backendMessage) {
+        setError(backendMessage);
+      } else if (error?.response?.status === 401) {
         setError("Email hoặc mật khẩu không đúng");
-      } else if (error.response?.status >= 500) {
+      } else if (error?.response?.status >= 500) {
         setError("Lỗi server, vui lòng thử lại sau");
       } else {
         setError("Không thể kết nối đến server");
@@ -319,11 +325,12 @@ export default function Login() {
       } catch (error: any) {
         console.error("Lỗi đăng nhập Google:", error);
 
-        if (error.response?.data?.message) {
-          setError(error.response.data.message);
-        } else if (error.response?.status === 401) {
+        const backendMessage = error?.response?.data?.message || error?.message;
+        if (backendMessage) {
+          setError(backendMessage);
+        } else if (error?.response?.status === 401) {
           setError("Xác thực Google không thành công");
-        } else if (error.response?.status >= 500) {
+        } else if (error?.response?.status >= 500) {
           setError("Lỗi server, vui lòng thử lại sau");
         } else {
           setError("Không thể kết nối đến server");
@@ -563,7 +570,8 @@ export default function Login() {
                     </div>
 
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={(ev) => void handleLogin()}
                       disabled={isLoading}
                       className="w-full py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl hover:from-cyan-600 hover:to-blue-700 active:scale-95 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:scale-100"
                     >

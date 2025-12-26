@@ -57,8 +57,6 @@ export default function Navbar() {
         setUser(null);
       }
     } catch (err) {
-      console.error("❌ Lấy thông tin tài khoản thất bại:", err);
-      // Let axios interceptors handle refresh/401; don't aggressively logout here
       setUser(null);
     }
   };

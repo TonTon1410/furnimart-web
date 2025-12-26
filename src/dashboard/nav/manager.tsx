@@ -2,6 +2,7 @@
 import {
   Warehouse,
   Package,
+  FileText,
   ShoppingCart,
   Users,
   Clock,
@@ -67,6 +68,7 @@ export const managerNav = async (): Promise<RoleNav> => {
         name: "Quản lí bảo hành",
         path: DP("warranty-management"),
       },
+       { icon: <FileText />, name: "Bài viết", path: DP("blog") },
       {
         icon: <LayoutDashboard />,
         name: "Thống kê & Báo cáo",

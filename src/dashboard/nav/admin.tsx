@@ -4,7 +4,8 @@ import {
   Building2,
   Tags,
   UserCog,
-  LayoutDashboard, Ticket
+  LayoutDashboard,
+  FileText,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -16,7 +17,7 @@ export const adminNav = (): RoleNav => ({
     { icon: <Users />, name: "Quản lí cửa hàng", path: DP("stores") },
     { icon: <Building2 />, name: "Chất liệu", path: DP("Materials") },
     { icon: <Tags />, name: "Danh mục", path: DP("categories") },
-    { icon: <Ticket />, name: "Quản lý Voucher", path: DP("vouchers") },
+    { icon: <FileText />, name: "Bài viết", path: DP("blog") },
     { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
   ]
 });

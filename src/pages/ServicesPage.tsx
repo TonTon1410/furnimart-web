@@ -2,6 +2,8 @@
 import { motion } from "framer-motion"
 import { Truck, ShieldCheck, Wrench, RotateCcw, Eye, Headphones, CheckCircle } from "lucide-react"
 import { Link } from "react-router-dom"
+import delivery from "@/assets/giaohangnoithat.jpg";
+import noithat3 from "@/assets/noithat3d.jpg";
 
 // Animation variants
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }
@@ -138,7 +140,7 @@ export default function ServicesPage() {
               className="order-2 lg:order-1"
             >
               <img
-                src="/professional-delivery-team-loading-furniture-into-.jpg"
+                src={delivery}
                 alt="Đội ngũ giao hàng chuyên nghiệp"
                 className="w-full rounded-3xl shadow-xl object-cover"
               />
@@ -207,7 +209,7 @@ export default function ServicesPage() {
               transition={{ duration: 0.7 }}
             >
               <img
-                src="/person-using-augmented-reality-ar-app-to-visualize.jpg"
+                src={noithat3}
                 alt="Công nghệ AR 3D"
                 className="w-full rounded-3xl shadow-xl object-cover"
               />

@@ -130,7 +130,6 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
         }));
         setProvinces(provincesData);
       } catch (error) {
-        console.error("Failed to load provinces:", error);
         showToast({
           type: "error",
           title: "Không thể tải dữ liệu tỉnh/thành. Vui lòng thử lại sau.",
@@ -203,7 +202,6 @@ const AddressSelector: React.FC<Props> = ({ value, onChange, className }) => {
           setLng(parseFloat(data[0].lon));
         }
       } catch (e) {
-        console.error("Lỗi geocode:", e);
       }
     };
 

@@ -20,21 +20,10 @@ const CartDrawerComponent: React.FC<Props> = ({ open, onClose }) => {
   const navigate = useNavigate();
   const hasFetchedRef = useRef(false);
 
-  // Debug log để track lifecycle
-  console.log(
-    "🎨 [CartDrawer] Render - open:",
-    open,
-    "isAuthed:",
-    isAuthed,
-    "hasFetched:",
-    hasFetchedRef.current
-  );
 
   // Track component mount/unmount
   useEffect(() => {
-    console.log("🚀 [CartDrawer] Component MOUNTED");
     return () => {
-      console.log("� [CartDrawer] Component UNMOUNTED");
     };
   }, []);
 
@@ -50,14 +39,12 @@ const CartDrawerComponent: React.FC<Props> = ({ open, onClose }) => {
 
     // Chỉ fetch 1 lần khi drawer mở và user đã đăng nhập
     if (open && isAuthed && !hasFetchedRef.current) {
-      console.log("📡 [CartDrawer] Calling fetch()...");
       fetch();
       hasFetchedRef.current = true;
     }
 
     // Reset flag khi đóng drawer để fetch lại khi mở lần sau
     if (!open) {
-      console.log("🔒 [CartDrawer] Drawer closed - resetting hasFetched flag");
       hasFetchedRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

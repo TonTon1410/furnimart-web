@@ -42,7 +42,6 @@ function validateCardNumber(cardNumber: string): boolean {
 // GET - Fetch all cards
 export async function GET() {
   try {
-    console.log(`📋 [API] Fetching cards. Total: ${cardsStorage.length}`)
     
     return NextResponse.json({
       success: true,
@@ -50,7 +49,6 @@ export async function GET() {
       total: cardsStorage.length,
     })
   } catch (error) {
-    console.error("❌ [API] Error fetching cards:", error)
     return NextResponse.json(
       { success: false, error: "Không thể lấy danh sách thẻ" },
       { status: 500 }
@@ -63,8 +61,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { cardNumber, expiry, cvv, holderName, cardType: userCardType } = body
-
-    console.log("📝 [API] Adding new card:", { holderName, cardType: userCardType })
 
     // Validate required fields
     if (!cardNumber || !expiry || !cvv || !holderName) {
@@ -131,7 +127,6 @@ export async function POST(request: NextRequest) {
     // Add to storage
     cardsStorage.push(newCard)
 
-    console.log("✅ [API] Card added successfully:", newCard)
 
     return NextResponse.json(
       {
@@ -142,7 +137,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error("❌ [API] Card creation error:", error)
     return NextResponse.json(
       { success: false, error: "Không thể thêm thẻ. Vui lòng thử lại." },
       { status: 500 }
@@ -176,7 +170,6 @@ export async function DELETE(request: NextRequest) {
     // Remove card
     const deletedCard = cardsStorage.splice(cardIndex, 1)[0]
 
-    console.log("🗑️ [API] Card deleted:", deletedCard)
 
     // If deleted card was default, set first card as default
     if (deletedCard.isDefault && cardsStorage.length > 0) {
@@ -191,7 +184,6 @@ export async function DELETE(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error("❌ [API] Card deletion error:", error)
     return NextResponse.json(
       { success: false, error: "Không thể xóa thẻ. Vui lòng thử lại." },
       { status: 500 }
@@ -227,7 +219,6 @@ export async function PATCH(request: NextRequest) {
     // Set selected card as default
     card.isDefault = true
 
-    console.log("⭐ [API] Default card set:", card)
 
     return NextResponse.json(
       {
@@ -237,7 +228,6 @@ export async function PATCH(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error("❌ [API] Set default error:", error)
     return NextResponse.json(
       { success: false, error: "Không thể đặt thẻ mặc định" },
       { status: 500 }

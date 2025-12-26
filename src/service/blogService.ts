@@ -24,7 +24,9 @@ interface ApiResponse<T> {
 export interface CreateBlogPayload {
   name: string
   content: string
-  employeeId: string
+  employeeId?: string
+  // some callers use `userId` (e.g. OwnBlog). Allow it and map when sending.
+  userId?: string
   status?: boolean
   image?: string
 }
@@ -32,7 +34,9 @@ export interface CreateBlogPayload {
 export interface UpdateBlogPayload {
   name: string
   content: string
+  // backend expects `employeeId` but some callers pass `userId`.
   employeeId?: string
+  userId?: string
   status?: boolean
   image?: string
 }
@@ -80,7 +84,13 @@ export const getBlogById = async (blogId: string) => {
 
 export const createBlog = async (payload: CreateBlogPayload) => {
   try {
-    const response = await axiosClient.post<ApiResponse<Blog>>("/blogs", payload)
+    const { userId, ...rest } = payload as any
+    const requestPayload = {
+      ...rest,
+      employeeId: payload.employeeId ?? userId,
+    }
+
+    const response = await axiosClient.post<ApiResponse<Blog>>("/blogs", requestPayload)
     return response.data
   } catch (error: any) {
     console.error("createBlog error:", error)
@@ -93,7 +103,13 @@ export const createBlog = async (payload: CreateBlogPayload) => {
 
 export const updateBlog = async (blogId: string, payload: UpdateBlogPayload) => {
   try {
-    const response = await axiosClient.put<ApiResponse<Blog>>(`/blogs/${blogId}`, payload)
+    const { userId, ...rest } = payload as any
+    const requestPayload = {
+      ...rest,
+      employeeId: payload.employeeId ?? userId,
+    }
+
+    const response = await axiosClient.put<ApiResponse<Blog>>(`/blogs/${blogId}`, requestPayload)
     return response.data
   } catch (error: any) {
     console.error("updateBlog error:", error)
@@ -105,9 +121,9 @@ export const updateBlog = async (blogId: string, payload: UpdateBlogPayload) => 
 }
 
 
-export const getBlogsByUserId = async (employeeId: string) => {
+export const getBlogsByUserId = async (userId: string) => {
   try {
-    const response = await axiosClient.get<ApiResponse<Blog[]>>(`/blogs/employee/${employeeId}`)
+    const response = await axiosClient.get<ApiResponse<Blog[]>>(`/blogs/user/${userId}`)
     return response.data
   } catch (error: any) {
     console.error("getBlogsByUserId error:", error)
@@ -120,7 +136,7 @@ export const getBlogsByUserId = async (employeeId: string) => {
 
 export const toggleBlogStatus = async (blogId: string) => {
   try {
-    const response = await axiosClient.patch<ApiResponse<void>>(`/blogs/${blogId}/status`)
+    const response = await axiosClient.patch<ApiResponse<void>>(`/blogs/${blogId}/toggle-status`)
     return response.data
   } catch (error: any) {
     console.error("toggleBlogStatus error:", error)
