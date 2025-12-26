@@ -42,7 +42,24 @@ export interface WarrantyClaim {
   orderId: number;
   customerId: string;
   addressId: number;
-  address: string;
+  address:
+    | string
+    | {
+        id: number;
+        name: string;
+        phone: string;
+        city: string;
+        district: string;
+        ward: string;
+        street: string;
+        addressLine: string;
+        isDefault: boolean;
+        userId: string;
+        userName: string;
+        fullAddress: string;
+        latitude: number;
+        longitude: number;
+      };
   name: string;
   phone: string;
   claimDate: string;
