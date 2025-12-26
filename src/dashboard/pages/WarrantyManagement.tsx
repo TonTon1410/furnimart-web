@@ -13,6 +13,7 @@ import { productService, type ProductColor } from "@/service/productService";
 import { authService } from "@/service/authService";
 import CustomDropdown from "@/components/CustomDropdown";
 import { useToast } from "@/context/ToastContext";
+import { useAlert } from "@/context/ConfirmContext";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -21,6 +22,7 @@ const fadeUp = {
 
 const WarrantyManagement = () => {
   const { showToast } = useToast();
+  const alert = useAlert();
   const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +139,11 @@ const WarrantyManagement = () => {
       setShowClaimModal(false);
     } catch (error) {
       console.error("Error updating claim status:", error);
-      alert("Không thể cập nhật trạng thái yêu cầu");
+      await alert({
+        title: "Lỗi",
+        message: "Không thể cập nhật trạng thái yêu cầu",
+        variant: "danger"
+      });
     }
   };
 
@@ -202,7 +208,11 @@ const WarrantyManagement = () => {
       setConfirmReason("");
     } catch (error) {
       console.error("Error updating claim status:", error);
-      alert("Không thể cập nhật trạng thái yêu cầu");
+      await alert({
+        title: "Lỗi",
+        message: "Không thể cập nhật trạng thái yêu cầu",
+        variant: "danger"
+      });
     }
   };
 
@@ -286,11 +296,10 @@ const WarrantyManagement = () => {
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
         <button
           onClick={() => toggleStatusFilter("PENDING")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "PENDING"
-              ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "PENDING"
+            ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg shrink-0">
@@ -309,11 +318,10 @@ const WarrantyManagement = () => {
 
         <button
           onClick={() => toggleStatusFilter("UNDER_REVIEW")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "UNDER_REVIEW"
-              ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "UNDER_REVIEW"
+            ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
@@ -335,11 +343,10 @@ const WarrantyManagement = () => {
 
         <button
           onClick={() => toggleStatusFilter("APPROVED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "APPROVED"
-              ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-green-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "APPROVED"
+            ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-lg shrink-0">
@@ -358,11 +365,10 @@ const WarrantyManagement = () => {
 
         <button
           onClick={() => toggleStatusFilter("RESOLVED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "RESOLVED"
-              ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-200 dark:ring-purple-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "RESOLVED"
+            ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-200 dark:ring-purple-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg shrink-0">
@@ -381,11 +387,10 @@ const WarrantyManagement = () => {
 
         <button
           onClick={() => toggleStatusFilter("REJECTED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "REJECTED"
-              ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-red-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "REJECTED"
+            ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-red-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/30 rounded-lg shrink-0">
@@ -404,11 +409,10 @@ const WarrantyManagement = () => {
 
         <button
           onClick={() => toggleStatusFilter("CANCELLED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "CANCELLED"
-              ? "border-gray-500 dark:border-gray-400 ring-2 ring-gray-200 dark:ring-gray-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "CANCELLED"
+            ? "border-gray-500 dark:border-gray-400 ring-2 ring-gray-200 dark:ring-gray-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-gray-100 dark:bg-gray-900/30 rounded-lg shrink-0">
@@ -619,11 +623,10 @@ const WarrantyManagement = () => {
                     setSelectedClaim(claim);
                     setShowClaimModal(true);
                   }}
-                  className={`ml-4 px-4 py-2 ${
-                    claim.status === "RESOLVED"
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  } text-white rounded-lg text-sm font-medium transition-colors shrink-0`}
+                  className={`ml-4 px-4 py-2 ${claim.status === "RESOLVED"
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-green-600 hover:bg-green-700"
+                    } text-white rounded-lg text-sm font-medium transition-colors shrink-0`}
                 >
                   {claim.status === "RESOLVED" ? "Xem lại" : "Xử lý"}
                 </button>
@@ -812,67 +815,67 @@ const WarrantyManagement = () => {
               {(selectedClaim.adminResponse ||
                 selectedClaim.resolutionNotes ||
                 selectedClaim.actionType) && (
-                <div className="border-t border-border pt-4 space-y-3">
-                  <h4 className="font-semibold text-foreground">
-                    Thông tin giải quyết
-                  </h4>
-                  {selectedClaim.actionType && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Hành động:
-                      </span>
-                      <p className="text-sm font-medium text-foreground">
-                        {selectedClaim.actionType === "RETURN" && "Trả hàng"}
-                        {selectedClaim.actionType === "REPAIR" && "Sửa chữa"}
-                        {selectedClaim.actionType === "DO_NOTHING" &&
-                          "Không xử lý"}
-                      </p>
-                    </div>
-                  )}
-                  {selectedClaim.repairCost != null &&
-                    selectedClaim.repairCost > 0 && (
+                  <div className="border-t border-border pt-4 space-y-3">
+                    <h4 className="font-semibold text-foreground">
+                      Thông tin giải quyết
+                    </h4>
+                    {selectedClaim.actionType && (
                       <div>
                         <span className="text-sm text-muted-foreground">
-                          Chi phí sửa chữa:
+                          Hành động:
                         </span>
-                        <p className="text-sm font-medium text-blue-600">
-                          {selectedClaim.repairCost.toLocaleString()}₫
+                        <p className="text-sm font-medium text-foreground">
+                          {selectedClaim.actionType === "RETURN" && "Trả hàng"}
+                          {selectedClaim.actionType === "REPAIR" && "Sửa chữa"}
+                          {selectedClaim.actionType === "DO_NOTHING" &&
+                            "Không xử lý"}
                         </p>
                       </div>
                     )}
-                  {selectedClaim.refundAmount != null &&
-                    selectedClaim.refundAmount > 0 && (
+                    {selectedClaim.repairCost != null &&
+                      selectedClaim.repairCost > 0 && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">
+                            Chi phí sửa chữa:
+                          </span>
+                          <p className="text-sm font-medium text-blue-600">
+                            {selectedClaim.repairCost.toLocaleString()}₫
+                          </p>
+                        </div>
+                      )}
+                    {selectedClaim.refundAmount != null &&
+                      selectedClaim.refundAmount > 0 && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">
+                            Số tiền hoàn:
+                          </span>
+                          <p className="text-sm font-medium text-green-600">
+                            {selectedClaim.refundAmount.toLocaleString()}₫
+                          </p>
+                        </div>
+                      )}
+                    {selectedClaim.adminResponse && (
                       <div>
                         <span className="text-sm text-muted-foreground">
-                          Số tiền hoàn:
+                          Phản hồi:
                         </span>
-                        <p className="text-sm font-medium text-green-600">
-                          {selectedClaim.refundAmount.toLocaleString()}₫
+                        <p className="text-sm text-foreground">
+                          {selectedClaim.adminResponse}
                         </p>
                       </div>
                     )}
-                  {selectedClaim.adminResponse && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Phản hồi:
-                      </span>
-                      <p className="text-sm text-foreground">
-                        {selectedClaim.adminResponse}
-                      </p>
-                    </div>
-                  )}
-                  {selectedClaim.resolutionNotes && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Ghi chú:
-                      </span>
-                      <p className="text-sm text-foreground">
-                        {selectedClaim.resolutionNotes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                    {selectedClaim.resolutionNotes && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">
+                          Ghi chú:
+                        </span>
+                        <p className="text-sm text-foreground">
+                          {selectedClaim.resolutionNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
               {/* Action Buttons */}
               {selectedClaim.status !== "RESOLVED" &&
@@ -910,18 +913,18 @@ const WarrantyManagement = () => {
                       )}
                       {(selectedClaim.status === "PENDING" ||
                         selectedClaim.status === "UNDER_REVIEW") && (
-                        <button
-                          onClick={() =>
-                            handleUpdateClaimStatus(
-                              selectedClaim.id,
-                              "APPROVED"
-                            )
-                          }
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Chấp nhận
-                        </button>
-                      )}
+                          <button
+                            onClick={() =>
+                              handleUpdateClaimStatus(
+                                selectedClaim.id,
+                                "APPROVED"
+                              )
+                            }
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Chấp nhận
+                          </button>
+                        )}
                       {selectedClaim.status === "APPROVED" && (
                         <button
                           onClick={() => setShowResolveModal(true)}
@@ -1106,18 +1109,16 @@ const WarrantyManagement = () => {
               {/* Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div
-                  className={`p-3 rounded-full ${
-                    confirmAction.type === "REJECT"
-                      ? "bg-red-100 dark:bg-red-900/30"
-                      : "bg-gray-100 dark:bg-gray-900/30"
-                  }`}
+                  className={`p-3 rounded-full ${confirmAction.type === "REJECT"
+                    ? "bg-red-100 dark:bg-red-900/30"
+                    : "bg-gray-100 dark:bg-gray-900/30"
+                    }`}
                 >
                   <AlertCircle
-                    className={`w-6 h-6 ${
-                      confirmAction.type === "REJECT"
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-gray-600 dark:text-gray-400"
-                    }`}
+                    className={`w-6 h-6 ${confirmAction.type === "REJECT"
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-gray-600 dark:text-gray-400"
+                      }`}
                   />
                 </div>
                 <div>
@@ -1150,9 +1151,8 @@ const WarrantyManagement = () => {
                   value={confirmReason}
                   onChange={(e) => setConfirmReason(e.target.value)}
                   rows={4}
-                  placeholder={`Nhập lý do ${
-                    confirmAction.type === "REJECT" ? "từ chối" : "hủy"
-                  } yêu cầu bảo hành...`}
+                  placeholder={`Nhập lý do ${confirmAction.type === "REJECT" ? "từ chối" : "hủy"
+                    } yêu cầu bảo hành...`}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-background text-foreground resize-none"
                   autoFocus
                 />
@@ -1176,11 +1176,10 @@ const WarrantyManagement = () => {
                 <button
                   onClick={handleConfirmAction}
                   disabled={!confirmReason.trim()}
-                  className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    confirmAction.type === "REJECT"
-                      ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-gray-600 hover:bg-gray-700 text-white"
-                  }`}
+                  className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction.type === "REJECT"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-gray-600 hover:bg-gray-700 text-white"
+                    }`}
                 >
                   Xác nhận {confirmAction.type === "REJECT" ? "từ chối" : "hủy"}
                 </button>

@@ -23,6 +23,7 @@ import warehousesService from "@/service/warehousesService";
 import { authService } from "@/service/authService";
 import { productService } from "@/service/productService";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import WarehouseZoneLocationSelector from "./components/WarehouseZoneLocationSelector";
 import CustomDropdown from "@/components/CustomDropdown";
 
@@ -88,11 +89,11 @@ interface TransferRequest {
   toWarehouseId?: string;
   orderId: number;
   transferStatus:
-    | "PENDING"
-    | "ACCEPTED"
-    | "FINISHED"
-    | "REJECTED"
-    | "PENDING_CONFIRM";
+  | "PENDING"
+  | "ACCEPTED"
+  | "FINISHED"
+  | "REJECTED"
+  | "PENDING_CONFIRM";
   itemResponseList: TransferItem[];
 }
 
@@ -105,6 +106,7 @@ interface Warehouse {
 
 export default function TransferRequestsPage() {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -234,8 +236,8 @@ export default function TransferRequestsPage() {
       // Lọc chỉ các phiếu TRANSFER (loại bỏ EXPORT, IMPORT, RESERVE)
       const transferOnly = Array.isArray(transferData)
         ? transferData.filter(
-            (item: TransferRequest) => item.type === "TRANSFER"
-          )
+          (item: TransferRequest) => item.type === "TRANSFER"
+        )
         : [];
 
       // Sắp xếp: PENDING lên đầu, sau đó theo id giảm dần (mới nhất lên trước)
@@ -257,8 +259,8 @@ export default function TransferRequestsPage() {
       } else {
         setError(
           err?.response?.data?.message ||
-            err?.message ||
-            "Không thể tải danh sách yêu cầu chuyển kho"
+          err?.message ||
+          "Không thể tải danh sách yêu cầu chuyển kho"
         );
       }
     } finally {
@@ -306,7 +308,14 @@ export default function TransferRequestsPage() {
 
     // Nếu là từ chối, xử lý trực tiếp
     const actionText = "từ chối";
-    if (!confirm(`Bạn có chắc chắn muốn ${actionText} phiếu này?`)) {
+    const isConfirmed = await confirm({
+      title: "Từ chối phiếu",
+      message: `Bạn có chắc chắn muốn ${actionText} phiếu này?`,
+      confirmLabel: "Từ chối",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -318,9 +327,8 @@ export default function TransferRequestsPage() {
       showToast({
         type: "success",
         title: "Thành công",
-        description: `${
-          actionText.charAt(0).toUpperCase() + actionText.slice(1)
-        } phiếu thành công!`,
+        description: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)
+          } phiếu thành công!`,
       });
     } catch (err: any) {
       console.error(`Error ${actionText} transfer:`, err);
@@ -342,7 +350,14 @@ export default function TransferRequestsPage() {
   };
 
   const handleFinish = async (inventoryId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn hoàn thành phiếu này?")) {
+    const isConfirmed = await confirm({
+      title: "Hoàn thành phiếu",
+      message: "Bạn có chắc chắn muốn hoàn thành phiếu này không?",
+      confirmLabel: "Hoàn thành",
+      variant: "success"
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -576,8 +591,7 @@ export default function TransferRequestsPage() {
               })
             );
             console.log(
-              `Mapped ${
-                locationsMap[item.productColorId].length
+              `Mapped ${locationsMap[item.productColorId].length
               } locations for product ${item.productColorId}`
             );
           } else {
@@ -825,11 +839,10 @@ export default function TransferRequestsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <button
           onClick={() => toggleStatusFilter("PENDING")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "PENDING"
-              ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "PENDING"
+            ? "border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg shrink-0">
@@ -848,11 +861,10 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("ACCEPTED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "ACCEPTED"
-              ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "ACCEPTED"
+            ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
@@ -871,11 +883,10 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("PENDING_CONFIRM")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "PENDING_CONFIRM"
-              ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-200 dark:ring-purple-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "PENDING_CONFIRM"
+            ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-200 dark:ring-purple-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg shrink-0">
@@ -897,11 +908,10 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("FINISHED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "FINISHED"
-              ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-green-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "FINISHED"
+            ? "border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-lg shrink-0">
@@ -920,11 +930,10 @@ export default function TransferRequestsPage() {
 
         <button
           onClick={() => toggleStatusFilter("REJECTED")}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${
-            statusFilter === "REJECTED"
-              ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
-              : "border-gray-200 dark:border-gray-700 hover:border-red-300"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-3 sm:p-4 transition-all hover:shadow-md active:scale-95 ${statusFilter === "REJECTED"
+            ? "border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50"
+            : "border-gray-200 dark:border-gray-700 hover:border-red-300"
+            }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/30 rounded-lg shrink-0">
@@ -1163,11 +1172,10 @@ export default function TransferRequestsPage() {
 
                 {/* Expanded Details */}
                 <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    expandedIds.has(request.id)
-                      ? "max-h-[2000px] opacity-100"
-                      : "max-h-0 opacity-0"
-                  }`}
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedIds.has(request.id)
+                    ? "max-h-[2000px] opacity-100"
+                    : "max-h-0 opacity-0"
+                    }`}
                 >
                   <div className="p-4 bg-gray-50 dark:bg-gray-900">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
@@ -1337,8 +1345,8 @@ export default function TransferRequestsPage() {
                       selectedZoneId={null}
                       selectedLocationId={null}
                       onWarehouseChange={(id) => setToWarehouseId(id)}
-                      onZoneChange={() => {}}
-                      onLocationChange={() => {}}
+                      onZoneChange={() => { }}
+                      onLocationChange={() => { }}
                       disabled={exportingStock || loadingLocations}
                       hideZoneAndLocation={true}
                     />
@@ -1763,21 +1771,21 @@ export default function TransferRequestsPage() {
                                 Vị trí có sẵn
                                 {existingLocations[item.productColorId]
                                   ?.length > 0 && (
-                                  <span className="ml-1 text-purple-600 dark:text-purple-400 font-medium">
-                                    (
-                                    {
-                                      existingLocations[item.productColorId]
-                                        .length
-                                    }
-                                    )
-                                  </span>
-                                )}
+                                    <span className="ml-1 text-purple-600 dark:text-purple-400 font-medium">
+                                      (
+                                      {
+                                        existingLocations[item.productColorId]
+                                          .length
+                                      }
+                                      )
+                                    </span>
+                                  )}
                                 {existingLocations[item.productColorId]
                                   ?.length === 0 && (
-                                  <span className="ml-1 text-gray-400 text-xs">
-                                    (Không có)
-                                  </span>
-                                )}
+                                    <span className="ml-1 text-gray-400 text-xs">
+                                      (Không có)
+                                    </span>
+                                  )}
                               </span>
                             </label>
 
@@ -1817,7 +1825,7 @@ export default function TransferRequestsPage() {
 
                         {/* Hiển thị selector tương ứng */}
                         {importLocationTypes[item.productColorId] ===
-                        "existing" ? (
+                          "existing" ? (
                           // Dropdown chọn vị trí có sẵn
                           <div>
                             <CustomDropdown
@@ -1865,7 +1873,7 @@ export default function TransferRequestsPage() {
                           <div>
                             <WarehouseZoneLocationSelector
                               labelPrefix=""
-                              onWarehouseChange={() => {}} // Warehouse đã được fix
+                              onWarehouseChange={() => { }} // Warehouse đã được fix
                               onZoneChange={(zoneId) => {
                                 setImportLocations((prev) => ({
                                   ...prev,

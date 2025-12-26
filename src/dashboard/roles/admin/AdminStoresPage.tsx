@@ -7,6 +7,7 @@ import SlideOver from "@/components/SlideOver";
 import StoreForm, { type StoreFormValues } from "./StoreForm";
 import type { AxiosError } from "axios";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface StoreType {
   id: string;
@@ -34,6 +35,7 @@ const AdminStoresPage: React.FC = () => {
   const [list, setList] = useState<StoreType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -58,8 +60,8 @@ const AdminStoresPage: React.FC = () => {
         const err = e as AxiosError<{ message?: string }>;
         setError(
           err.response?.data?.message ||
-            err.message ||
-            "Không tải được danh sách cửa hàng"
+          err.message ||
+          "Không tải được danh sách cửa hàng"
         );
       } finally {
         setLoading(false);
@@ -131,7 +133,14 @@ const AdminStoresPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Xác nhận xoá cửa hàng này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá cửa hàng này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     setDeletingIds((s) => new Set(s).add(id));
     const prev = list;
     setList((cur) => cur.filter((u) => u.id !== id));
@@ -141,19 +150,19 @@ const AdminStoresPage: React.FC = () => {
       if (res.status !== 204) {
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: unknown) {
       const err = e as AxiosError<{ message?: string }>;
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: err.response?.data?.message || err.message || "Không thể xoá cửa hàng",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: err.response?.data?.message || err.message || "Không thể xoá cửa hàng",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -253,11 +262,10 @@ const AdminStoresPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                          st.status === "ACTIVE"
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${st.status === "ACTIVE"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                        }`}
+                          }`}
                       >
                         {st.status === "ACTIVE"
                           ? "✓ Hoạt động"
@@ -307,8 +315,8 @@ const AdminStoresPage: React.FC = () => {
           mode === "edit"
             ? "Chỉnh sửa cửa hàng"
             : mode === "detail"
-            ? "Chi tiết cửa hàng"
-            : "Thêm cửa hàng"
+              ? "Chi tiết cửa hàng"
+              : "Thêm cửa hàng"
         }
         widthClass="w-full max-w-2xl"
       >
@@ -350,11 +358,10 @@ const AdminStoresPage: React.FC = () => {
                     Trạng thái:
                   </span>
                   <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                      selected.status === "ACTIVE"
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${selected.status === "ACTIVE"
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                         : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
+                      }`}
                   >
                     {selected.status === "ACTIVE"
                       ? "✓ Hoạt động"
@@ -400,19 +407,18 @@ const AdminStoresPage: React.FC = () => {
                           </div>
                         </div>
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${
-                            u.role === "MANAGER"
+                          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${u.role === "MANAGER"
                               ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                               : u.role === "STAFF"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                              : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                          }`}
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                            }`}
                         >
                           {u.role === "MANAGER"
                             ? "👔 Quản lý"
                             : u.role === "STAFF"
-                            ? "🛍️ Nhân viên"
-                            : "🚚 Giao hàng"}
+                              ? "🛍️ Nhân viên"
+                              : "🚚 Giao hàng"}
                         </span>
                       </div>
                     </div>

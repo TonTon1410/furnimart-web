@@ -10,6 +10,7 @@ import CategoryForm, {
   type Status,
 } from "./CategoryForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Category {
   id: number;
@@ -90,6 +91,7 @@ const AdminCategoriesPage: React.FC = () => {
   const [list, setList] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -197,7 +199,14 @@ const AdminCategoriesPage: React.FC = () => {
 
   // ✅ Soft delete /categories/{id}
   const handleDelete = async (id: number) => {
-    if (!confirm("Xác nhận xoá mềm danh mục này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm danh mục này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     // đánh dấu đang xoá
     setDeletingIds((s) => new Set(s).add(id));
     // lạc quan: xoá khỏi UI trước

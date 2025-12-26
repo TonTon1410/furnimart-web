@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { authService } from "@/service/authService";
+import { useConfirm } from "@/context/ConfirmContext";
 import { addressService, type Address } from "@/service/addressService";
 import {
   MapContainer,
@@ -143,6 +144,7 @@ export default function AddressPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const confirm = useConfirm();
 
   // Form State
   const [formData, setFormData] = useState<AddressFormData>(DEFAULT_FORM_DATA);
@@ -363,7 +365,13 @@ export default function AddressPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xóa địa chỉ",
+      message: "Bạn có chắc chắn muốn xóa địa chỉ giao hàng này không?",
+      confirmLabel: "Xóa",
+      variant: "danger"
+    });
+    if (!isConfirmed) return;
     try {
       setLoading(true);
       await addressService.deleteAddress(id);
@@ -387,13 +395,12 @@ export default function AddressPage() {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
-              className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md min-w-[300px] ${
-                toast.type === "success"
+              className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md min-w-[300px] ${toast.type === "success"
                   ? "bg-green-50/90 border-green-200 text-green-700"
                   : toast.type === "error"
-                  ? "bg-red-50/90 border-red-200 text-red-700"
-                  : "bg-white/90 border-gray-200 text-gray-700"
-              }`}
+                    ? "bg-red-50/90 border-red-200 text-red-700"
+                    : "bg-white/90 border-gray-200 text-gray-700"
+                }`}
             >
               {toast.type === "success" ? (
                 <CheckCircle size={18} />
@@ -483,22 +490,20 @@ export default function AddressPage() {
                 animate="visible"
                 layout
                 transition={{ delay: index * 0.05 }}
-                className={`group relative bg-white rounded-xl p-6 border transition-all duration-200 ${
-                  addr.isDefault
+                className={`group relative bg-white rounded-xl p-6 border transition-all duration-200 ${addr.isDefault
                     ? "border-blue-200 shadow-sm ring-1 ring-blue-500/20 bg-blue-50/10"
                     : "border-gray-100 hover:border-blue-200 hover:shadow-md"
-                }`}
+                  }`}
               >
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                   {/* Left: Info Section */}
                   <div className="space-y-3 flex-1">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`p-2 rounded-lg ${
-                          addr.isDefault
+                        className={`p-2 rounded-lg ${addr.isDefault
                             ? "bg-blue-100 text-blue-600"
                             : "bg-gray-100 text-gray-500"
-                        }`}
+                          }`}
                       >
                         <User size={18} />
                       </div>

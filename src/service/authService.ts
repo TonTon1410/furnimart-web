@@ -2,7 +2,13 @@
 // src/service/authService.ts
 import axiosClient from "./axiosClient";
 import axios from "axios";
-import { mapBackendRoleToKey, type RoleKey } from "@/router/paths";
+import { type RoleKey } from "@/router/paths";
+import {
+  safeDecodeJwt,
+  inferRoleFromToken,
+  getStoreIdFromToken,
+  getUserIdFromToken,
+} from "./jwtUtils";
 
 interface LoginPayload {
   email: string;
@@ -60,67 +66,6 @@ let DEV_FORCE_ROLE: RoleKey | null = null;
 //  DEV_FORCE_ROLE = "admin";
 //  DEV_FORCE_ROLE = "manager";
 // DEV_FORCE_ROLE = "delivery";
-
-/** ====== Helpers: decode JWT an toàn & suy ra role ====== */
-function safeBase64UrlDecode(b64url: string): string | null {
-  try {
-    const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-    return atob(b64 + pad);
-  } catch {
-    return null;
-  }
-}
-
-function safeDecodeJwt(token: string): any {
-  try {
-    const payload = token.split(".")[1];
-    const json = safeBase64UrlDecode(payload);
-    return json ? JSON.parse(json) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Suy ra role từ token: tuỳ backend có thể là role/roles/authorities/... */
-function inferRoleFromToken(token: string): RoleKey | null {
-  const p = safeDecodeJwt(token);
-
-  // Các khả năng thường gặp:
-  // - p.role === "ADMIN"
-  // - p.roles = ["ADMIN", ...]
-  // - p.authorities = ["ADMIN"] hoặc [{ authority: "ADMIN" }]
-  // - Keycloak: p.realm_access.roles = ["ADMIN", ...]
-  const rawRole =
-    p?.role ??
-    (Array.isArray(p?.roles) ? p.roles[0] : undefined) ??
-    (Array.isArray(p?.authorities)
-      ? typeof p.authorities[0] === "string"
-        ? p.authorities[0]
-        : p.authorities[0]?.authority
-      : undefined) ??
-    (Array.isArray(p?.realm_access?.roles)
-      ? p.realm_access.roles[0]
-      : undefined);
-
-  return mapBackendRoleToKey(rawRole);
-}
-
-/** Lấy storeId từ token */
-function getStoreIdFromToken(token: string): string | null {
-  const p = safeDecodeJwt(token);
-
-  // Backend có thể trả storeId hoặc storeIds (array)
-  if (p?.storeId) {
-    return p.storeId;
-  }
-
-  if (Array.isArray(p?.storeId) && p.storeId.length > 0) {
-    return p.storeId[0]; // Lấy storeId đầu tiên
-  }
-
-  return null;
-}
 
 export const authService = {
   register: async (payload: RegisterPayload) => {
@@ -405,8 +350,7 @@ export const authService = {
       // For non-CUSTOMER roles, call employees profile endpoint (different service/port)
       // Try a list of candidate employee API bases (primary 8080, fallback 8086) before falling back to user endpoints
       const EMPLOYEE_API_BASES = [
-        (import.meta.env.VITE_EMPLOYEE_API_BASE as string) ||
-          "https://furnimart.click/api",
+        import.meta.env.VITE_API_EMPLOYEE || "https://furnimart.click/api",
       ];
 
       for (const base of EMPLOYEE_API_BASES) {
@@ -487,30 +431,10 @@ export const authService = {
     }
   },
 
-  // giữ nguyên getUserId() cũ cho backward compatibility
   getUserId(): string | null {
     const token = this.getToken();
     if (!token) return null;
-
-    try {
-      const payloadBase64 = token.split(".")[1];
-      if (!payloadBase64) return null;
-
-      // Chuẩn hóa base64 để tránh lỗi padding
-      const padded = payloadBase64.padEnd(
-        payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4),
-        "="
-      );
-
-      const decoded = atob(padded);
-      const payload = JSON.parse(decoded);
-
-      // Tùy backend, có thể là id, userId hoặc sub
-      return payload?.accountId || payload?.id || payload?.userId || payload?.sub || null;
-    } catch (err) {
-      console.error("Decode token error:", err);
-      return null;
-    }
+    return getUserIdFromToken(token);
   },
 
   /** ✅ Lấy role đồng bộ:

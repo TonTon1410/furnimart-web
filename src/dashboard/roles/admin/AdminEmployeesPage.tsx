@@ -12,6 +12,7 @@ import EmployeeForm, {
   type Role,
 } from "./EmployeeForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 // -------- Types ----------
 interface Employee {
@@ -50,6 +51,7 @@ const AdminEmployeesPage: React.FC = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // xoá theo id
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -241,7 +243,14 @@ const AdminEmployeesPage: React.FC = () => {
 
   // soft delete
   const handleDelete = async (id: string) => {
-    if (!confirm("Xác nhận xoá mềm nhân viên này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm nhân viên này không?",
+      confirmLabel: "Xoá nhân viên",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     setDeletingIds((s) => new Set(s).add(id));
     const prev = list;
     setList((cur) => cur.filter((u) => u.id !== id));
@@ -251,18 +260,18 @@ const AdminEmployeesPage: React.FC = () => {
       if (res.status !== 200) {
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể xoá nhân viên",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể xoá nhân viên",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -552,18 +561,16 @@ const AdminEmployeesPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
-                          u.status === "ACTIVE"
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${u.status === "ACTIVE"
                             ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
                             : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            u.status === "ACTIVE"
+                          className={`h-1.5 w-1.5 rounded-full ${u.status === "ACTIVE"
                               ? "bg-emerald-500"
                               : "bg-gray-400"
-                          }`}
+                            }`}
                         />
                         {u.status}
                       </span>
@@ -681,13 +688,13 @@ const AdminEmployeesPage: React.FC = () => {
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-medium">Cửa hàng: </span>
                     {detailEmployee.storeIds &&
-                    detailEmployee.storeIds.length > 0
+                      detailEmployee.storeIds.length > 0
                       ? stores
-                          .filter((s) =>
-                            detailEmployee.storeIds?.includes(s.id)
-                          )
-                          .map((s) => s.name)
-                          .join(", ") || "Chưa có"
+                        .filter((s) =>
+                          detailEmployee.storeIds?.includes(s.id)
+                        )
+                        .map((s) => s.name)
+                        .join(", ") || "Chưa có"
                       : "Chưa có"}
                   </p>
                 </div>
@@ -711,18 +718,16 @@ const AdminEmployeesPage: React.FC = () => {
                       Trạng thái
                     </div>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${
-                        detailEmployee.status === "ACTIVE"
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${detailEmployee.status === "ACTIVE"
                           ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
                           : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`h-2 w-2 rounded-full ${
-                          detailEmployee.status === "ACTIVE"
+                        className={`h-2 w-2 rounded-full ${detailEmployee.status === "ACTIVE"
                             ? "bg-emerald-500"
                             : "bg-gray-400"
-                        }`}
+                          }`}
                       />
                       {detailEmployee.status}
                     </span>
@@ -778,8 +783,8 @@ const AdminEmployeesPage: React.FC = () => {
                     <div className="text-sm text-gray-900 dark:text-gray-100">
                       {detailEmployee.birthday
                         ? new Date(detailEmployee.birthday).toLocaleDateString(
-                            "vi-VN"
-                          )
+                          "vi-VN"
+                        )
                         : "—"}
                     </div>
                   </div>
@@ -800,8 +805,8 @@ const AdminEmployeesPage: React.FC = () => {
                     <div className="text-sm text-gray-900 dark:text-gray-100">
                       {detailEmployee.createdAt
                         ? new Date(detailEmployee.createdAt).toLocaleString(
-                            "vi-VN"
-                          )
+                          "vi-VN"
+                        )
                         : "—"}
                     </div>
                   </div>
