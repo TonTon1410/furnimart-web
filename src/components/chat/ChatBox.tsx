@@ -21,6 +21,7 @@ import { chatService } from "@/service/chatService";
 import { authService } from "@/service/authService";
 import { useToast } from "@/context/ToastContext";
 import { webSocketService } from "@/service/websocketService";
+import { useWebSocketStore } from "@/store/useWebSocketStore";
 import type { ChatMessage as ApiChatMessage } from "@/types/chat";
 
 // --- Interface for Room Analysis ---
@@ -48,6 +49,7 @@ type StaffChatStatus = "WAITING_STAFF" | "STAFF_CONNECTED" | "AI" | null;
 export function ChatBox() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { isConnected } = useWebSocketStore();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("selection");
   const [input, setInput] = useState("");
@@ -70,7 +72,7 @@ export function ChatBox() {
       return res.data?.find(c => c.status === 'ACTIVE') || null;
     },
     enabled: isOpen && mode === "staff",
-    refetchInterval: 5000,
+    refetchInterval: isConnected ? false : 5000,
   });
 
   // Cập nhật chatId từ query
@@ -100,7 +102,7 @@ export function ChatBox() {
       }));
     },
     enabled: isOpen && mode === "staff" && !!chatId,
-    refetchInterval: 3000,
+    refetchInterval: isConnected ? false : 3000,
   });
 
   // Auto scroll khi có tin nhắn mới

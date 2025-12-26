@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client';
 import { authService } from './authService';
+import { useWebSocketStore } from '@/store/useWebSocketStore';
 
 type MessageHandler = (data: any) => void;
 
@@ -36,6 +37,7 @@ class WebSocketService {
 
         this.socket.onopen = () => {
             console.log('[WS] Connected');
+            useWebSocketStore.getState().setIsConnected(true);
             if (this.reconnectTimeout) {
                 clearTimeout(this.reconnectTimeout);
                 this.reconnectTimeout = null;
@@ -54,6 +56,7 @@ class WebSocketService {
 
         this.socket.onclose = (event) => {
             console.log('[WS] Disconnected:', event.reason);
+            useWebSocketStore.getState().setIsConnected(false);
             this.socket = null;
             if (!this.isManuallyClosed) {
                 this.scheduleReconnect();
@@ -62,6 +65,7 @@ class WebSocketService {
 
         this.socket.onerror = (error) => {
             console.error('[WS] Error:', error);
+            useWebSocketStore.getState().setIsConnected(false);
         };
     }
 
@@ -90,6 +94,7 @@ class WebSocketService {
         if (this.socket) {
             this.socket.close();
             this.socket = null;
+            useWebSocketStore.getState().setIsConnected(false);
         }
     }
 

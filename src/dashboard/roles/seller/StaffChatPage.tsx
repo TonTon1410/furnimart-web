@@ -10,6 +10,7 @@ import { authService } from "@/service/authService"
 import { Search, ArrowLeft } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { webSocketService } from "@/service/websocketService"
+import { useWebSocketStore } from "@/store/useWebSocketStore";
 
 // Import Types
 import type { ChatSession } from "@/types/chat"
@@ -24,6 +25,7 @@ export default function StaffChatPage() {
   const confirm = useConfirm();
   const queryClient = useQueryClient()
   const currentUserId = authService.getUserId() || ""
+  const { isConnected } = useWebSocketStore();
 
   // State local
   const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null)
@@ -58,7 +60,7 @@ export default function StaffChatPage() {
         return { ...chat, name: displayName };
       });
     },
-    refetchInterval: 5000,
+    refetchInterval: isConnected ? false : 5000,
   });
 
   // 2. Query tin nhắn
@@ -70,7 +72,7 @@ export default function StaffChatPage() {
       return res.data || [];
     },
     enabled: !!selectedChat?.id,
-    refetchInterval: 3000,
+    refetchInterval: isConnected ? false : 3000,
   });
 
   // Đồng bộ selectedChat khi chats update
