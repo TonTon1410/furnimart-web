@@ -525,7 +525,9 @@ const WarrantyManagement = () => {
                     <div>
                       <span className="text-muted-foreground">Địa chỉ: </span>
                       <span className="font-medium text-foreground">
-                        {claim.address}
+                        {typeof claim.address === "string"
+                          ? claim.address
+                          : claim.address.fullAddress}
                       </span>
                     </div>
                     <div>
@@ -732,7 +734,9 @@ const WarrantyManagement = () => {
                 <div className="col-span-2">
                   <span className="text-sm text-muted-foreground">Địa chỉ</span>
                   <p className="font-medium text-foreground">
-                    {selectedClaim.address}
+                    {typeof selectedClaim.address === "string"
+                      ? selectedClaim.address
+                      : selectedClaim.address.fullAddress}
                   </p>
                 </div>
               </div>
