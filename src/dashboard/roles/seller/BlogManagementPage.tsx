@@ -246,7 +246,7 @@ export default function BlogManagementPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(DP(`blog/detail`))}
+                            onClick={() => navigate(DP(`blog/${blog.id}`))}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             title="Xem"
                           >

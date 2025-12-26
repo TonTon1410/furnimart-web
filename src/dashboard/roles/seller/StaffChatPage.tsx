@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
@@ -69,16 +70,20 @@ export default function StaffChatPage() {
   }, [])
 
   const fetchMessages = useCallback(async (chatId: string) => {
-    // Nếu đang trong chế độ tìm kiếm tin nhắn thì KHÔNG fetch đè
     if (isSearchingMessage) return;
 
     try {
+      console.log("🚀 Staff đang lấy tin nhắn cho Chat ID:", chatId);
       const res = await chatService.getMessages(chatId)
+      
+      console.log("✅ Kết quả API trả về:", res.data); // Kiểm tra xem mảng này có phần tử không?
+
       if (res.data) {
         setMessages(res.data)
       }
     } catch (error) {
       console.error("Lỗi tải tin nhắn", error)
+      showToast({ type: "error", title: "Lỗi tải tin nhắn" + error });
     } finally {
       setLoadingMessages(false)
     }
