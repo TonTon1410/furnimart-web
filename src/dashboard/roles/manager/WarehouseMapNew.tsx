@@ -16,6 +16,7 @@ import locationItemService from "@/service/locationItemService";
 import { authService } from "@/service/authService";
 import { productService } from "@/service/productService";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Zone {
   id: string;
@@ -73,6 +74,7 @@ export default function WarehouseMapNew({
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // CRUD Modal states
   const [warehouseFormOpen, setWarehouseFormOpen] = useState(false);
@@ -170,20 +172,20 @@ export default function WarehouseMapNew({
 
       if (!storeId) {
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Không tìm thấy thông tin cửa hàng.",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: "Không tìm thấy thông tin cửa hàng.",
+        });
         return;
       }
 
       // Validation
       if (!warehouseFormData.warehouseName.trim()) {
         showToast({
-            type: "warning",
-            title: "Lưu Ý",
-            description: "Vui lòng nhập tên kho.",
-          });
+          type: "warning",
+          title: "Lưu Ý",
+          description: "Vui lòng nhập tên kho.",
+        });
         return;
       }
 
@@ -192,10 +194,10 @@ export default function WarehouseMapNew({
         Number(warehouseFormData.capacity) <= 0
       ) {
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Vui lòng nhập diện tích hợp lệ (lớn hơn 0)",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: "Vui lòng nhập diện tích hợp lệ (lớn hơn 0)",
+        });
         return;
       }
 
@@ -238,11 +240,11 @@ export default function WarehouseMapNew({
         error?.message ||
         "Lỗi không xác định";
 
-        showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Lỗi khi lưu kho hàng: " + errorMessage,
-          });
+      showToast({
+        type: "error",
+        title: "Lỗi",
+        description: "Lỗi khi lưu kho hàng: " + errorMessage,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -276,7 +278,14 @@ export default function WarehouseMapNew({
   };
 
   const handleDeleteZone = async (zoneId: string) => {
-    if (!confirm("Bạn có chắc muốn xóa khu vực này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xóa khu vực",
+      message: "Bạn có chắc chắn muốn xóa khu vực này không?",
+      confirmLabel: "Xóa",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
 
     try {
       await zoneService.deleteZone(zoneId);
@@ -284,10 +293,10 @@ export default function WarehouseMapNew({
     } catch (error) {
       console.error("Error deleting zone:", error);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Lỗi khi xóa khu vực",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: "Lỗi khi xóa khu vực",
+      });
     }
   };
 
@@ -297,38 +306,38 @@ export default function WarehouseMapNew({
     // Validation
     if (!zoneFormData.zoneName.trim()) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Tên khu vực",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Tên khu vực",
+      });
       return;
     }
 
     if (!zoneFormData.zoneCode.trim()) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Mã khu vực",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Mã khu vực",
+      });
       return;
     }
 
     if (zoneFormData.quantity === "" || zoneFormData.quantity === null) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Diện tích hợp lệ",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Diện tích hợp lệ",
+      });
       return;
     }
 
     const finalQuantity = Number(zoneFormData.quantity);
     if (finalQuantity < 0) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Diện tích không được là số âm",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Diện tích không được là số âm",
+      });
       return;
     }
 
@@ -355,10 +364,10 @@ export default function WarehouseMapNew({
     } catch (error) {
       console.error("Error saving zone:", error);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Lỗi khi lưu khu vực",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: "Lỗi khi lưu khu vực",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -394,7 +403,14 @@ export default function WarehouseMapNew({
   };
 
   const handleDeleteLocation = async (locationId: string) => {
-    if (!confirm("Bạn có chắc muốn xóa vị trí này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xóa vị trí",
+      message: "Bạn có chắc chắn muốn xóa vị trí này không?",
+      confirmLabel: "Xóa",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
 
     try {
       await locationItemService.deleteLocationItem(locationId);
@@ -402,10 +418,10 @@ export default function WarehouseMapNew({
     } catch (error) {
       console.error("Error deleting location:", error);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Lỗi khi xóa vị trí",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: "Lỗi khi xóa vị trí",
+      });
     }
   };
 
@@ -415,10 +431,10 @@ export default function WarehouseMapNew({
     // Validation
     if (!locationFormData.rowLabel.trim()) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Hàng (Row Label)",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Hàng (Row Label)",
+      });
       return;
     }
 
@@ -427,10 +443,10 @@ export default function WarehouseMapNew({
       locationFormData.columnNumber === null
     ) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Cột (Column Number) hợp lệ",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Cột (Column Number) hợp lệ",
+      });
       return;
     }
 
@@ -439,19 +455,19 @@ export default function WarehouseMapNew({
       locationFormData.quantity === null
     ) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Vui lòng nhập Sức chứa (Quantity) hợp lệ",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Vui lòng nhập Sức chứa (Quantity) hợp lệ",
+      });
       return;
     }
 
     if (locationFormMode === "edit" && !locationFormData.code.trim()) {
       showToast({
-            type: "warning",
-            title: "Lưu ý",
-            description: "Mã vị trí không được để trống khi chỉnh sửa",
-          });
+        type: "warning",
+        title: "Lưu ý",
+        description: "Mã vị trí không được để trống khi chỉnh sửa",
+      });
       return;
     }
 
@@ -484,10 +500,10 @@ export default function WarehouseMapNew({
     } catch (error) {
       console.error("Error saving location:", error);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Lỗi khi lưu vị trí",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: "Lỗi khi lưu vị trí",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -1157,7 +1173,7 @@ export default function WarehouseMapNew({
                 {selectedLocation.itemResponse?.length || 0})
               </h4>
               {selectedLocation.itemResponse &&
-              selectedLocation.itemResponse.length > 0 ? (
+                selectedLocation.itemResponse.length > 0 ? (
                 <div className="space-y-3">
                   {selectedLocation.itemResponse.map((item) => {
                     const productDetail = productDetails.get(

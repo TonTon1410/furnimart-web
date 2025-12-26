@@ -16,21 +16,14 @@ import {
   Sparkles,
   Lock,
 } from "lucide-react";
-import { chatService } from "@/service/chatService"; 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { chatService } from "@/service/chatService";
 import { authService } from "@/service/authService";
 import { useToast } from "@/context/ToastContext";
-import type { ChatMessage as ApiChatMessage } from "@/types/chat"; 
+import { webSocketService } from "@/service/websocketService";
+import type { ChatMessage as ApiChatMessage } from "@/types/chat";
 
-// Update Interface Message cho UI
-interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  senderName?: string;
-  senderAvatar?: string | null;
-  isOwnMessage?: boolean;
-  timestamp: Date;
-}
+// --- Interface for Room Analysis ---
 
 interface ProductSuggestion {
   id: string;
@@ -54,18 +47,12 @@ type StaffChatStatus = "WAITING_STAFF" | "STAFF_CONNECTED" | "AI" | null;
 
 export function ChatBox() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("selection");
-  
-  // State Chat
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [chatId, setChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [chatStatus, setChatStatus] = useState<StaffChatStatus>(null);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // State AI
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -73,53 +60,67 @@ export function ChatBox() {
   const [roomAnalysisResult, setRoomAnalysisResult] = useState<RoomAnalysisResponse | null>(null);
   const [note, setNote] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 1. Query danh sách chat & status
+  const { data: activeChat } = useQuery({
+    queryKey: ["user-active-chat"],
+    queryFn: async () => {
+      const res = await chatService.getUserChats();
+      return res.data?.find(c => c.status === 'ACTIVE') || null;
+    },
+    enabled: isOpen && mode === "staff",
+    refetchInterval: 5000,
+  });
+
+  // Cập nhật chatId từ query
+  useEffect(() => {
+    if (activeChat && activeChat.id !== chatId) {
+      setChatId(activeChat.id);
+    }
+  }, [activeChat, chatId]);
+
+  const chatStatus = activeChat ? (activeChat.chatMode as StaffChatStatus) : (mode === 'staff' && chatId ? "AI" : null);
+
+  // 2. Query tin nhắn
+  const { data: messages = [] } = useQuery({
+    queryKey: ["chat-messages", chatId],
+    queryFn: async () => {
+      if (!chatId) return [];
+      const res = await chatService.getMessages(chatId);
+      if (!res.data) return [];
+      return res.data.map((msg: ApiChatMessage) => ({
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatar,
+        isOwnMessage: msg.isOwnMessage,
+        timestamp: new Date(msg.createdAt),
+      }));
+    },
+    enabled: isOpen && mode === "staff" && !!chatId,
+    refetchInterval: 3000,
+  });
 
   // Auto scroll khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]); 
+  }, [messages]);
 
-  // Load tin nhắn & Map dữ liệu mới
-  const loadMessages = async (currentChatId: string) => {
-    try {
-      const res = await chatService.getMessages(currentChatId);
-      if (res.data) {
-        const formattedMessages: Message[] = res.data.map((msg: ApiChatMessage) => ({
-          id: msg.id,
-          content: msg.content,
-          senderId: msg.senderId,
-          senderName: msg.senderName,
-          senderAvatar: msg.senderAvatar,
-          isOwnMessage: msg.isOwnMessage,
-          timestamp: new Date(msg.createdAt),
-        }));
-        setMessages(formattedMessages);
-      }
-    } catch (error) {
-      console.error("Lỗi load tin nhắn:", error);
-    }
-  };
-
-  const checkChatStatus = async () => {
-    try {
-      const res = await chatService.getUserChats();
-      // Tìm chat đang active
-      const activeChat = res.data?.find(c => c.status === 'ACTIVE');
-      
-      if (activeChat) {
-        if (activeChat.id !== chatId) setChatId(activeChat.id);
-        // Cập nhật status
-        setChatStatus(activeChat.chatMode as StaffChatStatus);
-      } else {
-        // Trường hợp không tìm thấy chat active nào (có thể đã bị đóng hoàn toàn)
-        if (mode === 'staff' && chatId) {
-             setChatStatus("AI");
+  // 3. WebSocket integration
+  useEffect(() => {
+    if (isOpen) {
+      webSocketService.connect();
+      const unsubscribe = webSocketService.subscribe((data) => {
+        if (data.chatId === chatId) {
+          queryClient.invalidateQueries({ queryKey: ["chat-messages", chatId] });
+          queryClient.invalidateQueries({ queryKey: ["user-active-chat"] });
         }
-      }
-    } catch (error) {
-      console.error("Lỗi check status:", error);
+      });
+      return () => unsubscribe();
     }
-  };
+  }, [isOpen, chatId, queryClient]);
 
   const handleSelectStaff = async () => {
     setMode("staff");
@@ -134,16 +135,14 @@ export function ChatBox() {
       if (currentChat) {
         setChatId(currentChat.id);
         if (currentChat.chatMode !== 'WAITING_STAFF' && currentChat.chatMode !== 'STAFF_CONNECTED') {
-            try {
-                const upgradeRes = await chatService.requestStaff(currentChat.id);
-                if (upgradeRes.data) setChatStatus(upgradeRes.data.chatMode as StaffChatStatus);
-            } catch (err) {
-                setChatStatus("WAITING_STAFF"); 
-            }
-        } else {
-            setChatStatus(currentChat.chatMode as StaffChatStatus);
+          try {
+            await chatService.requestStaff(currentChat.id);
+          } catch (err) {
+            // Ignore error if already requested
+          }
         }
-        await loadMessages(currentChat.id);
+        queryClient.invalidateQueries({ queryKey: ["user-active-chat"] });
+        queryClient.invalidateQueries({ queryKey: ["chat-messages", currentChat.id] });
       }
     } catch (error) {
       console.error("Lỗi khởi tạo chat:", error);
@@ -153,57 +152,16 @@ export function ChatBox() {
     }
   };
 
-  useEffect(() => {
-    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    if (isOpen && mode === "staff") {
-      // Gọi ngay lập tức
-      if (chatId) {
-          loadMessages(chatId);
-          checkChatStatus();
-      } else {
-          checkChatStatus();
-      }
-      // Polling mỗi 3s
-      pollingIntervalRef.current = setInterval(() => {
-        if (chatId) {
-            loadMessages(chatId);
-            checkChatStatus();
-        } else {
-            checkChatStatus();
-        }
-      }, 3000);
-    }
-    return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    };
-  }, [isOpen, mode, chatId]);
-
   const handleSend = async () => {
     if (chatStatus === 'WAITING_STAFF') {
-        showToast({ type: "info", title: "Vui lòng đợi nhân viên..." });
-        return;
+      showToast({ type: "info", title: "Vui lòng đợi nhân viên..." });
+      return;
     }
-    // Chặn gửi nếu chat đã kết thúc
-    if (chatStatus === 'AI') {
-        return;
-    }
-
+    if (chatStatus === 'AI') return;
     if (!input.trim() || !chatId) return;
 
     const content = input.trim();
-    setInput(""); 
-    
-    const tempId = Date.now().toString();
-    const myId = authService.getUserId() || "me";
-    
-    setMessages(prev => [...prev, {
-        id: tempId,
-        content: content,
-        senderId: myId,
-        senderName: "Tôi",
-        isOwnMessage: true,
-        timestamp: new Date()
-    }]);
+    setInput("");
 
     try {
       await chatService.sendMessage({
@@ -211,7 +169,7 @@ export function ChatBox() {
         content: content,
         type: "TEXT"
       });
-      await loadMessages(chatId);
+      queryClient.invalidateQueries({ queryKey: ["chat-messages", chatId] });
     } catch (error) {
       showToast({ type: "error", title: "Gửi thất bại" });
     }
@@ -219,9 +177,7 @@ export function ChatBox() {
 
   const handleSelectAI = () => {
     setMode("ai");
-    setMessages([]);
     setChatId(null);
-    setChatStatus(null);
     setSelectedImage(null);
     setPreviewUrl(null);
     setRoomAnalysisResult(null);
@@ -270,15 +226,11 @@ export function ChatBox() {
 
   const handleClose = () => {
     setIsOpen(false);
-    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
   };
 
   const handleBack = () => {
     setMode("selection");
-    setMessages([]);
     setChatId(null);
-    setChatStatus(null);
-    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
   };
 
   return (
@@ -292,10 +244,9 @@ export function ChatBox() {
 
       {isOpen && (
         <div className="fixed bottom-30 right-4 left-4 sm:left-auto sm:bottom-24 sm:right-6 z-50 w-auto sm:w-[360px] max-w-[calc(100vw-2rem)] h-[calc(100vh-10rem)] sm:h-[500px] max-h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
-          
+
           {/* Header */}
-          <div className={`p-4 border-b text-primary-foreground flex items-center gap-3 ${
-              mode === "ai" ? "bg-blue-600" : mode === "staff" ? "bg-green-600" : "bg-primary"
+          <div className={`p-4 border-b text-primary-foreground flex items-center gap-3 ${mode === "ai" ? "bg-blue-600" : mode === "staff" ? "bg-green-600" : "bg-primary"
             }`}
           >
             {(mode === "ai" || mode === "staff") && (
@@ -338,8 +289,8 @@ export function ChatBox() {
             </div>
           ) : mode === "ai" ? (
             <div className="flex-1 overflow-y-auto p-4">
-               {/* UI AI */}
-               {!roomAnalysisResult ? (
+              {/* UI AI */}
+              {!roomAnalysisResult ? (
                 <div className="space-y-4">
                   <div className="text-center mb-4">
                     <Camera className="w-12 h-12 mx-auto mb-2 text-blue-500" />
@@ -378,15 +329,15 @@ export function ChatBox() {
             <>
               {/* --- PHẦN THÔNG BÁO KẾT NỐI (CỐ ĐỊNH, KHÔNG SCROLL) --- */}
               {chatStatus === 'STAFF_CONNECTED' && (
-                  <div className="flex items-center gap-3 p-3 bg-green-50/95 border-b border-green-200 animate-in fade-in slide-in-from-top-2 duration-500 shadow-sm z-10">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
-                      <Headphones className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-green-800">Nhân viên đã tham gia</p>
-                      <p className="text-[11px] text-green-600">Bạn có thể trao đổi trực tiếp ngay bây giờ.</p>
-                    </div>
+                <div className="flex items-center gap-3 p-3 bg-green-50/95 border-b border-green-200 animate-in fade-in slide-in-from-top-2 duration-500 shadow-sm z-10">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+                    <Headphones className="w-4 h-4" />
                   </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-green-800">Nhân viên đã tham gia</p>
+                    <p className="text-[11px] text-green-600">Bạn có thể trao đổi trực tiếp ngay bây giờ.</p>
+                  </div>
+                </div>
               )}
 
               {/* STAFF CHAT MESSAGES (CÓ SCROLL) */}
@@ -401,34 +352,33 @@ export function ChatBox() {
                     <div key={msg.id} className={`flex gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}>
                       {!isMe && (
                         <div className={`w-6 h-6 shrink-0 flex items-end ${!showAvatar ? 'invisible' : ''}`}>
-                             {msg.senderAvatar ? (
-                                <img src={msg.senderAvatar} alt="ava" className="w-6 h-6 rounded-full object-cover"/>
-                             ) : (
-                                <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-[9px] font-bold text-gray-600">
-                                    {msg.senderName?.charAt(0).toUpperCase() || "S"}
-                                </div>
-                             )}
+                          {msg.senderAvatar ? (
+                            <img src={msg.senderAvatar} alt="ava" className="w-6 h-6 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-[9px] font-bold text-gray-600">
+                              {msg.senderName?.charAt(0).toUpperCase() || "S"}
+                            </div>
+                          )}
                         </div>
                       )}
 
                       <div className={`max-w-[75%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                         {!isMe && (index === 0 || messages[index - 1]?.senderId !== msg.senderId) && (
-                            <span className="text-[10px] text-gray-500 ml-1 mb-0.5">{msg.senderName}</span>
+                          <span className="text-[10px] text-gray-500 ml-1 mb-0.5">{msg.senderName}</span>
                         )}
                         <div
-                            className={`p-2 px-3 text-[13px] shadow-sm wrap-break-word ${
-                            isMe 
-                                ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm" 
-                                : "bg-white border text-gray-800 rounded-2xl rounded-tl-sm"
+                          className={`p-2 px-3 text-[13px] shadow-sm wrap-break-word ${isMe
+                            ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
+                            : "bg-white border text-gray-800 rounded-2xl rounded-tl-sm"
                             }`}
                         >
-                            {msg.content}
+                          {msg.content}
                         </div>
                       </div>
                     </div>
                   )
                 })}
-                
+
                 {/* Thông báo Đang kết nối (Giữ nguyên ở dưới để báo hiệu đang chờ) */}
                 {chatStatus === 'WAITING_STAFF' && (
                   <div className="flex flex-col items-center justify-center p-6 space-y-3 bg-yellow-50/80 rounded-xl border border-yellow-200 border-dashed mx-4 mt-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
@@ -454,16 +404,16 @@ export function ChatBox() {
               {/* INPUT VS ENDED STATE */}
               {chatStatus === 'AI' ? (
                 <div className="p-4 border-t bg-gray-50 flex flex-col items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                     <Lock className="w-5 h-5" />
-                   </div>
-                   <p className="text-sm font-medium text-gray-600">Nhân viên đã kết thúc cuộc trò chuyện</p>
-                   <button 
-                      onClick={handleBack}
-                      className="text-xs text-primary font-medium hover:underline mt-1"
-                   >
-                      Quay lại menu chính
-                   </button>
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">Nhân viên đã kết thúc cuộc trò chuyện</p>
+                  <button
+                    onClick={handleBack}
+                    className="text-xs text-primary font-medium hover:underline mt-1"
+                  >
+                    Quay lại menu chính
+                  </button>
                 </div>
               ) : (
                 <div className="p-3 border-t bg-background flex gap-2">

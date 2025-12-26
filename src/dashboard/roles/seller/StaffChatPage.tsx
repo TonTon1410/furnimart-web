@@ -2,14 +2,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/context/ToastContext"
+import { useConfirm } from "@/context/ConfirmContext";
 import { chatService } from "@/service/chatService"
 import { authService } from "@/service/authService"
 import { Search, ArrowLeft } from "lucide-react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { webSocketService } from "@/service/websocketService"
 
 // Import Types
-import type { ChatSession, ChatMessage } from "@/types/chat"
+import type { ChatSession } from "@/types/chat"
 
 // Import Components
 import { ChatList } from "@/components/chat/ChatList"
@@ -18,33 +21,20 @@ import { ChatEmptyState } from "@/components/chat/chatEmptyState"
 
 export default function StaffChatPage() {
   const { showToast } = useToast()
-
-  // State dữ liệu
-  const [chats, setChats] = useState<ChatSession[]>([])
-  const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-
-  // State trạng thái
-  const [loadingChats, setLoadingChats] = useState(true)
-  const [loadingMessages, setLoadingMessages] = useState(false)
-  const [processingAction, setProcessingAction] = useState(false)
-
-  // State tìm kiếm
-  const [searchChatQuery, setSearchChatQuery] = useState("")
-  const [isSearchingMessage, setIsSearchingMessage] = useState(false)
-
-  // Refs cho Polling
-  const pollChatsInterval = useRef<NodeJS.Timeout | null>(null)
-  const pollMessagesInterval = useRef<NodeJS.Timeout | null>(null)
-
+  const confirm = useConfirm();
+  const queryClient = useQueryClient()
   const currentUserId = authService.getUserId() || ""
 
-  // ========================================================================
-  // DATA FETCHING (Giữ nguyên logic cũ)
-  // ========================================================================
+  // State local
+  const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null)
+  const [searchChatQuery, setSearchChatQuery] = useState("")
+  const [isSearchingMessage, setIsSearchingMessage] = useState(false)
+  const [processingAction, setProcessingAction] = useState(false)
 
-  const fetchChats = useCallback(async () => {
-    try {
+  // 1. Query danh sách chat
+  const { data: chats = [], isLoading: loadingChats } = useQuery({
+    queryKey: ["staff-chats"],
+    queryFn: async () => {
       const [waitingRes, myChatsRes] = await Promise.all([
         chatService.getWaitingChats(),
         chatService.getUserChats()
@@ -55,65 +45,69 @@ export default function StaffChatPage() {
       const filteredMyChats = myChats.filter(c => !waitingIds.has(c.id));
       const rawMergedChats = [...waitingChats, ...filteredMyChats];
 
-      const processedChats = rawMergedChats.map(chat => {
+      return rawMergedChats.map(chat => {
         let displayName = chat.name;
         const isGenericName = !chat.name || chat.name.toLowerCase().includes("chat hỗ trợ");
         if (isGenericName) {
-          if (chat.createdByName) {
-            displayName = chat.createdByName;
-          } else if (chat.participants && chat.participants.length > 0) {
+          if (chat.createdByName) displayName = chat.createdByName;
+          else if (chat.participants && chat.participants.length > 0) {
             const customer = chat.participants.find((p: any) => p.userId && !p.employeeId);
-            if (customer && customer.userName) {
-              displayName = customer.userName;
-            }
+            if (customer && customer.userName) displayName = customer.userName;
           }
         }
         return { ...chat, name: displayName };
       });
-      setChats(processedChats);
+    },
+    refetchInterval: 5000,
+  });
 
-      if (selectedChat) {
-        const updatedSelectedChat = processedChats.find(c => c.id === selectedChat.id);
-        if (updatedSelectedChat && updatedSelectedChat.chatMode !== selectedChat.chatMode) {
-          setSelectedChat(prev => prev ? { ...prev, ...updatedSelectedChat } : null);
-        }
-      }
+  // 2. Query tin nhắn
+  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+    queryKey: ["chat-messages", selectedChat?.id],
+    queryFn: async () => {
+      if (!selectedChat?.id) return [];
+      const res = await chatService.getMessages(selectedChat.id);
+      return res.data || [];
+    },
+    enabled: !!selectedChat?.id,
+    refetchInterval: 3000,
+  });
 
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoadingChats(false)
-    }
-  }, [selectedChat])
-
-  const fetchMessages = useCallback(async (chatId: string) => {
-    try {
-      const res = await chatService.getMessages(chatId)
-      if (res.data) setMessages(res.data)
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoadingMessages(false)
-    }
-  }, [])
-
+  // Đồng bộ selectedChat khi chats update
   useEffect(() => {
-    fetchChats()
-    pollChatsInterval.current = setInterval(fetchChats, 5000)
-    return () => { if (pollChatsInterval.current) clearInterval(pollChatsInterval.current) }
-  }, [fetchChats])
-
-  useEffect(() => {
-    if (pollMessagesInterval.current) clearInterval(pollMessagesInterval.current)
     if (selectedChat) {
-      setLoadingMessages(true)
-      fetchMessages(selectedChat.id)
-      pollMessagesInterval.current = setInterval(() => { fetchMessages(selectedChat.id) }, 3000)
-    } else {
-      setMessages([])
+      const updated = chats.find((c: any) => c.id === selectedChat.id);
+      if (updated && updated.chatMode !== selectedChat.chatMode) {
+        setSelectedChat(prev => prev ? { ...prev, ...updated } : null);
+      }
     }
-    return () => { if (pollMessagesInterval.current) clearInterval(pollMessagesInterval.current) }
-  }, [selectedChat?.id, fetchMessages])
+  }, [chats, selectedChat?.id]);
+
+  // 3. WebSocket integration
+  useEffect(() => {
+    webSocketService.connect();
+
+    const unsubscribe = webSocketService.subscribe((data) => {
+      // Giả sử backend gửi message có chatId
+      if (data.chatId) {
+        // Refresh tin nhắn nếu đang mở chat đó
+        if (selectedChat?.id === data.chatId) {
+          queryClient.invalidateQueries({ queryKey: ["chat-messages", data.chatId] });
+        }
+        // Luôn refresh danh sách chat để update tin nhắn cuối/unread count
+        queryClient.invalidateQueries({ queryKey: ["staff-chats"] });
+      } else if (data.type === 'CHAT_UPDATE' || data.type === 'NEW_CHAT') {
+        queryClient.invalidateQueries({ queryKey: ["staff-chats"] });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      // Ta có thể chọn không disconnect WS nếu muốn giữ kết nối toàn khung ứng dụng
+      // Nhưng ở đây component chat page unmount thì tạm thời ngắt hoặc cứ để chạy ngầm phụ thuộc app logic.
+      // webSocketService.disconnect(); 
+    };
+  }, [selectedChat?.id, queryClient]);
 
   // ========================================================================
   // ACTIONS
@@ -125,7 +119,7 @@ export default function StaffChatPage() {
     if (chat.unreadCount > 0) {
       try {
         await chatService.markChatAsRead(chat.id)
-        setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c))
+        queryClient.invalidateQueries({ queryKey: ["staff-chats"] })
       } catch (err) { console.error(err) }
     }
   }
@@ -136,46 +130,102 @@ export default function StaffChatPage() {
     if (!selectedChat || !content.trim()) return
     try {
       await chatService.sendMessage({ chatId: selectedChat.id, content: content, type: "TEXT" })
-      fetchMessages(selectedChat.id)
-    } catch (error) { showToast({ type: "error", title: "Lỗi gửi tin nhắn" + error }) }
+      queryClient.invalidateQueries({ queryKey: ["chat-messages", selectedChat.id] })
+    } catch (error) { showToast({ type: "error", title: "Lỗi gửi tin nhắn" }) }
   }
 
   const handleAcceptStaff = async () => {
     if (!selectedChat) return
     setProcessingAction(true)
-    const updatedChat = { ...selectedChat, chatMode: "STAFF_CONNECTED" as const };
-    setSelectedChat(updatedChat);
-    setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, chatMode: "STAFF_CONNECTED" as const } : c));
     try {
       await chatService.acceptStaff(selectedChat.id)
       showToast({ type: "success", title: "Đã tiếp nhận" })
-      await fetchChats()
-    } catch (error) { showToast({ type: "error", title: "Lỗi tiếp nhận" + error }); setSelectedChat(selectedChat); fetchChats(); }
+      queryClient.invalidateQueries({ queryKey: ["staff-chats"] })
+    } catch (error) { showToast({ type: "error", title: "Lỗi tiếp nhận" }) }
     finally { setProcessingAction(false) }
   }
 
   const handleEndStaffChat = async () => {
-    if (!selectedChat || !window.confirm("Kết thúc phiên hỗ trợ?")) return
+    const isConfirmed = await confirm({
+      title: "Kết thúc hỗ trợ",
+      message: "Bạn có chắc chắn muốn kết thúc phiên hỗ trợ này?",
+      confirmLabel: "Kết thúc",
+      variant: "warning"
+    });
+
+    if (!selectedChat || !isConfirmed) return
     setProcessingAction(true)
-    const updatedChat = { ...selectedChat, chatMode: "AI" as const, assignedStaffId: null };
-    setSelectedChat(updatedChat);
-    setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, chatMode: "AI" as const, assignedStaffId: null } : c));
     try {
       await chatService.endStaffChat(selectedChat.id)
       showToast({ type: "success", title: "Đã kết thúc" })
-      await fetchChats()
-    } catch (error) { showToast({ type: "error", title: "Lỗi kết thúc" + error }); fetchChats(); }
+      queryClient.invalidateQueries({ queryKey: ["staff-chats"] })
+    } catch (error) { showToast({ type: "error", title: "Lỗi kết thúc" }) }
     finally { setProcessingAction(false) }
   }
 
-  const handleTogglePin = async (chatId: string) => { const c = chats.find(x => x.id === chatId); if (c) try { await chatService.pinChat(chatId, !c.isPinned); fetchChats() } catch (e) { console.error(e) } }
-  const handleToggleMute = async (chatId: string) => { const c = chats.find(x => x.id === chatId); if (c) try { await chatService.muteChat(chatId, !c.isMuted); fetchChats() } catch (e) { console.error(e) } }
-  const handleDeleteChat = async (chatId: string) => { if (confirm("Xóa đoạn chat này?")) try { await chatService.deleteChat(chatId); fetchChats(); setSelectedChat(null) } catch (e) { console.error(e) } }
-  const handleDeleteMessage = async (msgId: string) => { try { await chatService.deleteMessage(msgId); setMessages(prev => prev.filter(m => m.id !== msgId)) } catch (e) { console.error(e) } }
-  const handleEditMessage = async (msgId: string, content: string) => { try { const res = await chatService.editMessage(msgId, content); if (res.data) setMessages(prev => prev.map(m => m.id === msgId ? res.data : m)) } catch (e) { console.error(e) } }
-  const handleSearchMessages = async (q: string) => { if (!selectedChat) return; if (!q.trim()) { fetchMessages(selectedChat.id); return } try { const res = await chatService.searchMessages(selectedChat.id, q); if (res.data) setMessages(res.data) } catch (e) { console.error(e) } }
+  const handleTogglePin = async (chatId: string) => {
+    const chat = chats.find((c: any) => c.id === chatId);
+    if (!chat) return;
+    try {
+      await chatService.pinChat(chatId, !chat.isPinned);
+      queryClient.invalidateQueries({ queryKey: ["staff-chats"] });
+    } catch (e) { console.error(e) }
+  }
 
-  const filteredChats = chats.filter(chat => chat.name?.toLowerCase().includes(searchChatQuery.toLowerCase()))
+  const handleToggleMute = async (chatId: string) => {
+    const chat = chats.find((c: any) => c.id === chatId);
+    if (!chat) return;
+    try {
+      await chatService.muteChat(chatId, !chat.isMuted);
+      queryClient.invalidateQueries({ queryKey: ["staff-chats"] });
+    } catch (e) { console.error(e) }
+  }
+
+  const handleDeleteChat = async (chatId: string) => {
+    const isConfirmed = await confirm({
+      title: "Xoá đoạn chat",
+      message: "Bạn có chắc chắn muốn xoá đoạn chat này?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+    try {
+      await chatService.deleteChat(chatId);
+      queryClient.invalidateQueries({ queryKey: ["staff-chats"] });
+      if (selectedChat?.id === chatId) setSelectedChat(null);
+    } catch (e) { console.error(e) }
+  }
+
+  const handleDeleteMessage = async (msgId: string) => {
+    try {
+      await chatService.deleteMessage(msgId);
+      queryClient.invalidateQueries({ queryKey: ["chat-messages", selectedChat?.id] });
+    } catch (e) { console.error(e) }
+  }
+
+  const handleEditMessage = async (msgId: string, content: string) => {
+    try {
+      await chatService.editMessage(msgId, content);
+      queryClient.invalidateQueries({ queryKey: ["chat-messages", selectedChat?.id] });
+    } catch (e) { console.error(e) }
+  }
+
+  const handleSearchMessages = async (q: string) => {
+    if (!selectedChat) return;
+    if (!q.trim()) {
+      queryClient.invalidateQueries({ queryKey: ["chat-messages", selectedChat.id] });
+      return;
+    }
+    try {
+      const res = await chatService.searchMessages(selectedChat.id, q);
+      if (res.data) queryClient.setQueryData(["chat-messages", selectedChat.id], res.data);
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const filteredChats = chats.filter((chat: any) => chat.name?.toLowerCase().includes(searchChatQuery.toLowerCase()))
 
   return (
     // THAY ĐỔI: Sử dụng h-full và w-full. Layout cha đã lo việc fix chiều cao.
@@ -183,10 +233,10 @@ export default function StaffChatPage() {
 
       {/* 1. LEFT SIDEBAR */}
       <div className={`
-          flex-col border-r border-gray-200 dark:border-gray-800 h-full overflow-hidden shrink-0 bg-white z-10
-          w-full md:w-80 lg:w-96 
-          ${selectedChat ? 'hidden md:flex' : 'flex'} 
-      `}>
+flex - col border - r border - gray - 200 dark: border - gray - 800 h - full overflow - hidden shrink - 0 bg - white z - 10
+w - full md: w - 80 lg: w - 96 
+          ${selectedChat ? 'hidden md:flex' : 'flex'}
+`}>
         <ChatList
           chats={filteredChats}
           selectedChatId={selectedChat?.id || null}
@@ -201,9 +251,9 @@ export default function StaffChatPage() {
 
       {/* 2. RIGHT PANEL */}
       <div className={`
-          flex-1 flex-col h-full min-w-0 bg-white relative overflow-hidden
+flex - 1 flex - col h - full min - w - 0 bg - white relative overflow - hidden
           ${!selectedChat ? 'hidden md:flex' : 'flex'}
-      `}>
+`}>
         {selectedChat ? (
           <>
             {/* HEADER CỐ ĐỊNH: shrink-0 để không bị nén */}
@@ -233,7 +283,7 @@ export default function StaffChatPage() {
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => setIsSearchingMessage(!isSearchingMessage)} className={`p-2 rounded-full transition-colors ${isSearchingMessage ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`}>
+                <button onClick={() => setIsSearchingMessage(!isSearchingMessage)} className={`p - 2 rounded - full transition - colors ${isSearchingMessage ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'} `}>
                   <Search className="w-5 h-5" />
                 </button>
 

@@ -7,6 +7,7 @@ import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import MaterialForm, { type MaterialFormValues, type Status } from "./MaterialForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Material {
   id: number;
@@ -83,6 +84,7 @@ const AdminMaterialsPage: React.FC = () => {
   const [list, setList] = useState<Material[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -178,7 +180,14 @@ const AdminMaterialsPage: React.FC = () => {
 
   // DELETE /materials/{id} (soft delete)
   const handleDelete = async (id: number) => {
-    if (!confirm("Xác nhận xoá mềm chất liệu này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm chất liệu này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     setDeletingIds((s) => new Set(s).add(id));
     const prev = list;
     setList((cur) => cur.filter((m) => m.id !== id));
@@ -188,18 +197,18 @@ const AdminMaterialsPage: React.FC = () => {
       if (res.status !== 200) {
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể xoá chất liệu",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể xoá chất liệu",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -211,7 +220,14 @@ const AdminMaterialsPage: React.FC = () => {
 
   // PATCH /materials/{id} → set INACTIVE (vô hiệu hoá)
   const handleDisable = async (id: number) => {
-    if (!confirm("Vô hiệu hoá chất liệu này?")) return;
+    const isConfirmed = await confirm({
+      title: "Vô hiệu hoá",
+      message: "Bạn có chắc chắn muốn vô hiệu hoá chất liệu này không?",
+      confirmLabel: "Vô hiệu hoá",
+      variant: "warning"
+    });
+
+    if (!isConfirmed) return;
     setDisablingIds((s) => new Set(s).add(id));
     try {
       const res = await axiosClient.patch(`/materials/${id}`);
@@ -220,17 +236,17 @@ const AdminMaterialsPage: React.FC = () => {
         setList((prev) => prev.map((m) => (m.id === id ? { ...m, status: "INACTIVE" } : m)));
       } else {
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Vô hiệu hoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Vô hiệu hoá không thành công",
+        });
       }
     } catch (e: any) {
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể vô hiệu hoá",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể vô hiệu hoá",
+      });
     } finally {
       setDisablingIds((s) => {
         const n = new Set(s);

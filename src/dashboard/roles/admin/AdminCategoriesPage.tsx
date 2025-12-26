@@ -7,6 +7,7 @@ import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
 import CategoryForm, { type CategoryFormValues, type Status } from "./CategoryForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Category {
   id: number;
@@ -81,6 +82,7 @@ const AdminCategoriesPage: React.FC = () => {
   const [list, setList] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -175,7 +177,14 @@ const AdminCategoriesPage: React.FC = () => {
 
   // ✅ Soft delete /categories/{id}
   const handleDelete = async (id: number) => {
-    if (!confirm("Xác nhận xoá mềm danh mục này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm danh mục này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     // đánh dấu đang xoá
     setDeletingIds((s) => new Set(s).add(id));
     // lạc quan: xoá khỏi UI trước
@@ -188,18 +197,18 @@ const AdminCategoriesPage: React.FC = () => {
         // lỗi: khôi phục
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể xoá danh mục",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể xoá danh mục",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
