@@ -217,6 +217,23 @@ export function ChatBox() {
     }
   };
 
+  const getColorCode = (colorName: string): string => {
+    const name = colorName.toLowerCase();
+    if (name.includes('xám') || name.includes('grey') || name.includes('gray')) return '#808080';
+    if (name.includes('trắng') || name.includes('white')) return '#F5F5F5';
+    if (name.includes('đen') || name.includes('black')) return '#2C2C2C';
+    if (name.includes('nâu') || name.includes('brown')) return '#8B4513';
+    if (name.includes('be') || name.includes('beige')) return '#F5F5DC';
+    if (name.includes('xanh lá') || name.includes('green')) return '#4CAF50';
+    if (name.includes('xanh dương') || name.includes('blue')) return '#2196F3';
+    if (name.includes('vàng') || name.includes('yellow')) return '#FFC107';
+    if (name.includes('đỏ') || name.includes('red')) return '#F44336';
+    if (name.includes('hồng') || name.includes('pink')) return '#E91E63';
+    if (name.includes('tím') || name.includes('purple')) return '#9C27B0';
+    if (name.includes('cam') || name.includes('orange')) return '#FF9800';
+    return '#CCCCCC'; // Default gray
+  };
+
   const handleResetRoomAnalyzer = () => {
     setSelectedImage(null);
     setPreviewUrl(null);
@@ -318,11 +335,85 @@ export function ChatBox() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Room Style */}
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <h3 className="font-bold text-sm text-blue-900 mb-1">{roomAnalysisResult.style}</h3>
-                    <p className="text-xs text-gray-700">{roomAnalysisResult.analysis}</p>
+                    <h4 className="font-bold text-sm text-blue-900 mb-1">Phong Cách Phòng</h4>
+                    <p className="text-xs text-blue-700">{roomAnalysisResult.style}</p>
                   </div>
-                  <button onClick={handleResetRoomAnalyzer} className="w-full py-2 bg-muted text-sm rounded-lg">Thử lại</button>
+
+                  {/* Analysis */}
+                  <div>
+                    <h4 className="font-semibold text-sm text-gray-900 mb-1">Phân Tích</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">{roomAnalysisResult.analysis}</p>
+                  </div>
+
+                  {/* Color Palette */}
+                  {roomAnalysisResult.colorPalette && roomAnalysisResult.colorPalette.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900 mb-2">Bảng Màu</h4>
+                      <div className="flex gap-2">
+                        {roomAnalysisResult.colorPalette.map((color, index) => (
+                          <div
+                            key={index}
+                            className="flex-1 h-12 rounded-lg border-2 border-gray-200 shadow-sm"
+                            style={{ backgroundColor: getColorCode(color) }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Product Suggestions */}
+                  {roomAnalysisResult.suggestions && roomAnalysisResult.suggestions.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900 mb-2">Gợi Ý Sản Phẩm</h4>
+                      <div className="space-y-3">
+                        {roomAnalysisResult.suggestions.map((product) => (
+                          <div
+                            key={product.id}
+                            className="border border-gray-200 rounded-lg p-2 hover:shadow-md transition-shadow bg-white"
+                          >
+                            <div className="flex gap-2">
+                              <img
+                                src={product.thumbnailImage}
+                                alt={product.itemName}
+                                className="w-16 h-16 object-cover rounded-lg shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-medium text-sm text-gray-900 mb-0.5 truncate">
+                                  {product.itemName}
+                                </h5>
+                                <p className="text-blue-600 font-semibold text-xs mb-0.5">
+                                  {new Intl.NumberFormat("vi-VN", {
+                                    style: "currency",
+                                    currency: "VND",
+                                  }).format(product.price)}
+                                </p>
+                                {product.recommendedColor && (
+                                  <p className="text-[10px] text-gray-500">
+                                    Màu đề xuất: {product.recommendedColor}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                              <p className="text-[10px] text-gray-600">
+                                <strong>Lý do:</strong> {product.reason}
+                              </p>
+                              <p className="text-[10px] text-gray-600">
+                                <strong>Gợi ý đặt:</strong> {product.placementAdvice}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button onClick={handleResetRoomAnalyzer} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg font-medium transition-colors">
+                    Phân Tích Phòng Khác
+                  </button>
                 </div>
               )}
             </div>
