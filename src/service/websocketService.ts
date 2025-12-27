@@ -22,11 +22,13 @@ class WebSocketService {
         // we might need to adjust it to point to the WebSocket endpoint.
         // The user said: ws://localhost:8086/ws/chat or http://localhost:8086/ws/chat (SockJS)
 
-        // We'll try to derive the base from VITE_API_BASE_URL but replace /api with /ws/chat
-        // or use a dedicated env var if available.
-        let wsBase = API_BASE_URL.replace(/\/api$/, '');
-        if (import.meta.env.VITE_API_EMPLOYEE) {
-            wsBase = import.meta.env.VITE_API_EMPLOYEE.replace(/\/api$/, '');
+        // In production, we need to keep the /api prefix so the proxy can route
+        // /api/ws/chat to the backend correctly.
+        let wsBase = API_BASE_URL.replace(/\/$/, ''); // Remove trailing slash if any
+
+        // If it still doesn't work, we might need to manually ensure it's /api/ws/chat
+        if (!wsBase.endsWith('/api')) {
+            wsBase = wsBase.includes('/api') ? wsBase : `${wsBase}/api`;
         }
 
         const url = `${wsBase}/ws/chat${token ? `?token=${token}` : ''}`;
