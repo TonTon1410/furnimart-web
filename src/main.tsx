@@ -5,13 +5,14 @@ import "./index.css";
 import "leaflet/dist/leaflet.css";
 import "./setupLeaflet";
 import { ThemeProvider } from "./context/ThemeContext";
-import { handleStaleToken } from "./utils/corsHandler";
+import { handleStaleToken } from "./utils/authCacheUtils";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Google OAuth Client ID
 const GOOGLE_CLIENT_ID =
-  "274860327369-kta4kv3ld1qlff5trusfft5elq0vgbsk.apps.googleusercontent.com";
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 // Check và clear stale token khi app khởi động
 handleStaleToken();
@@ -29,13 +30,15 @@ const queryClient = new QueryClient({
 });
 
 createRoot(el).render(
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <BrowserRouter>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <App />
-        </QueryClientProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </GoogleOAuthProvider>
+  <ErrorBoundary>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <App />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
+  </ErrorBoundary>
 );

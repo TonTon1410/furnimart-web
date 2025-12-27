@@ -22,6 +22,7 @@ import ProductForm, {
 } from "./ProductForm";
 import ProductColorForm, { type ProductColorRequest } from "./ProductColorForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 type ProductItem = {
   id: string;
@@ -120,8 +121,8 @@ const ProductRow: React.FC<{
               </span>
               <span
                 className={`px-2 py-0.5 text-xs rounded-full ${p.status === "ACTIVE"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                   }`}
               >
                 {p.status === "ACTIVE" ? "Đang bán" : "Đã tắt"}
@@ -196,6 +197,7 @@ const SellerProductsPage: React.FC = () => {
   const [list, setList] = useState<ProductItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer
   const [open, setOpen] = useState(false);
@@ -503,7 +505,13 @@ const SellerProductsPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Xác nhận xoá mềm sản phẩm này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm sản phẩm này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+    if (!isConfirmed) return;
     setBusyId(id);
     const prev = list;
     setList((cur) => cur.filter((x) => x.id !== id));
@@ -819,8 +827,8 @@ const SellerProductsPage: React.FC = () => {
                           </span>
                           <span
                             className={`px-3 py-1 text-sm rounded-full ${detailProduct.status === "ACTIVE"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                               }`}
                           >
                             {detailProduct.status === "ACTIVE"
@@ -969,8 +977,8 @@ const SellerProductsPage: React.FC = () => {
                                   </div>
                                   <span
                                     className={`px-2 py-0.5 text-xs rounded shrink-0 ${pc.status === "ACTIVE"
-                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                        : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
+                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                      : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
                                       }`}
                                   >
                                     {pc.status === "ACTIVE"
@@ -1034,8 +1042,8 @@ const SellerProductsPage: React.FC = () => {
                                     </div>
                                     <span
                                       className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${model3D.status === "ACTIVE"
-                                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                          : "bg-gray-200 text-gray-700"
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : "bg-gray-200 text-gray-700"
                                         }`}
                                     >
                                       {model3D.status}

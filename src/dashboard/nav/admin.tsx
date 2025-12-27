@@ -6,6 +6,7 @@ import {
   UserCog,
   LayoutDashboard,
   FileText,
+  CreditCard,
 } from "lucide-react";
 import type { RoleNav } from "./types";
 import { DP } from "../../router/paths";
@@ -18,6 +19,7 @@ export const adminNav = (): RoleNav => ({
     { icon: <Building2 />, name: "Chất liệu", path: DP("Materials") },
     { icon: <Tags />, name: "Danh mục", path: DP("categories") },
     { icon: <FileText />, name: "Bài viết", path: DP("blog") },
+    { icon: <CreditCard />, name: "Quản lý giao dịch", path: DP("transactions") },
     { icon: <LayoutDashboard />, name: "Thống kê & Báo cáo", path: DP("dashboard") },
   ]
 });

@@ -228,6 +228,29 @@ export interface CreateAddressResponse {
   timestamp: string;
 }
 
+export interface GetUserByPhoneResponse {
+  status: number;
+  message: string;
+  data: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    gender: boolean;
+    birthday: string;
+    avatar: string;
+    cccd: string;
+    point: number;
+    department: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    storeIds: string[]; 
+  };
+  timestamp: string;
+}
+
 // ───────────────────────────────────────────────
 // SERVICE IMPLEMENTATION
 // ───────────────────────────────────────────────
@@ -256,6 +279,17 @@ const staffOrderService = {
   createOrder: async (payload: CreateStaffOrderRequest) => {
     const url = "/orders/staff/create";
     return axiosClient.post<CreateStaffOrderResponse>(url, payload);
+  },
+
+  /**
+   * Lấy thông tin user theo số điện thoại
+   * Endpoint: /users/phone/{phone}
+   */
+  getUserByPhone: async (phone: string) => {
+    // Giả định baseURL của axiosClient đã bao gồm '/api'
+    // Nếu chưa thì sửa thành `/api/users/phone/${phone}`
+    const url = `/users/phone/${phone}`;
+    return axiosClient.get<GetUserByPhoneResponse>(url);
   },
 };
 

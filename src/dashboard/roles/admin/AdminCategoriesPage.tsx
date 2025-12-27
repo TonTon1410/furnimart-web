@@ -5,8 +5,12 @@ import { Plus, Tags, Loader2, Trash2, Edit3 } from "lucide-react";
 import axiosClient from "@/service/axiosClient";
 import { DP } from "@/router/paths";
 import SlideOver from "@/components/SlideOver";
-import CategoryForm, { type CategoryFormValues, type Status } from "./CategoryForm";
+import CategoryForm, {
+  type CategoryFormValues,
+  type Status,
+} from "./CategoryForm";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Category {
   id: number;
@@ -47,7 +51,9 @@ const CategoryCard: React.FC<{
       <div className="absolute bottom-4 left-4 right-4 text-white drop-shadow">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs opacity-90">{c.status === "ACTIVE" ? "Đang hoạt động" : "Tạm ẩn"}</div>
+            <div className="text-xs opacity-90">
+              {c.status === "ACTIVE" ? "Đang hoạt động" : "Tạm ẩn"}
+            </div>
             <div className="text-xl font-bold">{c.categoryName}</div>
           </div>
         </div>
@@ -69,7 +75,11 @@ const CategoryCard: React.FC<{
           onClick={() => onDelete(c.id)}
           disabled={deleting}
         >
-          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          {deleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
         </button>
       </div>
     </div>
@@ -81,6 +91,7 @@ const AdminCategoriesPage: React.FC = () => {
   const [list, setList] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // Drawer state
   const [open, setOpen] = useState(false);
@@ -102,7 +113,9 @@ const AdminCategoriesPage: React.FC = () => {
         const res = await axiosClient.get("/categories"); // baseURL đã có /api
         setList(res.data?.data ?? []);
       } catch (e: any) {
-        setError(e?.response?.data?.message || e?.message || "Không tải được danh mục");
+        setError(
+          e?.response?.data?.message || e?.message || "Không tải được danh mục"
+        );
       } finally {
         setLoading(false);
       }
@@ -135,7 +148,9 @@ const AdminCategoriesPage: React.FC = () => {
         image: c.image ?? "",
       });
     } catch (e: any) {
-      setServerErr(e?.response?.data?.message || e?.message || "Không tải được danh mục");
+      setServerErr(
+        e?.response?.data?.message || e?.message || "Không tải được danh mục"
+      );
     }
   };
 
@@ -152,22 +167,31 @@ const AdminCategoriesPage: React.FC = () => {
           setServerMsg("Tạo danh mục thành công!");
           setTimeout(() => setOpen(false), 600);
         } else {
-          setServerMsg(res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả");
+          setServerMsg(
+            res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả"
+          );
         }
       } else {
-        if (!selectedId) throw new Error("Không xác định được ID danh mục đang sửa");
+        if (!selectedId)
+          throw new Error("Không xác định được ID danh mục đang sửa");
         const res = await axiosClient.put(`/categories/${selectedId}`, values);
         if (res.status === 200) {
           const updated: Category = res.data.data;
-          setList((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+          setList((prev) =>
+            prev.map((x) => (x.id === updated.id ? updated : x))
+          );
           setServerMsg("Lưu thay đổi thành công!");
           setTimeout(() => setOpen(false), 600);
         } else {
-          setServerMsg(res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả");
+          setServerMsg(
+            res?.data?.message || "Đã gửi yêu cầu, kiểm tra kết quả"
+          );
         }
       }
     } catch (e: any) {
-      setServerErr(e?.response?.data?.message || e?.message || "Không thể xử lý yêu cầu");
+      setServerErr(
+        e?.response?.data?.message || e?.message || "Không thể xử lý yêu cầu"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +199,14 @@ const AdminCategoriesPage: React.FC = () => {
 
   // ✅ Soft delete /categories/{id}
   const handleDelete = async (id: number) => {
-    if (!confirm("Xác nhận xoá mềm danh mục này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm danh mục này không?",
+      confirmLabel: "Xoá",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     // đánh dấu đang xoá
     setDeletingIds((s) => new Set(s).add(id));
     // lạc quan: xoá khỏi UI trước
@@ -188,18 +219,19 @@ const AdminCategoriesPage: React.FC = () => {
         // lỗi: khôi phục
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể xoá danh mục",
-          });
+        type: "error",
+        title: "Lỗi",
+        description:
+          e?.response?.data?.message || e?.message || "Không thể xoá danh mục",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -213,9 +245,16 @@ const AdminCategoriesPage: React.FC = () => {
     <main className="min-h-screen w-full bg-gray-50 px-6 py-8 dark:bg-gray-950">
       {/* breadcrumb + actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="text-sm text-gray-600 dark:text-gray-300" aria-label="Breadcrumb">
+        <nav
+          className="text-sm text-gray-600 dark:text-gray-300"
+          aria-label="Breadcrumb"
+        >
           <ol className="flex items-center gap-1">
-            <li><Link to={DP()} className="hover:underline">Bảng điều khiển</Link></li>
+            <li>
+              <Link to={DP()} className="hover:underline">
+                Bảng điều khiển
+              </Link>
+            </li>
             <li className="opacity-60">/</li>
             <li className="font-semibold">Danh mục</li>
           </ol>
@@ -236,7 +275,9 @@ const AdminCategoriesPage: React.FC = () => {
       <section className="mt-6">
         <div className="mb-4 flex items-center gap-2 text-gray-700 dark:text-gray-200">
           <Tags className="h-4 w-4 text-emerald-600" />
-          <span className="text-sm">Tổng: {loading ? "-" : list.length} danh mục</span>
+          <span className="text-sm">
+            Tổng: {loading ? "-" : list.length} danh mục
+          </span>
         </div>
 
         {loading ? (
@@ -250,7 +291,8 @@ const AdminCategoriesPage: React.FC = () => {
           </div>
         ) : list.length === 0 ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-            Chưa có danh mục nào. Hãy bấm <strong>Thêm danh mục</strong> để tạo mới.
+            Chưa có danh mục nào. Hãy bấm <strong>Thêm danh mục</strong> để tạo
+            mới.
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -281,7 +323,16 @@ const AdminCategoriesPage: React.FC = () => {
         ) : (
           <CategoryForm
             mode={mode}
-            initial={mode === "create" ? { categoryName: "", description: "", status: "ACTIVE", image: "" } : initial ?? undefined}
+            initial={
+              mode === "create"
+                ? {
+                    categoryName: "",
+                    description: "",
+                    status: "ACTIVE",
+                    image: "",
+                  }
+                : initial ?? undefined
+            }
             submitting={submitting}
             serverMsg={serverMsg}
             serverErr={serverErr}

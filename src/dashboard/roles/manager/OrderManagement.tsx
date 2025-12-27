@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTimePicker } from "../../../components/DateTimePicker";
 import {
@@ -16,7 +15,6 @@ import {
   ThumbsUp,
   ThumbsDown,
 } from "lucide-react";
-import { DP } from "@/router/paths";
 import Pagination from "@/components/Pagination";
 import CustomDropdown from "@/components/CustomDropdown";
 import { orderService } from "@/service/orderService";
@@ -129,6 +127,8 @@ const OrderManagement: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
   const [fullOrderDetail, setFullOrderDetail] = useState<any>(null); // Full detail từ API /orders/{id}
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+  const [storeName, setStoreName] = useState<string>("");
+  const [loadingStoreName, setLoadingStoreName] = useState(false);
 
   // Product details for order items
   const [productDetails, setProductDetails] = useState<
@@ -469,11 +469,25 @@ const OrderManagement: React.FC = () => {
   const handleViewDetail = async (order: OrderItem) => {
     setSelectedOrder(order);
     setLoadingOrderDetail(true);
+    setStoreName("");
 
     try {
       // Fetch full order detail từ API /orders/{id} - RAW DATA
       const detail = await orderService.getOrderFullDetail(Number(order.id));
       setFullOrderDetail(detail);
+      
+      // Fetch store name if storeId exists
+      if (detail?.storeId) {
+        setLoadingStoreName(true);
+        try {
+          const storeResponse = await axiosClient.get(`/stores/${detail.storeId}`);
+          setStoreName(storeResponse.data?.data?.name || "");
+        } catch (storeErr) {
+          console.error("Error fetching store name:", storeErr);
+        } finally {
+          setLoadingStoreName(false);
+        }
+      }
     } catch (err: any) {
       console.error("Error fetching order detail:", err);
       setMessageModal({
@@ -562,20 +576,6 @@ const OrderManagement: React.FC = () => {
 
   return (
     <main className="min-h-screen w-full bg-gray-50 px-3 sm:px-4 py-4 sm:py-6 dark:bg-gray-950">
-      {/* Breadcrumb */}
-      <div className="mb-3 sm:mb-4 flex items-center justify-between">
-        <nav className="text-sm text-gray-600 dark:text-gray-300">
-          <ol className="flex items-center gap-2">
-            <li>
-              <Link to={DP()} className="hover:underline">
-                Bảng điều khiển
-              </Link>
-            </li>
-            <li className="opacity-60">/</li>
-            <li className="font-semibold">Quản lý đơn hàng</li>
-          </ol>
-        </nav>
-      </div>
 
       {/* Header */}
       <div className="mb-3 sm:mb-4">
@@ -907,7 +907,13 @@ const OrderManagement: React.FC = () => {
                       Cửa hàng xử lý
                     </div>
                     <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                      🏪 {fullOrderDetail.storeId}
+                      {loadingStoreName ? (
+                        <span className="text-gray-400">Đang tải...</span>
+                      ) : storeName ? (
+                        <span>🏪 {storeName}</span>
+                      ) : (
+                        <span className="text-gray-400">Không có thông tin</span>
+                      )}
                     </div>
                   </div>
                 )}
@@ -931,9 +937,6 @@ const OrderManagement: React.FC = () => {
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {fullOrderDetail.user.fullName}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          ID: {fullOrderDetail.user.id}
                         </div>
                       </div>
                     </div>

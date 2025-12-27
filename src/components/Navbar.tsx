@@ -117,7 +117,7 @@ export default function Navbar() {
     if (u?.avatar) {
       return u.avatar.startsWith("http")
         ? u.avatar
-        : `http://localhost:8080${u.avatar}`;
+        : `${(import.meta.env.VITE_API_BASE_URL || "").replace("/api", "")}${u.avatar}`;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       u?.fullName || "User"

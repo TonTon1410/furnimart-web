@@ -7,6 +7,7 @@ import { DP } from "@/router/paths";
 import CustomDropdown from "@/components/CustomDropdown";
 import Pagination from "@/components/Pagination";
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 // -------- Types ----------
 interface User {
@@ -35,6 +36,7 @@ const AdminUsersPage: React.FC = () => {
   const [list, setList] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // xoá theo id
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -67,8 +69,8 @@ const AdminUsersPage: React.FC = () => {
       } catch (e: any) {
         setError(
           e?.response?.data?.message ||
-            e?.message ||
-            "Không tải được danh sách tài khoản"
+          e?.message ||
+          "Không tải được danh sách tài khoản"
         );
       } finally {
         setLoading(false);
@@ -174,7 +176,14 @@ const AdminUsersPage: React.FC = () => {
 
   // soft delete
   const handleDelete = async (id: string) => {
-    if (!confirm("Xác nhận xoá mềm tài khoản này?")) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá mềm tài khoản này? Hành động này không thể hoàn tác trực tiếp.",
+      confirmLabel: "Xoá tài khoản",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     setDeletingIds((s) => new Set(s).add(id));
     const prev = list;
     setList((cur) => cur.filter((u) => u.id !== id));
@@ -184,18 +193,18 @@ const AdminUsersPage: React.FC = () => {
       if (res.status !== 200) {
         setList(prev);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: res?.data?.message || "Xoá không thành công",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: res?.data?.message || "Xoá không thành công",
+        });
       }
     } catch (e: any) {
       setList(prev);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: e?.response?.data?.message || e?.message || "Không thể xoá tài khoản",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: e?.response?.data?.message || e?.message || "Không thể xoá tài khoản",
+      });
     } finally {
       setDeletingIds((s) => {
         const n = new Set(s);
@@ -353,18 +362,16 @@ const AdminUsersPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
-                          u.status === "ACTIVE"
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${u.status === "ACTIVE"
                             ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
                             : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            u.status === "ACTIVE"
+                          className={`h-1.5 w-1.5 rounded-full ${u.status === "ACTIVE"
                               ? "bg-emerald-500"
                               : "bg-gray-400"
-                          }`}
+                            }`}
                         />
                         {u.status}
                       </span>
@@ -484,18 +491,16 @@ const AdminUsersPage: React.FC = () => {
                       Trạng thái
                     </div>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${
-                        detailUser.status === "ACTIVE"
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium ring-1 ${detailUser.status === "ACTIVE"
                           ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:ring-emerald-800"
                           : "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`h-2 w-2 rounded-full ${
-                          detailUser.status === "ACTIVE"
+                        className={`h-2 w-2 rounded-full ${detailUser.status === "ACTIVE"
                             ? "bg-emerald-500"
                             : "bg-gray-400"
-                        }`}
+                          }`}
                       />
                       {detailUser.status}
                     </span>
@@ -535,8 +540,8 @@ const AdminUsersPage: React.FC = () => {
                     <div className="text-sm text-gray-900 dark:text-gray-100">
                       {detailUser.birthday
                         ? new Date(detailUser.birthday).toLocaleDateString(
-                            "vi-VN"
-                          )
+                          "vi-VN"
+                        )
                         : "—"}
                     </div>
                   </div>

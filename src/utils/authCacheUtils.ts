@@ -1,6 +1,6 @@
 /**
- * CORS Handler Utility
- * Giải quyết vấn đề CORS cache trong browser
+ * Auth Cache Utility
+ * Quản lý auth tokens và cache trong browser
  *
  * ⚠️ LƯU Ý: Các hàm clear cache chỉ xóa cache của APP,
  * KHÔNG xóa cache/cookies của Google OAuth để tránh hỏi lại mật khẩu
@@ -111,6 +111,11 @@ export const handleStaleToken = () => {
     // Token không hợp lệ, clear luôn
     console.error("❌ Invalid token format, clearing cache");
     clearAuthCache();
+
+    // Nếu đang ở login thì không cần reload
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
     return false;
   }
 };
