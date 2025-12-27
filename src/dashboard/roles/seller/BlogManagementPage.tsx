@@ -240,8 +240,8 @@ export default function BlogManagementPage() {
                       </td>
                       <td className="p-4">
                         <span className={`inline - flex items - center px - 2.5 py - 0.5 rounded - full text - xs font - medium ${blog.status
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
                           } `}>
                           {blog.status ? 'Public' : 'Draft'}
                         </span>
@@ -255,7 +255,7 @@ export default function BlogManagementPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(DP(`blog / ${blog.id} `))}
+                            onClick={() => navigate(`/dashboard/blog/${blog.id}`)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             title="Xem"
                           >
