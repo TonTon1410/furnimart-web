@@ -9,6 +9,9 @@ class WebSocketService {
     private listeners: Set<MessageHandler> = new Set();
     private reconnectTimeout: NodeJS.Timeout | null = null;
     private isManuallyClosed: boolean = false;
+    private reconnectAttempts: number = 0;
+    private maxReconnectAttempts: number = 5; // Giới hạn tối đa 5 lần retry
+    private baseReconnectDelay: number = 5000; // 5 giây ban đầu
 
     connect() {
         if (this.socket?.readyState === SockJS.OPEN) return;
@@ -38,6 +41,7 @@ class WebSocketService {
         this.socket.onopen = () => {
             console.log('[WS] Connected');
             useWebSocketStore.getState().setIsConnected(true);
+            this.reconnectAttempts = 0; // Reset counter khi kết nối thành công
             if (this.reconnectTimeout) {
                 clearTimeout(this.reconnectTimeout);
                 this.reconnectTimeout = null;
@@ -71,11 +75,24 @@ class WebSocketService {
 
     private scheduleReconnect() {
         if (this.reconnectTimeout) return;
-        console.log('[WS] Scheduling reconnect in 5s...');
+        
+        // Kiểm tra số lần retry
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error(`[WS] Max reconnect attempts (${this.maxReconnectAttempts}) reached. Stopping reconnection.`);
+            console.log('[WS] Please refresh the page to try connecting again.');
+            return;
+        }
+
+        // Exponential backoff: 5s, 10s, 20s, 40s, 80s
+        const delay = this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts);
+        this.reconnectAttempts++;
+
+        console.log(`[WS] Scheduling reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay / 1000}s...`);
+        
         this.reconnectTimeout = setTimeout(() => {
             this.reconnectTimeout = null;
             this.connect();
-        }, 5000);
+        }, delay);
     }
 
     subscribe(handler: MessageHandler) {
@@ -87,6 +104,7 @@ class WebSocketService {
 
     disconnect() {
         this.isManuallyClosed = true;
+        this.reconnectAttempts = 0; // Reset counter khi disconnect thủ công
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
@@ -105,6 +123,13 @@ class WebSocketService {
             console.error('[WS] Cannot send message, socket not connected');
         }
     }
+
+    // Method để reset retry counter thủ công nếu cần
+    resetReconnectAttempts() {
+        this.reconnectAttempts = 0;
+        console.log('[WS] Reconnect attempts counter has been reset');
+    }
+
 }
 
 export const webSocketService = new WebSocketService();
