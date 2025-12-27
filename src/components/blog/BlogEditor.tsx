@@ -1,10 +1,10 @@
 "use client"
 
-import dynamic from "next/dynamic"
+import { lazy, Suspense } from "react"
 import "react-quill-new/dist/quill.snow.css"
 import "./BlogEditor.css"
 
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false })
+const ReactQuill = lazy(() => import("react-quill-new"))
 
 interface BlogEditorProps {
   value: string
@@ -40,15 +40,17 @@ export function BlogEditor({ value, onChange, placeholder = "Viết nội dung b
 
   return (
     <div className="quill-editor-wrapper">
-      <ReactQuill
-        theme="snow"
-        value={value}
-        onChange={onChange}
-        modules={modules}
-        formats={formats}
-        placeholder={placeholder}
-        className="bg-background text-foreground rounded-lg overflow-hidden"
-      />
+      <Suspense fallback={<div className="p-4 text-gray-500">Đang tải editor...</div>}>
+        <ReactQuill
+          theme="snow"
+          value={value}
+          onChange={onChange}
+          modules={modules}
+          formats={formats}
+          placeholder={placeholder}
+          className="bg-background text-foreground rounded-lg overflow-hidden"
+        />
+      </Suspense>
       <style>{`
         .quill-editor-wrapper .ql-container {
           border-bottom-left-radius: 0.5rem;

@@ -5,12 +5,7 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 // ───────────────────────────────────────────────
 // Tạo instance Axios chính
 // ───────────────────────────────────────────────
-const API_BASE_URL = "https://furnimart.click/api";
-// import.meta.env.VITE_API_BASE_URL || "http://152.53.244.124:8080/api";
-
-// 🔍 LOG BASE URL ĐỂ DEBUG
-console.log("🌐 API_BASE_URL:", API_BASE_URL);
-console.log("🌐 ENV VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://furnimart.click/api";
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -112,7 +107,8 @@ axiosClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       originalRequest &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/")
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -168,7 +164,7 @@ axiosClient.interceptors.response.use(
         sessionStorage.clear();
         delete axiosClient.defaults.headers.common.Authorization;
 
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";
         }
 

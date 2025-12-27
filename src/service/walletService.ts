@@ -13,11 +13,16 @@ export interface Wallet {
 
 export interface WalletTransaction {
   id: string
-  walletId: string
+  code: string
+  balanceBefore: number
+  balanceAfter: number
   amount: number
+  status: "PENDING" | "SUCCESS" | "COMPLETED" | "FAILED" | "CANCELLED"
   type: "DEPOSIT" | "WITHDRAW" | "TRANSFER" | "PAYMENT" | "REFUND"
-  status: "PENDING" | "SUCCESS" | "FAILED" | "CANCELLED"
   description: string
+  referenceId: string
+  walletId: string
+  walletCode: string
   createdAt: string
 }
 

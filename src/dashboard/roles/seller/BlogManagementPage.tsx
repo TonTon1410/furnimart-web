@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getAllBlog, type Blog, deleteBlog, updateBlog, createBlog } from "@/service/blogService";
 import { authService } from "@/service/authService";
 import { BlogForm } from "@/components/blog/BlogForm";
 import { Plus, Edit, Trash2, Search, FileText, User, Calendar, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { DP } from "@/router/paths";
 
 export default function BlogManagementPage() {
@@ -12,6 +13,7 @@ export default function BlogManagementPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
 
   // Form state
@@ -67,17 +69,24 @@ export default function BlogManagementPage() {
   };
 
   const handleDeleteClick = async (id: string) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+    const isConfirmed = await confirm({
+      title: "Xóa bài viết",
+      message: "Bạn có chắc chắn muốn xóa bài viết này không?",
+      confirmLabel: "Xóa",
+      variant: "danger"
+    });
+
+    if (isConfirmed) {
       try {
         await deleteBlog(id);
         fetchBlogs();
       } catch (error) {
         console.error("Failed to delete blog", error);
         showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Không thể xóa bài viết. Vui lòng thử lại.",
-          });
+          type: "error",
+          title: "Lỗi",
+          description: "Không thể xóa bài viết. Vui lòng thử lại.",
+        });
       }
     }
   };
@@ -91,10 +100,10 @@ export default function BlogManagementPage() {
 
       if (!employeeId) {
         showToast({
-            type: "warning",
-            title: "Cảnh báo!",
-            description: "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
-          });
+          type: "warning",
+          title: "Cảnh báo!",
+          description: "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
+        });
         return;
       }
 
@@ -119,10 +128,10 @@ export default function BlogManagementPage() {
     } catch (error) {
       console.error("Submit error", error);
       showToast({
-            type: "error",
-            title: "Lỗi",
-            description: "Có lỗi xảy ra khi lưu bài viết.",
-          });
+        type: "error",
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi lưu bài viết.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -230,10 +239,10 @@ export default function BlogManagementPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${blog.status
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                          }`}>
+                        <span className={`inline - flex items - center px - 2.5 py - 0.5 rounded - full text - xs font - medium ${blog.status
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                          } `}>
                           {blog.status ? 'Public' : 'Draft'}
                         </span>
                       </td>
@@ -246,7 +255,7 @@ export default function BlogManagementPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(DP(`blog/${blog.id}`))}
+                            onClick={() => navigate(DP(`blog / ${blog.id} `))}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             title="Xem"
                           >
