@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
-"use client"
 
 import { useState, useEffect } from "react"
 import { useToast } from "@/context/ToastContext"
@@ -235,10 +233,10 @@ export default function StaffChatPage() {
 
       {/* 1. LEFT SIDEBAR */}
       <div className={`
-flex - col border - r border - gray - 200 dark: border - gray - 800 h - full overflow - hidden shrink - 0 bg - white z - 10
-w - full md: w - 80 lg: w - 96 
-          ${selectedChat ? 'hidden md:flex' : 'flex'}
-`}>
+        flex flex-col border-r border-gray-200 dark:border-gray-800 h-full overflow-hidden shrink-0 bg-white z-10
+        w-full md:w-80 lg:w-96 
+        ${selectedChat ? 'hidden md:flex' : 'flex'}
+      `}>
         <ChatList
           chats={filteredChats}
           selectedChatId={selectedChat?.id || null}
@@ -253,9 +251,9 @@ w - full md: w - 80 lg: w - 96
 
       {/* 2. RIGHT PANEL */}
       <div className={`
-flex - 1 flex - col h - full min - w - 0 bg - white relative overflow - hidden
-          ${!selectedChat ? 'hidden md:flex' : 'flex'}
-`}>
+        flex-1 flex flex-col h-full min-w-0 bg-white relative overflow-hidden
+        ${!selectedChat ? 'hidden md:flex' : 'flex'}
+      `}>
         {selectedChat ? (
           <>
             {/* HEADER CỐ ĐỊNH: shrink-0 để không bị nén */}
@@ -285,7 +283,7 @@ flex - 1 flex - col h - full min - w - 0 bg - white relative overflow - hidden
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => setIsSearchingMessage(!isSearchingMessage)} className={`p - 2 rounded - full transition - colors ${isSearchingMessage ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'} `}>
+                <button onClick={() => setIsSearchingMessage(!isSearchingMessage)} className={`p-2 rounded-full transition-colors ${isSearchingMessage ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'} `}>
                   <Search className="w-5 h-5" />
                 </button>
 
