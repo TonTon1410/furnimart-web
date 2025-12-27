@@ -32,18 +32,19 @@ const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 const stagger = { show: { transition: { staggerChildren: 0.06 } } };
 
 const AllProducts: React.FC = () => {
-  // Các mức giá phổ biến cho dropdown
+  // Các mức giá phù hợp cho nội thất
   const priceOptions = [
-    { value: "0-1000000", label: "Dưới 1 triệu" },
-    { value: "1000000-3000000", label: "1 - 3 triệu" },
-    { value: "3000000-5000000", label: "3 - 5 triệu" },
+    { value: "0-5000000", label: "Dưới 5 triệu" },
     { value: "5000000-10000000", label: "5 - 10 triệu" },
-    { value: "10000000-100000000", label: "Trên 10 triệu" },
+    { value: "10000000-20000000", label: "10 - 20 triệu" },
+    { value: "20000000-50000000", label: "20 - 50 triệu" },
+    { value: "50000000-100000000", label: "50 - 100 triệu" },
+    { value: "100000000-500000000", label: "Trên 100 triệu" },
   ];
   const [selectedPriceOption, setSelectedPriceOption] = useState<string>("");
   const [products, setProducts] = useState<ProductWithMaterials[]>([]);
   // Filter state
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000000]);
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   // Lấy danh sách chất liệu từ products
@@ -106,10 +107,10 @@ const AllProducts: React.FC = () => {
         const res = await productService.getAll();
         setProducts(res.data.data);
       } else {
-        const res = await axiosClient.get<{ data: Product[] }>(
+        const res = await axiosClient.get<{ status: number; message: string; data: Product[] }>(
           `/products/category/${selectedCat}`
         );
-        // endpoint này trả mảng thẳng theo spec
+        // API trả về { status, message, data: [...] }
         setProducts(res.data.data as unknown as Product[]);
       }
     } catch (e: any) {
