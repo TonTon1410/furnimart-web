@@ -92,6 +92,23 @@ export function RoomAnalyzer() {
     }
   };
 
+  const getColorCode = (colorName: string): string => {
+    const name = colorName.toLowerCase();
+    if (name.includes('xám') || name.includes('grey') || name.includes('gray')) return '#808080';
+    if (name.includes('trắng') || name.includes('white')) return '#F5F5F5';
+    if (name.includes('đen') || name.includes('black')) return '#2C2C2C';
+    if (name.includes('nâu') || name.includes('brown')) return '#8B4513';
+    if (name.includes('be') || name.includes('beige')) return '#F5F5DC';
+    if (name.includes('xanh lá') || name.includes('green')) return '#4CAF50';
+    if (name.includes('xanh dương') || name.includes('blue')) return '#2196F3';
+    if (name.includes('vàng') || name.includes('yellow')) return '#FFC107';
+    if (name.includes('đỏ') || name.includes('red')) return '#F44336';
+    if (name.includes('hồng') || name.includes('pink')) return '#E91E63';
+    if (name.includes('tím') || name.includes('purple')) return '#9C27B0';
+    if (name.includes('cam') || name.includes('orange')) return '#FF9800';
+    return '#CCCCCC'; // Default gray
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -262,7 +279,7 @@ export function RoomAnalyzer() {
                           <div
                             key={index}
                             className="flex-1 h-16 rounded-lg border-2 border-gray-200 shadow-sm"
-                            style={{ backgroundColor: color }}
+                            style={{ backgroundColor: getColorCode(color) }}
                             title={color}
                           />
                         ))}
